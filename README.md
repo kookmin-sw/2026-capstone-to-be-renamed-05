@@ -1,6 +1,15 @@
 [![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/Lvs6kcL8)
 # Welcome to GitHub
 
+## Project Docs (for Team + AI Sessions)
+
+- Docs index: `docs/README.md`
+- Product spec (KR): `docs/PRODUCT_SPEC_KO.md`
+- Overview: `docs/PROJECT_OVERVIEW.md`
+- Architecture: `docs/ARCHITECTURE.md`
+- AI handoff: `docs/AI_HANDOFF.md`
+- ADRs: `docs/adr/`
+
 캡스톤 팀 생성을 축하합니다.
 
 ## 팀소개 및 페이지를 꾸며주세요.

@@ -25,9 +25,13 @@ import {
   Send,
   Trash2,
 } from "lucide-react";
-import Link from "next/link";
 import { type FormEvent, type ReactNode, useEffect, useState } from "react";
 import { SiteNav } from "@/components/site-nav";
+import {
+  ActionButton,
+  ActionLink,
+  actionButtonClassName,
+} from "@/components/ui/action-button";
 import {
   cancelCompanyJobSubmission,
   deleteCompanyJob,
@@ -46,6 +50,8 @@ import {
   kicpaLabels,
   traineeLabels,
 } from "@/lib/labels";
+import { cn } from "@/lib/utils";
+import styles from "./company-page.module.css";
 
 type JobForm = {
   title: string;
@@ -227,8 +233,8 @@ export default function CompanyPage() {
     return (
       <>
         <SiteNav />
-        <main className="min-h-screen bg-[var(--background)] px-5 py-8">
-          <div className="mx-auto max-w-6xl text-sm text-[var(--app-muted)]">
+        <main className={styles.page}>
+          <div className={styles.loadingText}>
             기업 공고 관리 정보를 불러오는 중입니다.
           </div>
         </main>
@@ -240,16 +246,13 @@ export default function CompanyPage() {
     return (
       <>
         <SiteNav />
-        <main className="min-h-screen bg-[var(--background)] px-5 py-8">
-          <div className="mx-auto max-w-3xl border border-[var(--app-line)] bg-white p-6">
-            <h1 className="text-xl font-bold">기업 관리</h1>
-            <p className="mt-3 text-sm text-red-600">{message}</p>
-            <Link
-              href="/login"
-              className="mt-5 inline-flex rounded-lg bg-[var(--proto-brand)] px-4 py-2 text-sm font-semibold text-white"
-            >
+        <main className={styles.page}>
+          <div className={styles.authCard}>
+            <h1 className={styles.authTitle}>기업 관리</h1>
+            <p className={styles.authError}>{message}</p>
+            <ActionLink href="/login" className={styles.authAction}>
               로그인
-            </Link>
+            </ActionLink>
           </div>
         </main>
       </>
@@ -270,36 +273,31 @@ export default function CompanyPage() {
   return (
     <>
       <SiteNav />
-      <main className="min-h-screen bg-[var(--background)] px-5 py-8">
-        <div className="mx-auto grid max-w-7xl gap-6">
-          <header className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--app-line)] pb-5">
+      <main className={styles.page}>
+        <div className={styles.container}>
+          <header className={styles.header}>
             <div>
-              <p className="text-sm font-semibold text-[var(--proto-brand)]">
-                기업 공고 관리
-              </p>
-              <h1 className="mt-1 text-3xl font-black tracking-tight text-gray-950">
-                {company.name}
-              </h1>
-              <p className="mt-2 text-sm text-[var(--app-muted)]">
+              <p className={styles.eyebrow}>기업 공고 관리</p>
+              <h1 className={styles.title}>{company.name}</h1>
+              <p className={styles.description}>
                 {companyTypeLabels[company.type]} · 공개 {openJobs.length}건 ·
                 삭제 {closedJobs.length}건
               </p>
             </div>
-            <Link
+            <ActionLink
               href={`/companies/${company.id}`}
-              className="rounded-lg border border-[var(--app-line)] bg-white px-4 py-2 text-sm font-semibold"
+              variant="subtle"
+              size="md"
             >
               공개 페이지
-            </Link>
+            </ActionLink>
           </header>
 
           {message && (
-            <div className="border border-[var(--app-line)] bg-white px-4 py-3 text-sm">
-              {message}
-            </div>
+            <div className={styles.message}>{message}</div>
           )}
 
-          <section className="grid gap-4 md:grid-cols-3">
+          <section className={styles.metricGrid}>
             <Metric label="게시 중" value={`${openJobs.length}건`} />
             <Metric label="삭제 처리" value={`${closedJobs.length}건`} />
             <Metric
@@ -308,7 +306,7 @@ export default function CompanyPage() {
             />
           </section>
 
-          <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <section className={styles.managementGrid}>
             <JobSubmissionForm
               editingJob={editingJob}
               editingSubmission={editingSubmission}
@@ -320,14 +318,14 @@ export default function CompanyPage() {
             <SubmissionPanel submissions={jobSubmissions} />
           </section>
 
-          <section className="grid gap-4">
+          <section className={styles.sectionStack}>
             <SectionTitle
               icon={<BriefcaseBusiness size={19} />}
               title="내가 게시한 공고"
               aside={`${managedItemCount}건`}
             />
             {managedItemCount ? (
-              <div className="grid gap-3">
+              <div className={styles.itemList}>
                 {pendingCreateSubmissions.map((submission) => (
                   <RequestedJobCard
                     key={submission.id}
@@ -350,7 +348,7 @@ export default function CompanyPage() {
                 ))}
               </div>
             ) : (
-              <div className="border border-[var(--app-line)] bg-white p-5 text-sm text-[var(--app-muted)]">
+              <div className={styles.emptyPanel}>
                 아직 게시된 공고가 없습니다. 위 폼에서 신규 공고를 요청하세요.
               </div>
             )}
@@ -379,10 +377,7 @@ function JobSubmissionForm({
   const mode = editingSubmission ? "submission" : editingJob ? "job" : "new";
 
   return (
-    <form
-      className="grid gap-4 border border-[var(--app-line)] bg-white p-5"
-      onSubmit={onSubmit}
-    >
+    <form className={styles.form} onSubmit={onSubmit}>
       <SectionTitle
         icon={
           mode === "new" ? (
@@ -407,12 +402,12 @@ function JobSubmissionForm({
         }
       />
       {(editingJob || editingSubmission) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border border-[var(--proto-brand-mid)] bg-[var(--proto-brand-light)] px-3 py-2 text-sm">
-          <span className="font-semibold text-gray-900">
+        <div className={styles.editNotice}>
+          <span className={styles.editTarget}>
             수정 대상: {editingSubmission?.title ?? editingJob?.title}
           </span>
           <button
-            className="text-sm font-bold text-[var(--proto-brand)]"
+            className={styles.textButton}
             type="button"
             onClick={onCancelEdit}
           >
@@ -420,7 +415,7 @@ function JobSubmissionForm({
           </button>
         </div>
       )}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className={styles.formGrid}>
         <Field label="공고명">
           <input
             className="form-input"
@@ -538,7 +533,7 @@ function JobSubmissionForm({
       </div>
       <Field label="공고 내용">
         <textarea
-          className="form-input min-h-32"
+          className={cn("form-input", styles.descriptionInput)}
           required
           value={form.description}
           onChange={(event) =>
@@ -546,14 +541,17 @@ function JobSubmissionForm({
           }
         />
       </Field>
-      <button className="inline-flex w-fit items-center gap-2 rounded-lg bg-[var(--proto-brand)] px-4 py-2 text-sm font-bold text-white">
-        <Send size={16} />
+      <ActionButton
+        type="submit"
+        className={styles.fitAction}
+        iconStart={<Send size={16} />}
+      >
         {mode === "submission"
           ? "요청 수정"
           : mode === "job"
             ? "수정 요청"
             : "게시 요청"}
-      </button>
+      </ActionButton>
     </form>
   );
 }
@@ -568,41 +566,41 @@ function RequestedJobCard({
   onCancel: () => void;
 }) {
   return (
-    <article className="border border-[var(--proto-brand-mid)] bg-[var(--proto-brand-light)] p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
+    <article className={styles.requestCard}>
+      <div className={styles.cardHeader}>
+        <div className={styles.cardMain}>
+          <div className={styles.badgeRow}>
             <Badge tone="brand">게시 요청 검수 대기</Badge>
           </div>
-          <h3 className="mt-2 text-lg font-black text-gray-950">
-            {submission.title}
-          </h3>
-          <p className="mt-1 text-sm text-[var(--app-muted)]">
+          <h3 className={styles.cardTitle}>{submission.title}</h3>
+          <p className={styles.cardMeta}>
             {jobFamilyLabels[submission.jobFamily]} ·{" "}
             {employmentLabels[submission.employmentType]} ·{" "}
             {submission.location ?? "지역 불명확"}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            className="inline-flex items-center gap-2 rounded-lg border border-[var(--proto-brand-mid)] bg-white px-3 py-2 text-sm font-semibold"
+        <div className={styles.actionGroup}>
+          <ActionButton
+            variant="outline"
+            size="sm"
             type="button"
+            iconStart={<PencilLine size={15} />}
             onClick={onEdit}
           >
-            <PencilLine size={15} />
             요청 수정
-          </button>
-          <button
-            className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm font-bold text-white"
+          </ActionButton>
+          <ActionButton
+            variant="primary"
+            size="sm"
             type="button"
+            iconStart={<Trash2 size={15} />}
             onClick={onCancel}
           >
-            <Trash2 size={15} />
             요청 취소
-          </button>
+          </ActionButton>
         </div>
       </div>
-      <div className="mt-4 grid gap-2 text-sm md:grid-cols-3 xl:grid-cols-6">
+      <div className={styles.infoGrid}>
         <Info label="KICPA" value={kicpaLabels[submission.kicpaCondition]} />
         <Info label="수습" value={traineeLabels[submission.traineeStatus]} />
         <Info
@@ -642,75 +640,85 @@ function ManagedJobCard({
   const isOpen = job.status === "OPEN";
   const pendingEdit = job.pendingEditSubmission;
   return (
-    <article className="border border-[var(--app-line)] bg-white p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
+    <article className={styles.jobCard}>
+      <div className={styles.cardHeader}>
+        <div className={styles.cardMain}>
+          <div className={styles.badgeRow}>
             <Badge tone={isOpen ? "brand" : "muted"}>
               {isOpen ? "게시 중" : "삭제 처리"}
             </Badge>
             {pendingEdit && <Badge tone="brand">수정 검수 대기</Badge>}
           </div>
-          <h3 className="mt-2 text-lg font-black text-gray-950">{job.title}</h3>
-          <p className="mt-1 text-sm text-[var(--app-muted)]">
+          <h3 className={styles.cardTitle}>{job.title}</h3>
+          <p className={styles.cardMeta}>
             {jobFamilyLabels[job.jobFamily]} ·{" "}
             {employmentLabels[job.employmentType]} ·{" "}
             {job.location ?? "지역 불명확"}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className={styles.actionGroup}>
           {isOpen ? (
-            <Link
-              className="rounded-lg border border-[var(--app-line)] px-3 py-2 text-sm font-semibold"
+            <ActionLink
+              variant="subtle"
+              size="sm"
               href={`/jobs/${job.id}`}
             >
               보기
-            </Link>
+            </ActionLink>
           ) : (
-            <span className="rounded-lg border border-[var(--app-line)] px-3 py-2 text-sm font-semibold text-[var(--app-muted)]">
+            <span
+              className={cn(
+                actionButtonClassName({ variant: "subtle", size: "sm" }),
+                styles.disabledAction,
+              )}
+            >
               비공개
             </span>
           )}
-          <button
-            className="inline-flex items-center gap-2 rounded-lg border border-[var(--app-line)] px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+          <ActionButton
+            variant="subtle"
+            size="sm"
             disabled={!isOpen || Boolean(pendingEdit)}
             type="button"
+            iconStart={<PencilLine size={15} />}
             onClick={onEdit}
           >
-            <PencilLine size={15} />
             수정 요청
-          </button>
+          </ActionButton>
           {pendingEdit && (
             <>
-              <button
-                className="inline-flex items-center gap-2 rounded-lg border border-[var(--proto-brand-mid)] px-3 py-2 text-sm font-semibold text-[var(--proto-brand)]"
+              <ActionButton
+                variant="outline"
+                size="sm"
                 type="button"
+                iconStart={<PencilLine size={15} />}
                 onClick={() => onEditPending(pendingEdit)}
               >
-                <PencilLine size={15} />
                 요청 수정
-              </button>
-              <button
-                className="inline-flex items-center gap-2 rounded-lg border border-[var(--app-line)] px-3 py-2 text-sm font-semibold"
+              </ActionButton>
+              <ActionButton
+                variant="subtle"
+                size="sm"
                 type="button"
                 onClick={() => onCancelPending(pendingEdit)}
               >
                 요청 취소
-              </button>
+              </ActionButton>
             </>
           )}
-          <button
-            className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
+          <ActionButton
+            variant="primary"
+            size="sm"
             disabled={!isOpen}
             type="button"
+            iconStart={<Trash2 size={15} />}
             onClick={onClose}
           >
-            <Trash2 size={15} />
             삭제
-          </button>
+          </ActionButton>
         </div>
       </div>
-      <div className="mt-4 grid gap-2 text-sm md:grid-cols-3 xl:grid-cols-6">
+      <div className={styles.infoGrid}>
         <Info label="KICPA" value={kicpaLabels[job.kicpaCondition]} />
         <Info label="수습" value={traineeLabels[job.traineeStatus]} />
         <Info
@@ -740,13 +748,13 @@ function SubmissionPanel({
   submissions: JobSubmissionItem[];
 }) {
   return (
-    <aside className="border border-[var(--app-line)] bg-white p-5">
+    <aside className={styles.historyPanel}>
       <SectionTitle
         icon={<CheckCircle2 size={19} />}
         title="요청 이력"
         aside={`${submissions.length.toLocaleString("ko-KR")}건`}
       />
-      <div className="mt-4 grid gap-3">
+      <div className={styles.historyList}>
         {submissions.length ? (
           submissions
             .slice(0, 10)
@@ -764,9 +772,7 @@ function SubmissionPanel({
               />
             ))
         ) : (
-          <p className="text-sm text-[var(--app-muted)]">
-            요청 이력이 없습니다.
-          </p>
+          <p className={styles.mutedText}>요청 이력이 없습니다.</p>
         )}
       </div>
     </aside>
@@ -775,9 +781,9 @@ function SubmissionPanel({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border border-[var(--app-line)] bg-white p-4">
-      <p className="text-xs font-semibold text-[var(--app-muted)]">{label}</p>
-      <p className="mt-2 text-2xl font-black text-gray-950">{value}</p>
+    <div className={styles.metric}>
+      <p className={styles.metricLabel}>{label}</p>
+      <p className={styles.metricValue}>{value}</p>
     </div>
   );
 }
@@ -792,21 +798,19 @@ function SectionTitle({
   aside: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <h2 className="flex items-center gap-2 text-lg font-black text-gray-950">
+    <div className={styles.sectionTitle}>
+      <h2 className={styles.sectionHeading}>
         {icon}
         {title}
       </h2>
-      <span className="rounded-full border border-[var(--app-line)] px-3 py-1 text-xs font-bold text-[var(--app-muted)]">
-        {aside}
-      </span>
+      <span className={styles.sectionCount}>{aside}</span>
     </div>
   );
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="grid gap-2 text-sm font-semibold text-gray-700">
+    <label className={styles.field}>
       {label}
       {children}
     </label>
@@ -855,14 +859,12 @@ function StatusRow({
   meta: string;
 }) {
   return (
-    <div className="border border-[var(--app-line)] px-3 py-3">
-      <div className="flex items-start justify-between gap-3">
-        <p className="min-w-0 text-sm font-bold text-gray-900">{title}</p>
-        <span className="shrink-0 text-xs font-black text-[var(--proto-brand)]">
-          {statusLabel(status)}
-        </span>
+    <div className={styles.statusRow}>
+      <div className={styles.statusRowHeader}>
+        <p className={styles.statusTitle}>{title}</p>
+        <span className={styles.statusValue}>{statusLabel(status)}</span>
       </div>
-      <p className="mt-1 text-xs text-[var(--app-muted)]">
+      <p className={styles.statusMeta}>
         {type === "UPDATE" ? "수정 요청" : "신규 게시"} · {meta}
       </p>
     </div>
@@ -871,11 +873,9 @@ function StatusRow({
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border border-[var(--app-line)] bg-[#fbfbf8] px-3 py-2">
-      <p className="text-xs font-semibold text-[var(--app-muted)]">{label}</p>
-      <p className="mt-1 break-words text-sm font-bold text-gray-950">
-        {value}
-      </p>
+    <div className={styles.info}>
+      <p className={styles.infoLabel}>{label}</p>
+      <p className={styles.infoValue}>{value}</p>
     </div>
   );
 }
@@ -889,14 +889,10 @@ function Badge({
 }) {
   return (
     <span
-      className="rounded-full border px-2.5 py-1 text-xs font-black"
-      style={{
-        background:
-          tone === "brand" ? "var(--proto-brand-light)" : "transparent",
-        borderColor:
-          tone === "brand" ? "var(--proto-brand-mid)" : "var(--app-line)",
-        color: tone === "brand" ? "var(--proto-brand)" : "var(--app-muted)",
-      }}
+      className={cn(
+        styles.badge,
+        tone === "brand" ? styles.badgeBrand : styles.badgeMuted,
+      )}
     >
       {children}
     </span>

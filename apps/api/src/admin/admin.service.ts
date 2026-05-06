@@ -6,12 +6,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  CompanyType,
   JobStatus,
   Prisma,
   SubmissionStatus,
   SubmissionType,
+  UserRole,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateJobDto } from './dto/create-job.dto';
 
 const jobSubmissionInclude = {
   company: { select: { id: true, name: true, type: true } },
@@ -34,9 +37,203 @@ type ProfileSubmissionRecord = Prisma.CompanyProfileSubmissionGetPayload<{
   include: typeof profileSubmissionInclude;
 }>;
 
+const adminJobInclude = {
+  company: true,
+  source: true,
+} satisfies Prisma.JobInclude;
+
+const adminCompanyInclude = {
+  _count: { select: { jobs: true } },
+} satisfies Prisma.CompanyInclude;
+
+type AdminJobRecord = Prisma.JobGetPayload<{ include: typeof adminJobInclude }>;
+type AdminCompanyRecord = Prisma.CompanyGetPayload<{
+  include: typeof adminCompanyInclude;
+}>;
+
 @Injectable()
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async dashboard() {
+    const [
+      jobs,
+      companies,
+      members,
+      openJobs,
+      closedJobs,
+      draftJobs,
+      recentJobs,
+      recentCompanies,
+    ] = await this.prisma.$transaction([
+      this.prisma.job.count(),
+      this.prisma.company.count(),
+      this.prisma.user.count(),
+      this.prisma.job.count({ where: { status: JobStatus.OPEN } }),
+      this.prisma.job.count({ where: { status: JobStatus.CLOSED } }),
+      this.prisma.job.count({ where: { status: JobStatus.DRAFT } }),
+      this.prisma.job.findMany({
+        include: adminJobInclude,
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+      this.prisma.company.findMany({
+        include: adminCompanyInclude,
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+    ]);
+
+    const jobsByStatus = {
+      [JobStatus.OPEN]: openJobs,
+      [JobStatus.CLOSED]: closedJobs,
+      [JobStatus.DRAFT]: draftJobs,
+    };
+
+    return {
+      counts: {
+        jobs,
+        companies,
+        members,
+        jobsByStatus,
+      },
+      recentJobs: recentJobs.map((job) => this.toAdminJob(job)),
+      recentCompanies: recentCompanies.map((company) =>
+        this.toAdminCompany(company),
+      ),
+    };
+  }
+
+  async listSources() {
+    const items = await this.prisma.source.findMany({
+      orderBy: { name: 'asc' },
+    });
+    return { items };
+  }
+
+  async listJobs(query: Record<string, string | undefined>) {
+    const { page, pageSize } = this.parsePagination(query);
+    const where = this.buildAdminJobWhere(query);
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.job.findMany({
+        where,
+        include: adminJobInclude,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.job.count({ where }),
+    ]);
+
+    return {
+      items: items.map((job) => this.toAdminJob(job)),
+      page,
+      pageSize,
+      total,
+    };
+  }
+
+  async getJob(id: string) {
+    const job = await this.prisma.job.findUnique({
+      where: { id },
+      include: adminJobInclude,
+    });
+    if (!job) throw new NotFoundException('Job not found.');
+    return this.toAdminJob(job);
+  }
+
+  async createJob(dto: CreateJobDto) {
+    const job = await this.prisma.job.create({
+      data: this.toJobWriteData(dto),
+      include: adminJobInclude,
+    });
+    return this.toAdminJob(job);
+  }
+
+  async updateJob(id: string, dto: CreateJobDto) {
+    const job = await this.prisma.job.update({
+      where: { id },
+      data: this.toJobWriteData(dto),
+      include: adminJobInclude,
+    });
+    return this.toAdminJob(job);
+  }
+
+  async updateJobStatus(id: string, status: JobStatus | undefined) {
+    if (!status || !this.isJobStatus(status)) {
+      throw new BadRequestException('Valid job status is required.');
+    }
+
+    const job = await this.prisma.job.update({
+      where: { id },
+      data: { status },
+      include: adminJobInclude,
+    });
+    return this.toAdminJob(job);
+  }
+
+  async listCompanies(query: Record<string, string | undefined>) {
+    const { page, pageSize } = this.parsePagination(query);
+    const where = this.buildAdminCompanyWhere(query);
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.company.findMany({
+        where,
+        include: adminCompanyInclude,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.company.count({ where }),
+    ]);
+
+    return {
+      items: items.map((company) => this.toAdminCompany(company)),
+      page,
+      pageSize,
+      total,
+    };
+  }
+
+  async getCompany(id: string) {
+    const company = await this.prisma.company.findUnique({
+      where: { id },
+      include: adminCompanyInclude,
+    });
+    if (!company) throw new NotFoundException('Company not found.');
+    return this.toAdminCompany(company);
+  }
+
+  async listMembers(query: Record<string, string | undefined>) {
+    const { page, pageSize } = this.parsePagination(query);
+    const where = this.buildAdminMemberWhere(query);
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.user.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      items: items.map((member) => ({
+        id: member.id,
+        username: member.username,
+        displayName: member.displayName,
+        role: member.role,
+        accountStatus: 'ACTIVE',
+        createdAt: member.createdAt.toISOString(),
+        updatedAt: member.updatedAt.toISOString(),
+      })),
+      page,
+      pageSize,
+      total,
+    };
+  }
 
   async listJobSubmissions() {
     const items = await this.prisma.jobSubmission.findMany({
@@ -389,6 +586,162 @@ export class AdminService {
       updatedAt: submission.updatedAt.toISOString(),
       reviewedAt: submission.reviewedAt?.toISOString() ?? null,
     };
+  }
+
+  private toAdminJob(job: AdminJobRecord) {
+    return {
+      id: job.id,
+      title: job.title,
+      description: job.description,
+      companyId: job.companyId,
+      companyName: job.company.name,
+      sourceId: job.sourceId,
+      sourceName: job.source.name,
+      originalUrl: job.originalUrl,
+      jobFamily: job.jobFamily,
+      employmentType: job.employmentType,
+      companyType: job.companyType,
+      kicpaCondition: job.kicpaCondition,
+      traineeStatus: job.traineeStatus,
+      practicalTrainingInstitution: job.practicalTrainingInstitution,
+      minExperienceYears: job.minExperienceYears,
+      maxExperienceYears: job.maxExperienceYears,
+      location: job.location,
+      deadlineType: job.deadlineType,
+      deadline: job.deadline?.toISOString() ?? null,
+      status: job.status,
+      lastCheckedAt: job.lastCheckedAt.toISOString(),
+      createdAt: job.createdAt.toISOString(),
+      updatedAt: job.updatedAt.toISOString(),
+    };
+  }
+
+  private toAdminCompany(company: AdminCompanyRecord) {
+    return {
+      id: company.id,
+      name: company.name,
+      type: company.type,
+      websiteUrl: company.websiteUrl,
+      logoUrl: company.logoUrl,
+      description: company.description,
+      businessNumber: company.businessNumber,
+      externalLinks: company.externalLinks,
+      tags: company.tags,
+      employeeCount: company.employeeCount,
+      averageSalary: company.averageSalary,
+      foundedYear: company.foundedYear,
+      recentAttritionRate: company.recentAttritionRate,
+      jobCount: company._count.jobs,
+      createdAt: company.createdAt.toISOString(),
+      updatedAt: company.updatedAt.toISOString(),
+    };
+  }
+
+  private parsePagination(query: Record<string, string | undefined>) {
+    return {
+      page: this.clampNumber(query.page, 1, 1, 10_000),
+      pageSize: this.clampNumber(query.pageSize, 20, 1, 100),
+    };
+  }
+
+  private clampNumber(
+    raw: string | undefined,
+    fallback: number,
+    min: number,
+    max: number,
+  ) {
+    const number = Number(raw);
+    if (!Number.isInteger(number)) return fallback;
+    return Math.min(max, Math.max(min, number));
+  }
+
+  private buildAdminJobWhere(query: Record<string, string | undefined>) {
+    const where: Prisma.JobWhereInput = {};
+    const search = query.search?.trim();
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { company: { name: { contains: search, mode: 'insensitive' } } },
+        { source: { name: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+    if (query.companyId) where.companyId = query.companyId;
+    if (query.status && this.isJobStatus(query.status)) {
+      where.status = query.status;
+    }
+    return where;
+  }
+
+  private buildAdminCompanyWhere(query: Record<string, string | undefined>) {
+    const where: Prisma.CompanyWhereInput = {};
+    const search = query.search?.trim();
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { tags: { has: search } },
+      ];
+    }
+    if (query.companyType && this.isCompanyType(query.companyType)) {
+      where.type = query.companyType;
+    }
+    return where;
+  }
+
+  private buildAdminMemberWhere(query: Record<string, string | undefined>) {
+    const where: Prisma.UserWhereInput = {};
+    const search = query.search?.trim();
+    if (search) {
+      where.OR = [
+        { username: { contains: search, mode: 'insensitive' } },
+        { displayName: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    if (query.role && this.isUserRole(query.role)) where.role = query.role;
+    return where;
+  }
+
+  private toJobWriteData(dto: CreateJobDto) {
+    return {
+      title: dto.title,
+      description: dto.description,
+      companyId: dto.companyId,
+      sourceId: dto.sourceId,
+      originalUrl: dto.originalUrl,
+      jobFamily: dto.jobFamily,
+      employmentType: dto.employmentType,
+      companyType: dto.companyType,
+      kicpaCondition: dto.kicpaCondition,
+      traineeStatus: dto.traineeStatus,
+      practicalTrainingInstitution: dto.practicalTrainingInstitution ?? null,
+      minExperienceYears: dto.minExperienceYears ?? null,
+      maxExperienceYears: dto.maxExperienceYears ?? null,
+      location: dto.location ?? null,
+      deadlineType: dto.deadlineType,
+      deadline: dto.deadline ? new Date(dto.deadline) : null,
+      status: dto.status ?? JobStatus.OPEN,
+      lastCheckedAt: new Date(),
+    };
+  }
+
+  private emptyJobStatusCounts() {
+    return Object.values(JobStatus).reduce(
+      (counts, status) => ({ ...counts, [status]: 0 }),
+      {} as Record<JobStatus, number>,
+    );
+  }
+
+  private isJobStatus(status: string): status is JobStatus {
+    return Object.values(JobStatus).includes(status as JobStatus);
+  }
+
+  private isCompanyType(type: string): type is CompanyType {
+    return Object.values(CompanyType).includes(type as CompanyType);
+  }
+
+  private isUserRole(role: string): role is UserRole {
+    return Object.values(UserRole).includes(role as UserRole);
   }
 
   private optionalTrimmed(value: string | undefined) {

@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -35,28 +36,34 @@ export class AdminController {
     return { ok: true, area: 'admin' };
   }
 
+  @Get('dashboard')
+  dashboard() {
+    return this.adminService.dashboard();
+  }
+
+  @Get('sources')
+  listSources() {
+    return this.adminService.listSources();
+  }
+
+  @Get('jobs')
+  listJobs(@Query() query: Record<string, string | undefined>) {
+    return this.adminService.listJobs(query);
+  }
+
+  @Get('jobs/:id')
+  getJob(@Param('id') id: string) {
+    return this.adminService.getJob(id);
+  }
+
   @Post('jobs')
   createJob(@Body() dto: CreateJobDto) {
-    return this.prisma.job.create({
-      data: {
-        title: dto.title,
-        description: dto.description,
-        companyId: dto.companyId,
-        sourceId: dto.sourceId,
-        originalUrl: dto.originalUrl,
-        jobFamily: dto.jobFamily,
-        employmentType: dto.employmentType,
-        companyType: dto.companyType,
-        kicpaCondition: dto.kicpaCondition,
-        traineeStatus: dto.traineeStatus,
-        practicalTrainingInstitution: dto.practicalTrainingInstitution,
-        minExperienceYears: dto.minExperienceYears,
-        location: dto.location,
-        deadlineType: dto.deadlineType,
-        deadline: dto.deadline ? new Date(dto.deadline) : null,
-        lastCheckedAt: new Date(),
-      },
-    });
+    return this.adminService.createJob(dto);
+  }
+
+  @Patch('jobs/:id')
+  updateJob(@Param('id') id: string, @Body() dto: CreateJobDto) {
+    return this.adminService.updateJob(id, dto);
   }
 
   @Patch('jobs/:id/close')
@@ -65,6 +72,29 @@ export class AdminController {
       where: { id },
       data: { status: JobStatus.CLOSED },
     });
+  }
+
+  @Patch('jobs/:id/status')
+  updateJobStatus(
+    @Param('id') id: string,
+    @Body() body: { status?: JobStatus },
+  ) {
+    return this.adminService.updateJobStatus(id, body.status);
+  }
+
+  @Get('companies')
+  listCompanies(@Query() query: Record<string, string | undefined>) {
+    return this.adminService.listCompanies(query);
+  }
+
+  @Get('companies/:id')
+  getCompany(@Param('id') id: string) {
+    return this.adminService.getCompany(id);
+  }
+
+  @Get('members')
+  listMembers(@Query() query: Record<string, string | undefined>) {
+    return this.adminService.listMembers(query);
   }
 
   @Get('job-submissions')

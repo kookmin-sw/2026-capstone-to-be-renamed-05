@@ -4,6 +4,7 @@ import {
   DeadlineType,
   EmploymentType,
   JobFamily,
+  JobStatus,
   KicpaCondition,
   TraineeStatus,
 } from '@prisma/client';
@@ -74,6 +75,12 @@ export class CreateJobDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsInt()
+  @Min(0)
+  maxExperienceYears?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   location?: string;
 
@@ -85,4 +92,9 @@ export class CreateJobDto {
   @IsOptional()
   @IsISO8601()
   deadline?: string;
+
+  @ApiPropertyOptional({ enum: JobStatus })
+  @IsOptional()
+  @IsEnum(JobStatus)
+  status?: JobStatus;
 }

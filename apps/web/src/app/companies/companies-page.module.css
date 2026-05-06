@@ -1,0 +1,154 @@
+.brandText,
+.brandIcon {
+  color: var(--brand);
+}
+
+.filterHeaderButton {
+  justify-content: flex-start;
+  padding-left: 0;
+}
+
+.companyCard {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.companyCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+.banner {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: 6rem;
+  background:
+    radial-gradient(circle at 90% 12%, rgba(232, 69, 122, 0.12), transparent 8rem),
+    var(--gray-50);
+  padding: 1rem 1.25rem 0.75rem;
+}
+
+.openBadge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  padding: 0.125rem 0.65rem;
+  font-size: 0.6875rem;
+  font-weight: 900;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--brand);
+  color: var(--brand-foreground);
+  box-shadow: var(--shadow-md);
+  font-size: 1.125rem;
+  font-weight: 900;
+}
+
+.logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 1.25rem;
+}
+
+.typeBadge {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  padding: 0.125rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.title {
+  margin-top: 0.65rem;
+  color: var(--gray-900);
+  font-size: 0.925rem;
+  font-weight: 800;
+}
+
+.description {
+  display: -webkit-box;
+  min-height: 2.5rem;
+  margin-top: 0.35rem;
+  overflow: hidden;
+  color: var(--gray-600);
+  font-size: 0.75rem;
+  line-height: 1.65;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.factGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin: 0.9rem 0;
+  color: var(--gray-600);
+  font-size: 0.75rem;
+}
+
+.fact {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.fact svg {
+  flex: none;
+  color: var(--brand);
+}
+
+.fact span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.9rem;
+}
+
+.tag {
+  border-radius: var(--radius-md);
+  background: var(--gray-100);
+  color: var(--gray-600);
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.cardAction {
+  margin-top: auto;
+}

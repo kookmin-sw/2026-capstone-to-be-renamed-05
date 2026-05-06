@@ -1,17 +1,22 @@
 "use client";
 
 import type { CompanyListItem } from "@cpa/shared";
-import { ArrowRight, RefreshCw, Search, SlidersHorizontal } from "lucide-react";
-import Link from "next/link";
+import {
+  ArrowRight,
+  Building2,
+  CircleDollarSign,
+  RefreshCw,
+  Search,
+  SlidersHorizontal,
+  TrendingDown,
+  Users,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { SiteNav } from "@/components/site-nav";
+import { ActionButton, ActionLink } from "@/components/ui/action-button";
 import { fetchCompanies } from "@/lib/api";
 import { companyTypeLabels } from "@/lib/labels";
-
-const openJobLabels = {
-  true: "채용 중",
-  false: "공고 없음",
-};
+import styles from "./companies-page.module.css";
 
 const companySortLabels = {
   name: "회사명순",
@@ -19,10 +24,6 @@ const companySortLabels = {
   averageSalaryDesc: "평균연봉 높은순",
   companyAgeDesc: "업력 높은순",
 };
-
-function bannerGradient(_name: string) {
-  return "#F7F7F7";
-}
 
 export default function CompaniesPage() {
   const [companies, setCompanies] = useState<CompanyListItem[]>([]);
@@ -77,7 +78,6 @@ export default function CompaniesPage() {
 
   useEffect(() => {
     let ignore = false;
-    setCompaniesLoading(true);
     fetchCompanies(companyParams)
       .then((data) => {
         if (!ignore) {
@@ -125,13 +125,12 @@ export default function CompaniesPage() {
                 className="w-full rounded-xl border border-[var(--app-line)] bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-[var(--brand)]"
               />
             </div>
-            <button
+            <ActionButton
               type="button"
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--proto-brand)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[var(--brand-strong)] hover:shadow-md"
+              iconStart={<Search size={15} />}
             >
-              <Search size={15} />
               검색
-            </button>
+            </ActionButton>
             <select
               value={companySort}
               onChange={(e) => setCompanySort(e.target.value)}
@@ -151,22 +150,21 @@ export default function CompaniesPage() {
           <div className="rounded-2xl border border-[var(--app-line)] bg-white">
             {/* 필터 헤더 */}
             <div className="flex items-center justify-between px-5 py-3">
-              <button
+              <ActionButton
                 type="button"
                 onClick={() => setFilterOpen((prev) => !prev)}
-                className="inline-flex items-center gap-2 text-sm font-bold text-gray-700"
+                variant="ghost"
+                size="sm"
+                className={styles.filterHeaderButton}
+                iconStart={<SlidersHorizontal size={15} />}
               >
-                <SlidersHorizontal
-                  size={15}
-                  style={{ color: "var(--proto-brand)" }}
-                />
                 필터
                 <span className="text-xs font-medium text-gray-400">
                   {filterOpen ? "필터 닫기 ∧" : "필터 열기 ∨"}
                 </span>
-              </button>
+              </ActionButton>
               {filterOpen && (
-                <button
+                <ActionButton
                   type="button"
                   onClick={() => {
                     setCompanyListType("");
@@ -180,11 +178,12 @@ export default function CompaniesPage() {
                     setCompanyMaxAgeYears("");
                     setCompanyMaxAttritionRate("");
                   }}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-gray-600"
+                  variant="ghost"
+                  size="sm"
+                  iconStart={<RefreshCw size={12} />}
                 >
-                  <RefreshCw size={12} />
                   필터 초기화
-                </button>
+                </ActionButton>
               )}
             </div>
 
@@ -344,7 +343,7 @@ export default function CompaniesPage() {
           </span>
           <span>
             채용 중{" "}
-            <strong style={{ color: "var(--proto-brand)" }}>
+            <strong className={styles.brandText}>
               {companyOpenTotal.toLocaleString("ko-KR")}
             </strong>
             개
@@ -391,32 +390,21 @@ export default function CompaniesPage() {
 
 function CompanyCard({ company }: { company: CompanyListItem }) {
   const initial = company.name.charAt(0);
-  const gradient = bannerGradient(company.name);
   const hasJobs = company.openJobCount > 0;
 
   return (
-    <article className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-md transition-all hover:-translate-y-1 hover:shadow-xl">
-      {/* Banner */}
-      <div
-        className="relative flex h-24 items-end px-5 pb-3"
-        style={{ background: gradient }}
-      >
+    <article className={styles.companyCard}>
+      <div className={styles.banner}>
         {hasJobs && (
-          <span
-            className="absolute right-3 top-3 rounded-full bg-pink-50 px-2.5 py-0.5 text-[11px] font-bold text-pink-600"
-          >
+          <span className={styles.openBadge}>
             채용 중 {company.openJobCount}
           </span>
         )}
-        <div
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-lg font-black text-white shadow-md"
-          style={{ background: "var(--proto-brand)" }}
-        >
+        <div className={styles.logo}>
           {company.logoUrl ? (
             <img
               src={company.logoUrl}
               alt={company.name}
-              className="h-full w-full rounded-xl object-cover"
             />
           ) : (
             initial
@@ -424,35 +412,36 @@ function CompanyCard({ company }: { company: CompanyListItem }) {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col p-5">
-        <div className="mb-2.5">
-          <span className="rounded-full bg-pink-50 px-2.5 py-0.5 text-xs font-semibold text-pink-600">
-            {companyTypeLabels[company.type]}
-          </span>
-        </div>
-        <h3 className="mb-1 text-sm font-semibold text-gray-900">{company.name}</h3>
-        <p className="mb-3 line-clamp-2 min-h-[2.5rem] text-xs leading-relaxed text-gray-500">
+      <div className={styles.body}>
+        <span className={styles.typeBadge}>{companyTypeLabels[company.type]}</span>
+        <h3 className={styles.title}>{company.name}</h3>
+        <p className={styles.description}>
           {company.description ?? "회사 소개가 준비 중입니다."}
         </p>
 
-        <div className="mb-3 grid grid-cols-2 gap-1.5 text-xs text-gray-500">
-          <span>🏢 {formatCompanyAge(company.foundedYear)}</span>
-          <span>
-            👥{" "}
-            {company.employeeCount
-              ? `${company.employeeCount.toLocaleString("ko-KR")}명`
-              : "미공개"}
-          </span>
-          <span>💰 {formatSalary(company.averageSalary)}</span>
-          <span>📉 퇴사율 {formatRate(company.recentAttritionRate)}</span>
+        <div className={styles.factGrid}>
+          <CompanyFact icon={Building2} text={formatCompanyAge(company.foundedYear)} />
+          <CompanyFact
+            icon={Users}
+            text={
+              company.employeeCount
+                ? `${company.employeeCount.toLocaleString("ko-KR")}명`
+                : "미공개"
+            }
+          />
+          <CompanyFact icon={CircleDollarSign} text={formatSalary(company.averageSalary)} />
+          <CompanyFact
+            icon={TrendingDown}
+            text={`퇴사율 ${formatRate(company.recentAttritionRate)}`}
+          />
         </div>
 
         {company.tags.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-1">
+          <div className={styles.tags}>
             {company.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-500"
+                className={styles.tag}
               >
                 #{tag}
               </span>
@@ -460,15 +449,31 @@ function CompanyCard({ company }: { company: CompanyListItem }) {
           </div>
         )}
 
-        <Link
+        <ActionLink
           href={`/companies/${company.id}`}
-          className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-[var(--proto-brand)] py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-[var(--proto-brand-dark)] hover:shadow-md"
+          size="sm"
+          className={styles.cardAction}
+          iconEnd={<ArrowRight size={13} />}
         >
           상세 보기
-          <ArrowRight size={13} />
-        </Link>
+        </ActionLink>
       </div>
     </article>
+  );
+}
+
+function CompanyFact({
+  icon: Icon,
+  text,
+}: {
+  icon: typeof Building2;
+  text: string;
+}) {
+  return (
+    <span className={styles.fact}>
+      <Icon size={13} />
+      <span>{text}</span>
+    </span>
   );
 }
 

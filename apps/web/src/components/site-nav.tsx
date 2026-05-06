@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ActionLink } from "@/components/ui/action-button";
+import { cn } from "@/lib/utils";
+import styles from "./site-nav.module.css";
 
 const navItems = [
   { href: "/", label: "홈", key: "home" },
@@ -10,8 +13,13 @@ const navItems = [
   { href: "/calendar", label: "마감일 캘린더", key: "calendar" },
 ] as const;
 
-export function SiteNav() {
+type SiteNavProps = {
+  variant?: "app" | "landing";
+};
+
+export function SiteNav({ variant = "app" }: SiteNavProps) {
   const pathname = usePathname();
+  const isLanding = variant === "landing";
 
   function isActive(href: string) {
     if (href === "/") return pathname === "/";
@@ -19,38 +27,43 @@ export function SiteNav() {
   }
 
   return (
-    <nav className="sticky top-0 z-40 border-b border-[var(--app-line)] bg-white/95 shadow-sm backdrop-blur-sm">
-      <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 py-3">
-        <Link href="/" className="shrink-0 text-xl font-black tracking-tight text-gray-900">
-          Account<span style={{ color: "var(--proto-brand)" }}>it</span>
+    <nav className={cn(styles.nav, isLanding && styles.landingNav)}>
+      <div className={styles.inner}>
+        <Link href="/" className={styles.logo}>
+          <span className={styles.logoMark} aria-hidden="true" />
+          <span>
+            Account<span className={styles.logoAccent}>it</span>
+          </span>
         </Link>
-        <div className="flex items-center gap-1">
+        <div className={styles.links}>
           {navItems.map((item) => {
             const active = isActive(item.href);
             return (
               <Link
                 key={item.key}
                 href={item.href}
-                className="rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-                style={{
-                  color: active ? "var(--proto-brand)" : undefined,
-                  fontWeight: active ? 600 : undefined,
-                }}
+                className={cn(styles.navLink, active && styles.active)}
               >
-                <span className={active ? "" : "text-gray-500 hover:text-gray-800"}>
-                  {item.label}
-                </span>
+                {item.label}
               </Link>
             );
           })}
         </div>
-        <div className="ml-auto">
-          <Link
-            href="/login"
-            className="rounded-xl bg-[var(--proto-brand)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[var(--proto-brand-dark)] hover:shadow-md"
-          >
-            로그인 / 회원가입
-          </Link>
+        <div className={styles.spacer}>
+          {isLanding ? (
+            <div className={styles.landingActions}>
+              <Link href="/login" className={styles.loginLink}>
+                로그인
+              </Link>
+              <ActionLink href="/login?mode=register" size="sm">
+                회원가입
+              </ActionLink>
+            </div>
+          ) : (
+            <ActionLink href="/login" size="sm">
+              로그인 / 회원가입
+            </ActionLink>
+          )}
         </div>
       </div>
     </nav>

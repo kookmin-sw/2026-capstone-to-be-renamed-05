@@ -2,11 +2,26 @@
 
 import { Building2, LogIn, UserPlus } from "lucide-react";
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useState } from "react";
+import { ActionButton } from "@/components/ui/action-button";
 import { authRequest, type AuthUser } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import styles from "./login-page.module.css";
 
 export default function LoginPage() {
-  const [mode, setMode] = useState<"login" | "register">("login");
+  return (
+    <Suspense fallback={<main className={styles.page} />}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
+  const searchParams = useSearchParams();
+  const [mode, setMode] = useState<"login" | "register">(
+    searchParams.get("mode") === "register" ? "register" : "login",
+  );
   const [role, setRole] = useState<AuthUser["role"]>("JOB_SEEKER");
   const [username, setUsername] = useState("test002");
   const [password, setPassword] = useState("password123");
@@ -34,13 +49,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main
-      className="flex min-h-screen items-center justify-center px-4 py-12"
-      style={{
-        background:
-          "linear-gradient(135deg,#fff5f8 0%,#ffe8f0 50%,#fff0f5 100%)",
-      }}
-    >
+    <main className={styles.page}>
       {/* Logo / back link */}
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
@@ -48,7 +57,7 @@ export default function LoginPage() {
             href="/"
             className="text-2xl font-black tracking-tight text-gray-900"
           >
-            Account<span style={{ color: "var(--proto-brand)" }}>it</span>
+            Account<span className={styles.logoAccent}>it</span>
           </Link>
           <p className="mt-1 text-sm text-gray-500">
             CPA 전용 채용 큐레이션 플랫폼
@@ -60,16 +69,7 @@ export default function LoginPage() {
           <div className="mb-6 grid grid-cols-2 gap-2">
             <button
               type="button"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors"
-              style={
-                mode === "login"
-                  ? {
-                      background: "var(--proto-brand-light)",
-                      borderColor: "var(--proto-brand)",
-                      color: "var(--proto-brand)",
-                    }
-                  : { borderColor: "var(--app-line)" }
-              }
+              className={cn(styles.tab, mode === "login" && styles.tabActive)}
               onClick={() => setMode("login")}
             >
               <LogIn size={16} />
@@ -77,16 +77,10 @@ export default function LoginPage() {
             </button>
             <button
               type="button"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-colors"
-              style={
-                mode === "register"
-                  ? {
-                      background: "var(--proto-brand-light)",
-                      borderColor: "var(--proto-brand)",
-                      color: "var(--proto-brand)",
-                    }
-                  : { borderColor: "var(--app-line)" }
-              }
+              className={cn(
+                styles.tab,
+                mode === "register" && styles.tabActive,
+              )}
               onClick={() => setMode("register")}
             >
               <UserPlus size={16} />
@@ -151,14 +145,14 @@ export default function LoginPage() {
               </>
             )}
 
-            <button
+            <ActionButton
               type="submit"
-              className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
-              style={{ background: "var(--proto-brand)" }}
+              className={styles.submit}
+              size="lg"
+              iconStart={<Building2 size={17} />}
             >
-              <Building2 size={17} />
               {mode === "login" ? "로그인" : "회원가입"}
-            </button>
+            </ActionButton>
           </form>
 
           {message && (

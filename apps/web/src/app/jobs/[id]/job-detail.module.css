@@ -1,0 +1,91 @@
+.hero {
+  position: relative;
+  min-height: 12.5rem;
+  overflow: hidden;
+  background: linear-gradient(135deg, #fff0f5 0%, #ffd6e5 52%, #ffb3cc 100%);
+}
+
+.heroGlow {
+  position: absolute;
+  top: -2.5rem;
+  right: -2.5rem;
+  width: 16rem;
+  height: 16rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(232, 69, 122, 0.18) 0%, transparent 70%);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.logo,
+.companyMiniIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  background: var(--brand);
+  color: var(--brand-foreground);
+  font-weight: 900;
+}
+
+.logo {
+  width: 4rem;
+  height: 4rem;
+  overflow: hidden;
+  border-radius: 1rem;
+  box-shadow: var(--shadow-lg);
+  font-size: 1.5rem;
+}
+
+.logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dDay {
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.dDayUrgent {
+  background: var(--brand);
+}
+
+.dDayMuted {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.companyMiniIcon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+}
+
+.brandText {
+  color: var(--brand);
+}
+
+.sectionIcon {
+  color: var(--brand);
+}
+
+.aiSummary {
+  border-radius: 1rem;
+  background: var(--brand-soft);
+  padding: 1.25rem;
+}
+
+.chipBrand {
+  border: 1px solid var(--brand-mid);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--brand);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+}

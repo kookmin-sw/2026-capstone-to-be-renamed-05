@@ -9,6 +9,7 @@ import { RefreshCw, Search, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { FullDeadlineCalendar } from "@/components/deadline-calendar";
 import { SiteNav } from "@/components/site-nav";
+import { ActionButton } from "@/components/ui/action-button";
 import { useJobFilterState } from "@/hooks/use-job-filter-state";
 import { fetchJobCalendar } from "@/lib/api";
 import { calendarDaysToMap, calendarEventsToMap } from "@/lib/calendar-data";
@@ -18,6 +19,7 @@ import {
   defaultJobFilters,
   type JobFilterState,
 } from "@/lib/job-filters";
+import styles from "./calendar-page.module.css";
 
 const JOB_FAMILY_OPTS = [
   { value: "AUDIT", label: "감사" },
@@ -188,13 +190,12 @@ export default function CalendarPage() {
                 className="w-full rounded-xl border border-[var(--app-line)] bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-[var(--brand)]"
               />
             </div>
-            <button
+            <ActionButton
               type="button"
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--proto-brand)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[var(--brand-strong)] hover:shadow-md"
+              iconStart={<Search size={15} />}
             >
-              <Search size={15} />
               검색
-            </button>
+            </ActionButton>
           </div>
         </div>
 
@@ -202,29 +203,29 @@ export default function CalendarPage() {
         <div className="mx-auto max-w-7xl px-6 pb-4">
           <div className="rounded-2xl border border-[var(--app-line)] bg-white">
             <div className="flex items-center justify-between px-5 py-3">
-              <button
+              <ActionButton
                 type="button"
                 onClick={() => setFilterOpen((prev) => !prev)}
-                className="inline-flex items-center gap-2 text-sm font-bold text-gray-700"
+                variant="ghost"
+                size="sm"
+                className={styles.filterHeaderButton}
+                iconStart={<SlidersHorizontal size={15} />}
               >
-                <SlidersHorizontal
-                  size={15}
-                  style={{ color: "var(--proto-brand)" }}
-                />
                 필터
                 <span className="text-xs font-medium text-gray-400">
                   {filterOpen ? "필터 닫기 ∧" : "필터 열기 ∨"}
                 </span>
-              </button>
+              </ActionButton>
               {filterOpen && (
-                <button
+                <ActionButton
                   type="button"
                   onClick={() => setFilters(defaultJobFilters)}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-gray-600"
+                  variant="ghost"
+                  size="sm"
+                  iconStart={<RefreshCw size={12} />}
                 >
-                  <RefreshCw size={12} />
                   필터 초기화
-                </button>
+                </ActionButton>
               )}
             </div>
 

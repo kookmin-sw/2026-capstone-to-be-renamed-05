@@ -34,7 +34,7 @@ const calendarEventMeta: Record<
   },
   DEADLINE: {
     label: "마감",
-    barClassName: "border-pink-200 bg-[#FFF0F5] text-[#C0295C]",
+    barClassName: "border-[var(--brand-mid)] bg-[var(--brand-soft)] text-[var(--brand)]",
     badgeTone: "pink",
   },
   ONGOING: {
@@ -137,7 +137,7 @@ export function MiniDeadlineCalendar({
               aria-label={`${dateKey} 마감 공고 ${deadlineCount}건`}
               className={
                 inMonth
-                  ? "min-h-16 rounded-lg border border-[var(--app-line)] bg-white p-1 text-left transition-colors hover:border-[var(--brand)] hover:bg-[#FFF5F8]"
+                  ? "min-h-16 rounded-lg border border-[var(--app-line)] bg-white p-1 text-left transition-colors hover:border-[var(--brand)] hover:bg-[var(--brand-soft)]"
                   : "min-h-16 rounded-lg border border-transparent bg-gray-50 p-1 text-left text-gray-300"
               }
             >
@@ -154,7 +154,7 @@ export function MiniDeadlineCalendar({
                 {Array.from({ length: dots }).map((_, index) => (
                   <span
                     key={index}
-                    className="h-1.5 w-1.5 rounded-full bg-pink-500"
+                    className="h-1.5 w-1.5 rounded-full bg-[var(--brand)]"
                   />
                 ))}
               </div>
@@ -273,7 +273,7 @@ export function FullDeadlineCalendar({
             <span className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-gray-700">
               공고 기간
             </span>
-            <span className="rounded-md border border-pink-200 bg-[#FFF0F5] px-2.5 py-1 text-[#E8457A]">
+            <span className="rounded-md border border-[var(--brand-mid)] bg-[var(--brand-soft)] px-2.5 py-1 text-[var(--brand)]">
               마감 지점
             </span>
           </div>
@@ -489,7 +489,7 @@ function rangeContainsDateKey(range: JobCalendarRange, dateKey: string) {
 function rangeSegmentClassName(segment: CalendarRangeSegment) {
   const rangeHasDeadline = segment.range.endDate !== null;
   const colorClassName = rangeHasDeadline
-    ? "border-pink-200 bg-[#FFF5F8] text-[#C0295C]"
+    ? "border-[var(--brand-mid)] bg-[var(--brand-soft)] text-[var(--brand)]"
     : "border-gray-200 bg-gray-50 text-gray-700";
 
   if (segment.startsAtRangeStart && segment.endsAtRangeEnd) {
@@ -570,7 +570,7 @@ function CalendarDayModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl p-2 transition-colors hover:bg-[var(--proto-brand-light)] hover:text-[var(--proto-brand)]"
+            className="rounded-xl p-2 transition-colors hover:bg-[var(--brand-soft)] hover:text-[var(--brand)]"
             aria-label="닫기"
           >
             <X size={24} />

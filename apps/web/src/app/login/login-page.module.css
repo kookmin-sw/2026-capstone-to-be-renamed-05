@@ -1,0 +1,41 @@
+.page {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #fff7fa 0%, #ffe8f0 52%, #fff3f7 100%);
+  padding: 3rem 1rem;
+}
+
+.logoAccent {
+  color: var(--brand);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 0.65rem 0.75rem;
+  color: var(--gray-700);
+  font-size: 0.875rem;
+  font-weight: 800;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.tab:hover,
+.tabActive {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.submit {
+  margin-top: 0.5rem;
+  width: 100%;
+}

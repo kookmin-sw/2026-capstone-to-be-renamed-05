@@ -1,0 +1,99 @@
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  color: var(--gray-500);
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.iconButton:hover {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.weekLabel {
+  padding: 0.25rem 0;
+  color: var(--gray-500);
+  text-align: center;
+  font-size: 0.625rem;
+  font-weight: 800;
+}
+
+.weekLabelSunday,
+.daySunday,
+.dayCount,
+.brandText,
+.brandIcon {
+  color: var(--brand);
+}
+
+.calendarCell {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0;
+  transition: background-color 160ms ease;
+}
+
+.calendarCell:hover,
+.calendarCellSelected {
+  background: var(--brand-soft);
+}
+
+.dayNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--gray-700);
+  font-size: 0.6875rem;
+  font-weight: 800;
+}
+
+.dayToday {
+  border-radius: 999px;
+  background: var(--brand);
+  color: var(--brand-foreground);
+}
+
+.dayMuted {
+  color: var(--gray-300);
+}
+
+.dayCount {
+  margin-top: 0.125rem;
+  height: 0.75rem;
+  font-size: 0.5625rem;
+  font-weight: 900;
+  line-height: 0.75rem;
+}
+
+.sidebarMore {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  color: var(--brand);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.sidebarDday {
+  flex: none;
+  color: var(--brand);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.filterHeaderButton {
+  justify-content: flex-start;
+  padding-left: 0;
+}

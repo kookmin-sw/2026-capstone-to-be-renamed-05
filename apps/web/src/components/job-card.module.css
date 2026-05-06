@@ -1,0 +1,280 @@
+.card,
+.gridCard,
+.compactRow {
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.card:hover,
+.gridCard:hover,
+.compactRow:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.card {
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.title {
+  color: var(--gray-900);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.subtleLine,
+.metaLine {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--gray-500);
+  font-size: 0.875rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.infoGrid {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  color: var(--gray-500);
+  font-size: 0.75rem;
+}
+
+.labelList {
+  display: contents;
+}
+
+.tag {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 0.125rem 0.5rem;
+}
+
+.gridCard {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 1.25rem;
+}
+
+.banner {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: 7rem;
+  background:
+    radial-gradient(circle at 92% 12%, rgba(232, 69, 122, 0.12), transparent 9rem),
+    var(--gray-50);
+  padding: 1rem 1.25rem 0.85rem;
+}
+
+.dDay {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  border-radius: 999px;
+  background: var(--gray-100);
+  color: var(--gray-600);
+  padding: 0.125rem 0.65rem;
+  font-size: 0.6875rem;
+  font-weight: 900;
+}
+
+.urgent {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 3rem;
+  height: 3rem;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--brand);
+  color: var(--brand-foreground);
+  box-shadow: var(--shadow-md);
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.companySummary {
+  min-width: 0;
+  margin-left: 0.75rem;
+}
+
+.companyName {
+  overflow: hidden;
+  color: var(--gray-900);
+  font-size: 0.875rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.companyType {
+  color: var(--gray-500);
+  font-size: 0.75rem;
+}
+
+.gridBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 1.25rem;
+}
+
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.gridTitle {
+  display: -webkit-box;
+  min-height: 2.55rem;
+  overflow: hidden;
+  color: var(--gray-900);
+  font-size: 0.875rem;
+  font-weight: 800;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.factGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-top: auto;
+  padding-top: 1rem;
+  color: var(--gray-600);
+  font-size: 0.75rem;
+}
+
+.fact {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.fact span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fact svg,
+.metaLine svg,
+.subtleLine svg,
+.footer svg {
+  flex: none;
+  color: var(--brand);
+}
+
+.gridActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.fillAction {
+  flex: 1;
+}
+
+.compactRow {
+  display: grid;
+  gap: 0.75rem;
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.badge {
+  border-radius: 999px;
+  background: var(--gray-100);
+  color: var(--gray-600);
+  padding: 0.125rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.badgeBrand {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.info {
+  border-radius: var(--radius-md);
+  background: var(--gray-50);
+  padding: 0.65rem 0.75rem;
+}
+
+.infoLabel {
+  color: var(--gray-500);
+  font-size: 0.75rem;
+}
+
+.infoValue {
+  margin-top: 0.125rem;
+  color: var(--gray-800);
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+@media (min-width: 768px) {
+  .header {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .infoGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .compactRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+}
+
+@media (min-width: 1280px) {
+  .infoGrid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}

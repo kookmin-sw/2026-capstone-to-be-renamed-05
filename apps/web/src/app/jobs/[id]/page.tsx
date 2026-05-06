@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { SiteNav } from "@/components/site-nav";
+import { actionButtonClassName } from "@/components/ui/action-button";
 import { fetchJobDetail } from "@/lib/api";
 import {
   companyTypeLabels,
@@ -23,6 +24,8 @@ import {
   kicpaLabels,
   traineeLabels,
 } from "@/lib/labels";
+import { cn } from "@/lib/utils";
+import styles from "./job-detail.module.css";
 
 export default function JobDetailPage() {
   const params = useParams<{ id: string }>();
@@ -123,21 +126,8 @@ function JobDetail({ job }: { job: JobDetailItem }) {
       <SiteNav />
 
       {/* Pink gradient hero banner */}
-      <div
-        className="relative overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(135deg,#fff0f5 0%,#ffd6e5 50%,#ffb3cc 100%)",
-          minHeight: "200px",
-        }}
-      >
-        <div
-          className="pointer-events-none absolute -right-10 -top-10 h-64 w-64 rounded-full opacity-40"
-          style={{
-            background:
-              "radial-gradient(circle,rgba(232,69,122,.18) 0%,transparent 70%)",
-          }}
-        />
+      <div className={styles.hero}>
+        <div className={styles.heroGlow} />
         <div className="mx-auto max-w-6xl px-5 py-8">
           <Link
             href="/jobs"
@@ -150,15 +140,11 @@ function JobDetail({ job }: { job: JobDetailItem }) {
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex items-end gap-4">
               {/* Company logo / initial */}
-              <div
-                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-2xl font-black text-white shadow-lg"
-                style={{ background: "var(--proto-brand)" }}
-              >
+              <div className={styles.logo}>
                 {job.companyLogoUrl ? (
                   <img
                     src={job.companyLogoUrl}
                     alt={job.companyName}
-                    className="h-full w-full rounded-2xl object-cover"
                   />
                 ) : (
                   initial
@@ -167,12 +153,10 @@ function JobDetail({ job }: { job: JobDetailItem }) {
               <div>
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <span
-                    className="rounded-full px-3 py-1 text-xs font-bold text-white"
-                    style={{
-                      background: isUrgent
-                        ? "var(--proto-brand)"
-                        : "rgba(0,0,0,0.3)",
-                    }}
+                    className={cn(
+                      styles.dDay,
+                      isUrgent ? styles.dDayUrgent : styles.dDayMuted,
+                    )}
                   >
                     {dDayLabel}
                   </span>
@@ -200,8 +184,7 @@ function JobDetail({ job }: { job: JobDetailItem }) {
               href={job.originalUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
-              style={{ background: "var(--proto-brand)" }}
+              className={actionButtonClassName({ size: "lg" })}
             >
               원문에서 지원
               <ExternalLink size={16} />
@@ -215,7 +198,7 @@ function JobDetail({ job }: { job: JobDetailItem }) {
           {/* Info grid */}
           <section className="rounded-2xl border border-[var(--app-line)] bg-white p-5">
             <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-gray-900">
-              <FileText size={17} style={{ color: "var(--proto-brand)" }} />
+              <FileText size={17} className={styles.sectionIcon} />
               공고 정보
             </h2>
             <div className="grid gap-3 text-sm md:grid-cols-2">
@@ -242,13 +225,8 @@ function JobDetail({ job }: { job: JobDetailItem }) {
           </section>
 
           {/* AI 요약 — pink background */}
-          <section
-            className="rounded-2xl p-5"
-            style={{ background: "var(--proto-brand-light)" }}
-          >
-            <h2 className="mb-4 flex items-center gap-2 text-base font-bold"
-              style={{ color: "var(--proto-brand)" }}
-            >
+          <section className={styles.aiSummary}>
+            <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-[var(--brand)]">
               <Sparkles size={17} />
               AI 요약
             </h2>
@@ -288,7 +266,7 @@ function JobDetail({ job }: { job: JobDetailItem }) {
         {/* Sidebar */}
         <aside className="h-fit rounded-2xl border border-[var(--app-line)] bg-white p-5">
           <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-gray-900">
-            <CheckCircle2 size={17} style={{ color: "var(--proto-brand)" }} />
+            <CheckCircle2 size={17} className={styles.sectionIcon} />
             출처 정보
           </h2>
           <div className="grid gap-3 text-sm">
@@ -336,10 +314,7 @@ function JobDetail({ job }: { job: JobDetailItem }) {
             href={`/companies/${job.companyId}`}
             className="mt-5 flex items-center gap-3 rounded-xl border border-[var(--app-line)] p-3 text-sm font-medium text-gray-700 transition-colors hover:border-[var(--brand)] hover:text-[var(--brand)]"
           >
-            <div
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-black text-white"
-              style={{ background: "var(--proto-brand)" }}
-            >
+            <div className={styles.companyMiniIcon}>
               {job.companyName.charAt(0)}
             </div>
             <span className="flex items-center gap-2">
@@ -389,7 +364,7 @@ function ChipGroup({
   if (!items.length) return null;
   return (
     <div>
-      <h3 className="mb-2 text-sm font-bold" style={{ color: tone === "pink" ? "var(--proto-brand)" : undefined }}>
+      <h3 className={cn("mb-2 text-sm font-bold", tone === "pink" && styles.brandText)}>
         {title}
       </h3>
       <div className="flex flex-wrap gap-2">
@@ -398,7 +373,7 @@ function ChipGroup({
             key={item}
             className={
               tone === "pink"
-                ? "rounded-full border border-pink-200 bg-white px-3 py-1 text-xs font-semibold text-pink-700"
+                ? styles.chipBrand
                 : "rounded-full border border-[var(--app-line)] bg-white px-3 py-1 text-xs font-semibold text-gray-600"
             }
           >

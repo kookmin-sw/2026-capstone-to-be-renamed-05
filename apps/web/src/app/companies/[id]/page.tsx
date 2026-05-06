@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { SiteNav } from "@/components/site-nav";
+import { actionButtonClassName } from "@/components/ui/action-button";
 import { fetchCompanyDetail } from "@/lib/api";
 import {
   companyTypeLabels,
@@ -23,21 +24,7 @@ import {
   jobFamilyLabels,
   traineeLabels,
 } from "@/lib/labels";
-
-const BANNER_GRADIENTS = [
-  "linear-gradient(135deg,#fff0f5 0%,#ffd6e5 100%)",
-  "linear-gradient(135deg,#f0f9ff 0%,#bfdbfe 100%)",
-  "linear-gradient(135deg,#f0fdf4 0%,#bbf7d0 100%)",
-  "linear-gradient(135deg,#fefce8 0%,#fde68a 100%)",
-  "linear-gradient(135deg,#fdf4ff 0%,#e9d5ff 100%)",
-  "linear-gradient(135deg,#fff7ed 0%,#fed7aa 100%)",
-];
-
-function bannerGradient(name: string) {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xff;
-  return BANNER_GRADIENTS[h % BANNER_GRADIENTS.length];
-}
+import styles from "./company-detail.module.css";
 
 export default function CompanyDetailPage() {
   const params = useParams<{ id: string }>();
@@ -110,7 +97,6 @@ export default function CompanyDetailPage() {
 
 function CompanyDetail({ company }: { company: CompanyDetailItem }) {
   const initial = company.name.charAt(0);
-  const gradient = bannerGradient(company.name);
 
   const maxTotal = useMemo(() => {
     return Math.max(1, ...company.employeeTrend.map((point) => point.total));
@@ -121,17 +107,8 @@ function CompanyDetail({ company }: { company: CompanyDetailItem }) {
       <SiteNav />
 
       {/* Hero banner */}
-      <div
-        className="relative overflow-hidden"
-        style={{ background: gradient, minHeight: "180px" }}
-      >
-        <div
-          className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 rounded-full opacity-30"
-          style={{
-            background:
-              "radial-gradient(circle,rgba(232,69,122,.2) 0%,transparent 70%)",
-          }}
-        />
+      <div className={styles.hero}>
+        <div className={styles.heroGlow} />
         <div className="mx-auto max-w-6xl px-5 py-8">
           <Link
             href="/companies"
@@ -143,15 +120,11 @@ function CompanyDetail({ company }: { company: CompanyDetailItem }) {
 
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="flex items-end gap-4">
-              <div
-                className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl text-3xl font-black text-white shadow-lg"
-                style={{ background: "var(--proto-brand)" }}
-              >
+              <div className={styles.logo}>
                 {company.logoUrl ? (
                   <img
                     src={company.logoUrl}
                     alt={company.name}
-                    className="h-full w-full rounded-2xl object-cover"
                   />
                 ) : (
                   initial
@@ -159,7 +132,7 @@ function CompanyDetail({ company }: { company: CompanyDetailItem }) {
               </div>
               <div>
                 <div className="mb-2 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-pink-100 px-3 py-1 text-xs font-bold text-pink-700">
+                  <span className={styles.typeBadge}>
                     {companyTypeLabels[company.type]}
                   </span>
                   <span className="rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-gray-700 backdrop-blur-sm">
@@ -182,8 +155,7 @@ function CompanyDetail({ company }: { company: CompanyDetailItem }) {
                 href={company.websiteUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white shadow transition-opacity hover:opacity-90"
-                style={{ background: "var(--proto-brand)" }}
+                className={actionButtonClassName({ size: "lg" })}
               >
                 홈페이지
                 <ExternalLink size={16} />
@@ -198,7 +170,7 @@ function CompanyDetail({ company }: { company: CompanyDetailItem }) {
           {/* Company info */}
           <section className="rounded-2xl border border-[var(--app-line)] bg-white p-5">
             <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-gray-900">
-              <Building2 size={17} style={{ color: "var(--proto-brand)" }} />
+              <Building2 size={17} className={styles.sectionIcon} />
               회사 정보
             </h2>
             <div className="grid gap-3 text-sm md:grid-cols-3">
@@ -237,7 +209,7 @@ function CompanyDetail({ company }: { company: CompanyDetailItem }) {
           {/* Employee trend */}
           <section className="rounded-2xl border border-[var(--app-line)] bg-white p-5">
             <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-gray-900">
-              <TrendingUp size={17} style={{ color: "var(--proto-brand)" }} />
+              <TrendingUp size={17} className={styles.sectionIcon} />
               직원수 추이
             </h2>
             <div className="grid gap-3">
@@ -251,9 +223,8 @@ function CompanyDetail({ company }: { company: CompanyDetailItem }) {
                     <div className="flex items-center">
                       <div className="h-3 w-full overflow-hidden rounded-full bg-neutral-200">
                         <div
-                          className="h-full rounded-full"
+                          className={styles.trendFill}
                           style={{
-                            background: "var(--proto-brand)",
                             width: `${Math.max(8, (point.total / maxTotal) * 100)}%`,
                           }}
                         />
@@ -279,10 +250,7 @@ function CompanyDetail({ company }: { company: CompanyDetailItem }) {
           {/* Open jobs */}
           <section className="rounded-2xl border border-[var(--app-line)] bg-white p-5">
             <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-gray-900">
-              <BriefcaseBusiness
-                size={17}
-                style={{ color: "var(--proto-brand)" }}
-              />
+                <BriefcaseBusiness size={17} className={styles.sectionIcon} />
               진행 중인 공고
             </h2>
             <div className="grid gap-3">
@@ -303,7 +271,7 @@ function CompanyDetail({ company }: { company: CompanyDetailItem }) {
         {/* Sidebar */}
         <aside className="h-fit rounded-2xl border border-[var(--app-line)] bg-white p-5">
           <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-gray-900">
-            <Globe2 size={17} style={{ color: "var(--proto-brand)" }} />
+            <Globe2 size={17} className={styles.sectionIcon} />
             외부 링크
           </h2>
           <div className="grid gap-3">
@@ -388,7 +356,7 @@ function CompanyJobCard({ job }: { job: JobListItem }) {
     <article className="flex items-start justify-between gap-3 rounded-xl border border-[var(--app-line)] bg-[#fbfbf8] p-4">
       <div>
         <div className="mb-2 flex flex-wrap gap-2">
-          <span className="rounded-full bg-pink-50 px-2 py-1 text-xs font-semibold text-pink-700">
+          <span className="rounded-full bg-[var(--brand-soft)] px-2 py-1 text-xs font-semibold text-[var(--brand)]">
             {jobFamilyLabels[job.jobFamily]}
           </span>
           <span className="rounded-full bg-neutral-100 px-2 py-1 text-xs font-semibold text-neutral-700">
@@ -404,8 +372,7 @@ function CompanyJobCard({ job }: { job: JobListItem }) {
       </div>
       <Link
         href={`/jobs/${job.id}`}
-        className="inline-flex shrink-0 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-        style={{ background: "var(--proto-brand)" }}
+        className={actionButtonClassName({ size: "sm" })}
       >
         공고 보기
       </Link>
@@ -433,7 +400,7 @@ function IconInfo({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <span style={{ color: "var(--proto-brand)" }}>{icon}</span>
+      <span className={styles.iconInfo}>{icon}</span>
       <div>
         <p className="text-xs text-[var(--app-muted)]">{label}</p>
         <p className="font-semibold">{value}</p>

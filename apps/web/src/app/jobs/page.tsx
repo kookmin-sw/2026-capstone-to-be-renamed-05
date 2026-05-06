@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { JobGridCard } from "@/components/job-card";
 import { jobSortLabels } from "@/components/job-filter-panel";
 import { SiteNav } from "@/components/site-nav";
+import { ActionButton } from "@/components/ui/action-button";
 import { useJobFilterState } from "@/hooks/use-job-filter-state";
 import { fetchJobCalendar, fetchJobs } from "@/lib/api";
 import { calendarDaysToMap, jobsBetween } from "@/lib/calendar-data";
@@ -30,6 +31,8 @@ import {
   type JobFilterState,
 } from "@/lib/job-filters";
 import { employmentLabels, jobFamilyLabels, kicpaLabels } from "@/lib/labels";
+import { cn } from "@/lib/utils";
+import styles from "./jobs-page.module.css";
 
 /* ── 일요일 시작 캘린더 그리드 ── */
 function getSundayFirstGrid(monthDate: Date): Date[] {
@@ -92,7 +95,7 @@ function JobsSidebarCalendar({
                 new Date(monthDate.getFullYear(), monthDate.getMonth() - 1, 1),
               )
             }
-            className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-[var(--proto-brand-light)] hover:text-[var(--proto-brand)]"
+            className={styles.iconButton}
             aria-label="이전 달"
           >
             <ChevronLeft size={16} />
@@ -107,7 +110,7 @@ function JobsSidebarCalendar({
                 new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 1),
               )
             }
-            className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-[var(--proto-brand-light)] hover:text-[var(--proto-brand)]"
+            className={styles.iconButton}
             aria-label="다음 달"
           >
             <ChevronRight size={16} />
@@ -119,8 +122,10 @@ function JobsSidebarCalendar({
           {WEEK_LABELS.map((label, i) => (
             <div
               key={label}
-              className="py-1 text-center text-[10px] font-semibold"
-              style={{ color: i === 0 ? "var(--proto-brand)" : "#9ca3af" }}
+              className={cn(
+                styles.weekLabel,
+                i === 0 && styles.weekLabelSunday,
+              )}
             >
               {label}
             </div>
@@ -141,29 +146,16 @@ function JobsSidebarCalendar({
             const cellContent = (
               <>
                 <span
-                  className={
-                    isToday
-                      ? "flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white"
-                      : "flex h-6 w-6 items-center justify-center text-[11px] font-semibold"
-                  }
-                  style={
-                    isToday
-                      ? { background: "var(--proto-brand)" }
-                      : {
-                          color: !inMonth
-                            ? "#d1d5db"
-                            : isSun
-                              ? "var(--proto-brand)"
-                              : "#374151",
-                        }
-                  }
+                  className={cn(
+                    styles.dayNumber,
+                    isToday && styles.dayToday,
+                    !inMonth && styles.dayMuted,
+                    isSun && !isToday && inMonth && styles.daySunday,
+                  )}
                 >
                   {day.getDate()}
                 </span>
-                <span
-                  className="mt-0.5 h-3 text-[9px] font-bold leading-3"
-                  style={{ color: "var(--proto-brand)" }}
-                >
+                <span className={styles.dayCount}>
                   {inMonth && count > 0 ? count : ""}
                 </span>
               </>
@@ -175,10 +167,10 @@ function JobsSidebarCalendar({
                   key={dateKey}
                   type="button"
                   onClick={() => setSelectedDate(isSelected ? null : dateKey)}
-                  className="flex w-full flex-col items-center rounded py-1 transition-colors hover:bg-pink-50"
-                  style={
-                    isSelected ? { background: "var(--proto-brand-light)" } : {}
-                  }
+                  className={cn(
+                    styles.calendarCell,
+                    isSelected && styles.calendarCellSelected,
+                  )}
                 >
                   {cellContent}
                 </button>
@@ -244,11 +236,7 @@ function JobsSidebarCalendar({
           <span className="text-sm font-bold text-gray-900">
             D-7 마감 임박 공고
           </span>
-          <Link
-            href={calendarHref}
-            className="flex items-center gap-0.5 text-xs font-semibold"
-            style={{ color: "var(--proto-brand)" }}
-          >
+          <Link href={calendarHref} className={styles.sidebarMore}>
             전체 보기 <ArrowRight size={12} />
           </Link>
         </div>
@@ -271,10 +259,7 @@ function JobsSidebarCalendar({
                     {kicpaLabels[job.kicpaCondition]}
                   </p>
                 </div>
-                <span
-                  className="shrink-0 text-xs font-bold"
-                  style={{ color: "var(--proto-brand)" }}
-                >
+                <span className={styles.sidebarDday}>
                   {job.dDay === 0 ? "D-Day" : `D-${job.dDay}`}
                 </span>
               </Link>
@@ -509,13 +494,9 @@ export default function JobsPage() {
                 className="w-full rounded-xl border border-[var(--app-line)] bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-[var(--brand)]"
               />
             </div>
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-xl bg-[var(--proto-brand)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[var(--brand-strong)] hover:shadow-md"
-            >
-              <Search size={15} />
+            <ActionButton type="button" iconStart={<Search size={15} />}>
               검색
-            </button>
+            </ActionButton>
             <select
               value={filters.sort}
               onChange={(e) => setFilters({ ...filters, sort: e.target.value })}
@@ -534,29 +515,29 @@ export default function JobsPage() {
         <div className="mx-auto max-w-7xl px-6 pb-4">
           <div className="rounded-2xl border border-[var(--app-line)] bg-white">
             <div className="flex items-center justify-between px-5 py-3">
-              <button
+              <ActionButton
                 type="button"
                 onClick={() => setFilterOpen((prev) => !prev)}
-                className="inline-flex items-center gap-2 text-sm font-bold text-gray-700"
+                variant="ghost"
+                size="sm"
+                className={styles.filterHeaderButton}
+                iconStart={<SlidersHorizontal size={15} />}
               >
-                <SlidersHorizontal
-                  size={15}
-                  style={{ color: "var(--proto-brand)" }}
-                />
                 필터
                 <span className="text-xs font-medium text-gray-400">
                   {filterOpen ? "필터 닫기 ∧" : "필터 열기 ∨"}
                 </span>
-              </button>
+              </ActionButton>
               {filterOpen && (
-                <button
+                <ActionButton
                   type="button"
                   onClick={() => setFilters(defaultJobFilters)}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-gray-600"
+                  variant="ghost"
+                  size="sm"
+                  iconStart={<RefreshCw size={12} />}
                 >
-                  <RefreshCw size={12} />
                   필터 초기화
-                </button>
+                </ActionButton>
               )}
             </div>
 

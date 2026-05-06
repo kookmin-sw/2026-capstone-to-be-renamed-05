@@ -11,6 +11,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
+  fetchAdminCurrentUser,
   getAdminDemoUser,
   logoutAdminDemo,
   type AdminUser,
@@ -36,14 +37,20 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     if (isLoginPage) return;
     let ignore = false;
     const timer = window.setTimeout(() => {
-      const nextUser = getAdminDemoUser();
-      if (!nextUser) {
-        router.replace("/admin/login");
-      }
-      if (!ignore) {
+      void fetchAdminCurrentUser().then((nextUser) => {
+        if (ignore) return;
+        if (!nextUser) {
+          const fallbackUser = getAdminDemoUser();
+          if (fallbackUser) {
+            setUser(fallbackUser);
+            setChecking(false);
+            return;
+          }
+          router.replace("/admin/login");
+        }
         setUser(nextUser);
         setChecking(false);
-      }
+      });
     }, 0);
     return () => {
       ignore = true;

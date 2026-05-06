@@ -142,11 +142,50 @@ type DemoState = {
 
 const stateKey = "accountit-admin-demo-state";
 const sessionKey = "accountit-admin-demo-user";
+const sessionUserKey = "accountit-admin-api-user";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
 const demoAdminAccounts = [
   { username: "test001", password: "password123" },
 ] as const;
 
-export const demoAdminCredentialText = "test001 / password123";
+export const demoAdminCredentialText = `${demoAdminAccounts[0].username} / ${demoAdminAccounts[0].password}`;
+
+async function readApiError(response: Response, fallback: string) {
+  try {
+    const data = (await response.json()) as { message?: string };
+    return data.message ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+async function apiJson<T>(path: string, init: RequestInit = {}) {
+  const headers = new Headers(init.headers);
+  if (init.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...init,
+    headers,
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(await readApiError(response, "API request failed."));
+  }
+  return (await response.json()) as T;
+}
+
+function storeAdminUser(user: AdminUser) {
+  window.sessionStorage.setItem(sessionKey, user.username);
+  window.sessionStorage.setItem(sessionUserKey, JSON.stringify(user));
+}
+
+function clearAdminUser() {
+  window.sessionStorage.removeItem(sessionKey);
+  window.sessionStorage.removeItem(sessionUserKey);
+}
 
 export const companyTypeLabels: Record<string, string> = {
   BIG4: "Big4",
@@ -375,6 +414,15 @@ function recalculateCompanyCounts(state: DemoState) {
 
 export function getAdminDemoUser(): AdminUser | null {
   if (typeof window === "undefined") return null;
+  const rawUser = window.sessionStorage.getItem(sessionUserKey);
+  if (rawUser) {
+    try {
+      return JSON.parse(rawUser) as AdminUser;
+    } catch {
+      clearAdminUser();
+      return null;
+    }
+  }
   const username = window.sessionStorage.getItem(sessionKey);
   if (!username) return null;
   return {
@@ -386,61 +434,54 @@ export function getAdminDemoUser(): AdminUser | null {
   };
 }
 
-export async function loginAdminDemo(username: string, password: string) {
-  const account = demoAdminAccounts.find(
-    (item) => item.username === username && item.password === password,
-  );
+export async function fetchAdminCurrentUser() {
+  try {
+    const data = await apiJson<{ user?: AdminUser }>("/auth/me");
+    if (data.user?.role !== "ADMIN") {
+      clearAdminUser();
+      return null;
+    }
+    storeAdminUser(data.user);
+    return data.user;
+  } catch {
+    clearAdminUser();
+    return null;
+  }
+}
 
-  if (!account) {
+export async function loginAdminDemo(username: string, password: string) {
+  const data = await apiJson<{ user?: AdminUser }>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
+
+  if (!data.user || data.user.role !== "ADMIN") {
     throw new Error(`테스트 관리자 계정은 ${demoAdminCredentialText} 입니다.`);
   }
-  window.sessionStorage.setItem(sessionKey, account.username);
-  return getAdminDemoUser()!;
+  storeAdminUser(data.user);
+  return data.user;
 }
 
 export async function logoutAdminDemo() {
-  window.sessionStorage.removeItem(sessionKey);
+  try {
+    await apiJson<{ ok: boolean }>("/auth/logout", { method: "POST" });
+  } finally {
+    clearAdminUser();
+  }
 }
 
 export async function fetchAdminDashboard() {
-  const state = readState();
-  const jobs = enrichJobs(state);
-  const jobsByStatus = jobs.reduce(
-    (counts, job) => ({ ...counts, [job.status]: counts[job.status] + 1 }),
-    { OPEN: 0, CLOSED: 0, DRAFT: 0 } as Record<JobStatus, number>,
-  );
-  return {
-    counts: {
-      jobs: jobs.length,
-      companies: state.companies.length,
-      members: state.members.length,
-      jobsByStatus,
-    },
-    recentJobs: jobs.slice(0, 5),
-    recentCompanies: state.companies.slice(0, 5),
-  } satisfies AdminDashboard;
+  return apiJson<AdminDashboard>("/admin/dashboard");
 }
 
 export async function fetchAdminSources() {
-  return { items: readState().sources };
+  return apiJson<{ items: AdminSource[] }>("/admin/sources");
 }
 
 export async function fetchAdminJobs(params: URLSearchParams) {
-  const state = readState();
-  let jobs = enrichJobs(state);
-  const search = params.get("search")?.trim().toLowerCase();
-  const status = params.get("status");
-  const companyId = params.get("companyId");
-  if (search) {
-    jobs = jobs.filter((job) =>
-      `${job.title} ${job.description} ${job.companyName}`
-        .toLowerCase()
-        .includes(search),
-    );
-  }
-  if (status) jobs = jobs.filter((job) => job.status === status);
-  if (companyId) jobs = jobs.filter((job) => job.companyId === companyId);
-  return paginate(jobs, params);
+  return apiJson<AdminListResponse<AdminJob>>(
+    `/admin/jobs?${params.toString()}`,
+  );
 }
 
 export async function fetchAdminJob(id: string) {
@@ -488,45 +529,16 @@ export async function updateAdminJob(id: string, payload: AdminJobPayload) {
 }
 
 export async function updateAdminJobStatus(id: string, status: JobStatus) {
-  const job = await fetchAdminJob(id);
-  return updateAdminJob(id, {
-    title: job.title,
-    description: job.description,
-    companyId: job.companyId,
-    sourceId: job.sourceId,
-    originalUrl: job.originalUrl,
-    jobFamily: job.jobFamily,
-    employmentType: job.employmentType,
-    companyType: job.companyType,
-    kicpaCondition: job.kicpaCondition,
-    traineeStatus: job.traineeStatus,
-    practicalTrainingInstitution: job.practicalTrainingInstitution,
-    minExperienceYears: job.minExperienceYears,
-    maxExperienceYears: job.maxExperienceYears,
-    location: job.location,
-    deadlineType: job.deadlineType,
-    deadline: job.deadline,
-    status,
+  return apiJson<AdminJob>(`/admin/jobs/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
   });
 }
 
 export async function fetchAdminCompanies(params: URLSearchParams) {
-  const state = readState();
-  recalculateCompanyCounts(state);
-  let companies = state.companies;
-  const search = params.get("search")?.trim().toLowerCase();
-  const companyType = params.get("companyType");
-  if (search) {
-    companies = companies.filter((company) =>
-      `${company.name} ${company.description ?? ""} ${company.tags.join(" ")}`
-        .toLowerCase()
-        .includes(search),
-    );
-  }
-  if (companyType) {
-    companies = companies.filter((company) => company.type === companyType);
-  }
-  return paginate(companies, params);
+  return apiJson<AdminListResponse<AdminCompany>>(
+    `/admin/companies?${params.toString()}`,
+  );
 }
 
 export async function fetchAdminCompany(id: string) {
@@ -567,16 +579,7 @@ export async function updateAdminCompany(
 }
 
 export async function fetchAdminMembers(params: URLSearchParams) {
-  let members = readState().members;
-  const search = params.get("search")?.trim().toLowerCase();
-  const role = params.get("role");
-  if (search) {
-    members = members.filter((member) =>
-      `${member.username} ${member.displayName ?? ""}`
-        .toLowerCase()
-        .includes(search),
-    );
-  }
-  if (role) members = members.filter((member) => member.role === role);
-  return paginate(members, params);
+  return apiJson<AdminListResponse<AdminMember>>(
+    `/admin/members?${params.toString()}`,
+  );
 }

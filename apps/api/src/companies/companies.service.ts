@@ -22,6 +22,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateCompanyJobSubmissionDto } from './dto/create-company-job-submission.dto';
 import { CreateCompanyProfileSubmissionDto } from './dto/create-company-profile-submission.dto';
 import { ListCompaniesDto } from './dto/list-companies.dto';
+import { UpdateCompanyLogoDto } from './dto/update-company-logo.dto';
 
 const companyListInclude = {
   jobs: {
@@ -214,6 +215,23 @@ export class CompaniesService {
     });
 
     return this.toProfileSubmissionItem(submission);
+  }
+
+  async updateLogo(userId: string, dto: UpdateCompanyLogoDto) {
+    const company = await this.getOwnedCompanyOrThrow(userId);
+    const logoUrl = this.optionalTrimmed(dto.logoUrl);
+
+    if (!logoUrl) {
+      throw new BadRequestException('기업 이미지 파일을 업로드해 주세요.');
+    }
+
+    const updated = await this.prisma.company.update({
+      where: { id: company.id },
+      data: { logoUrl },
+      include: companyDetailInclude,
+    });
+
+    return this.toDetailItem(updated);
   }
 
   async createJobSubmission(
@@ -707,7 +725,13 @@ export class CompaniesService {
     if (dto.type !== undefined) proposed.type = dto.type;
 
     this.assignNullableString(proposed, 'websiteUrl', dto.websiteUrl);
-    this.assignNullableString(proposed, 'logoUrl', dto.logoUrl);
+    if (dto.logoUrl !== undefined) {
+      const logoUrl = this.optionalTrimmed(dto.logoUrl);
+      if (!logoUrl) {
+        throw new BadRequestException('기업 이미지는 비워둘 수 없습니다.');
+      }
+      proposed.logoUrl = logoUrl;
+    }
     this.assignNullableString(proposed, 'description', dto.description);
     this.assignNullableString(proposed, 'businessNumber', dto.businessNumber);
 

@@ -35,19 +35,24 @@ export class AuthService {
       );
     }
 
-    const passwordHash = await argon2.hash(dto.password);
-
     if (dto.role === UserRole.COMPANY) {
-      if (!dto.companyName) {
+      const companyName = dto.companyName?.trim();
+      const logoUrl = dto.logoUrl?.trim();
+
+      if (!companyName) {
         throw new BadRequestException('기업회원은 회사명이 필요합니다.');
       }
+      if (!logoUrl) {
+        throw new BadRequestException('기업회원은 회사 이미지가 필요합니다.');
+      }
       const existingCompany = await this.prisma.company.findUnique({
-        where: { name: dto.companyName },
+        where: { name: companyName },
       });
       if (existingCompany) {
         throw new ConflictException('이미 등록된 회사명입니다.');
       }
 
+      const passwordHash = await argon2.hash(dto.password);
       const user = await this.prisma.$transaction(async (tx) => {
         const createdUser = await tx.user.create({
           data: {
@@ -59,8 +64,9 @@ export class AuthService {
         });
         const company = await tx.company.create({
           data: {
-            name: dto.companyName!,
+            name: companyName,
             type: dto.companyType ?? CompanyType.LOCAL_ACCOUNTING_FIRM,
+            logoUrl,
             ownerUserId: createdUser.id,
           },
         });
@@ -71,6 +77,7 @@ export class AuthService {
       return this.toAuthResponse(user);
     }
 
+    const passwordHash = await argon2.hash(dto.password);
     const user = await this.prisma.user.create({
       data: {
         username: dto.username,

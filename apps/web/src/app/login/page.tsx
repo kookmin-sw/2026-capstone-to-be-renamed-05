@@ -1,11 +1,11 @@
 "use client";
 
-import { Building2, LogIn, UserPlus } from "lucide-react";
+import { Building2, LogIn, Upload, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, Suspense, useState } from "react";
+import { FormEvent, Suspense, useEffect, useRef, useState } from "react";
 import { ActionButton } from "@/components/ui/action-button";
-import { authRequest, type AuthUser } from "@/lib/api";
+import { authRequest, type AuthUser, uploadCompanyLogo } from "@/lib/api";
 import { companyTypeLabels } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 import styles from "./login-page.module.css";
@@ -23,6 +23,7 @@ export default function LoginPage() {
 function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const roleSelectRef = useRef<HTMLSelectElement | null>(null);
   const [mode, setMode] = useState<"login" | "register">(
     searchParams.get("mode") === "register" ? "register" : "login",
   );
@@ -32,11 +33,65 @@ function LoginPageContent() {
   const [displayName, setDisplayName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [companyType, setCompanyType] = useState("LOCAL_ACCOUNTING_FIRM");
+  const [companyLogoUrl, setCompanyLogoUrl] = useState("");
+  const [companyLogoFileName, setCompanyLogoFileName] = useState("");
+  const [companyLogoUploading, setCompanyLogoUploading] = useState(false);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (mode !== "register") return;
+
+    const syncRoleFromSelect = () => {
+      const selectedRole = roleSelectRef.current?.value as
+        | RegisterRole
+        | undefined;
+      if (selectedRole === "JOB_SEEKER" || selectedRole === "COMPANY") {
+        setRole(selectedRole);
+      }
+    };
+
+    syncRoleFromSelect();
+    const timers = [
+      window.setTimeout(syncRoleFromSelect, 50),
+      window.setTimeout(syncRoleFromSelect, 500),
+    ];
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, [mode]);
+
+  function changeRole(value: string) {
+    setRole(value as RegisterRole);
+  }
+
+  async function uploadLogo(event: FormEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    setCompanyLogoUrl("");
+    setCompanyLogoFileName("");
+    if (!file) return;
+
+    setCompanyLogoUploading(true);
+    setMessage("");
+    try {
+      const logoUrl = await uploadCompanyLogo(file);
+      setCompanyLogoUrl(logoUrl);
+      setCompanyLogoFileName(file.name);
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "이미지 업로드에 실패했습니다.",
+      );
+    } finally {
+      setCompanyLogoUploading(false);
+    }
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
+    if (mode === "register" && role === "COMPANY" && !companyLogoUrl) {
+      setMessage("기업 이미지를 업로드해 주세요.");
+      return;
+    }
     try {
       const payload: Record<string, string> = { username, password };
       if (mode === "register") {
@@ -45,6 +100,7 @@ function LoginPageContent() {
         if (role === "COMPANY") {
           payload.companyName = companyName;
           payload.companyType = companyType;
+          payload.logoUrl = companyLogoUrl;
         }
       }
       const user = await authRequest(mode, payload);
@@ -119,11 +175,12 @@ function LoginPageContent() {
                 <label className="text-sm font-semibold text-gray-700">
                   회원 유형
                   <select
+                    ref={roleSelectRef}
                     className="mt-2 w-full rounded-xl border border-[var(--app-line)] px-3 py-2.5 text-sm outline-none"
                     value={role}
-                    onChange={(event) =>
-                      setRole(event.target.value as RegisterRole)
-                    }
+                    onBlur={(event) => changeRole(event.target.value)}
+                    onChange={(event) => changeRole(event.target.value)}
+                    onInput={(event) => changeRole(event.currentTarget.value)}
                   >
                     <option value="JOB_SEEKER">일반(구직자)</option>
                     <option value="COMPANY">회사(채용하는 사람)</option>
@@ -164,6 +221,28 @@ function LoginPageContent() {
                         )}
                       </select>
                     </label>
+                    <label className="text-sm font-semibold text-gray-700">
+                      기업 이미지 업로드
+                      <input
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        className="mt-2 w-full rounded-xl border border-[var(--app-line)] px-3 py-2.5 text-sm outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-[#ffe8f0] file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-[var(--brand)] focus:border-[var(--brand)]"
+                        required={!companyLogoUrl}
+                        type="file"
+                        onChange={(event) => void uploadLogo(event)}
+                      />
+                    </label>
+                    {companyLogoUrl && (
+                      <div className={styles.uploadPreview}>
+                        <div className={styles.uploadPreviewFrame}>
+                          {/* eslint-disable-next-line @next/next/no-img-element -- uploaded local image preview before registration. */}
+                          <img src={companyLogoUrl} alt="업로드한 기업 이미지" />
+                        </div>
+                        <p className={styles.uploadPreviewText}>
+                          <Upload size={14} />
+                          {companyLogoFileName || "업로드 완료"}
+                        </p>
+                      </div>
+                    )}
                   </>
                 )}
               </>
@@ -172,10 +251,15 @@ function LoginPageContent() {
             <ActionButton
               type="submit"
               className={styles.submit}
+              disabled={companyLogoUploading}
               size="lg"
               iconStart={<Building2 size={17} />}
             >
-              {mode === "login" ? "로그인" : "회원가입"}
+              {companyLogoUploading
+                ? "이미지 업로드 중"
+                : mode === "login"
+                  ? "로그인"
+                  : "회원가입"}
             </ActionButton>
           </form>
 

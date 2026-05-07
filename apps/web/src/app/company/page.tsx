@@ -10,6 +10,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { JobSubmissionForm } from "./_components/job-submission-form";
 import { ManagedJobCard } from "./_components/managed-job-card";
 import { Metric } from "./_components/metric";
+import { ProfileImageSettings } from "./_components/profile-image-settings";
 import { RequestedJobCard } from "./_components/requested-job-card";
 import { SectionTitle } from "./_components/section-title";
 import { SubmissionPanel } from "./_components/submission-panel";
@@ -21,6 +22,11 @@ import {
   toJobPayload,
   toSubmissionForm,
 } from "./_lib/job-form";
+import {
+  emptyProfileImageForm,
+  type ProfileImageForm,
+  toProfileImageForm,
+} from "./_lib/profile-image-form";
 import { SiteNav } from "@/components/site-nav";
 import { ActionLink } from "@/components/ui/action-button";
 import {
@@ -29,6 +35,8 @@ import {
   submitCompanyJob,
   submitCompanyJobEdit,
   updateCompanyJobSubmission,
+  updateCompanyLogo,
+  uploadCompanyLogo,
 } from "@/lib/api";
 import { companyTypeLabels } from "@/lib/labels";
 import styles from "./company-page.module.css";
@@ -40,6 +48,10 @@ export default function CompanyPage() {
   const [managedJobs, setManagedJobs] = useState<CompanyManagedJobItem[]>([]);
   const [jobSubmissions, setJobSubmissions] = useState<JobSubmissionItem[]>([]);
   const [jobForm, setJobForm] = useState<JobForm>(emptyJobForm);
+  const [profileImageForm, setProfileImageForm] =
+    useState<ProfileImageForm>(emptyProfileImageForm);
+  const [profileImageFileName, setProfileImageFileName] = useState("");
+  const [profileImageUploading, setProfileImageUploading] = useState(false);
   const [editingJob, setEditingJob] = useState<CompanyManagedJobItem | null>(
     null,
   );
@@ -50,6 +62,7 @@ export default function CompanyPage() {
 
   function applyPageData(data: Awaited<ReturnType<typeof fetchCompanyPageData>>) {
     setDashboard(data.dashboard);
+    setProfileImageForm(toProfileImageForm(data.dashboard));
     setManagedJobs(data.managedJobs);
     setJobSubmissions(data.jobSubmissions);
   }
@@ -118,6 +131,52 @@ export default function CompanyPage() {
       setMessage(
         error instanceof Error ? error.message : "요청에 실패했습니다.",
       );
+    }
+  }
+
+  async function submitProfileImage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!dashboard) return;
+
+    setMessage("");
+    const logoUrl = profileImageForm.logoUrl.trim();
+    if (!logoUrl) {
+      setMessage("기업 이미지 파일을 업로드해 주세요.");
+      return;
+    }
+    if (logoUrl === (dashboard.company.logoUrl ?? "")) {
+      setMessage("변경할 기업 이미지 파일을 업로드해 주세요.");
+      return;
+    }
+
+    try {
+      await updateCompanyLogo(logoUrl);
+      setProfileImageFileName("");
+      setMessage("기업 이미지가 바로 변경되었습니다.");
+      await load({ quiet: true });
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "요청에 실패했습니다.",
+      );
+    }
+  }
+
+  async function uploadProfileImage(event: FormEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    if (!file) return;
+
+    setProfileImageUploading(true);
+    setMessage("");
+    try {
+      const logoUrl = await uploadCompanyLogo(file);
+      setProfileImageForm({ logoUrl });
+      setProfileImageFileName(file.name);
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "이미지 업로드에 실패했습니다.",
+      );
+    } finally {
+      setProfileImageUploading(false);
     }
   }
 
@@ -247,6 +306,16 @@ export default function CompanyPage() {
               value={`${pendingSubmissions.length}건`}
             />
           </section>
+
+          <ProfileImageSettings
+            companyName={company.name}
+            currentLogoUrl={company.logoUrl}
+            form={profileImageForm}
+            fileName={profileImageFileName}
+            uploading={profileImageUploading}
+            onFileChange={uploadProfileImage}
+            onSubmit={submitProfileImage}
+          />
 
           <section className={styles.managementGrid}>
             <JobSubmissionForm

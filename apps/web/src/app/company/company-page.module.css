@@ -172,6 +172,48 @@
   gap: 1rem;
 }
 
+.profileImageGrid {
+  display: grid;
+  gap: 1rem;
+}
+
+.logoPreview {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.logoPreviewLabel {
+  color: var(--app-muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.logoPreviewFrame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 8rem;
+  overflow: hidden;
+  border: 1px solid var(--app-line);
+  border-radius: var(--radius-md);
+  background: #fbfbf8;
+  color: var(--proto-brand);
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.logoPreviewFrame img {
+  width: 100%;
+  max-height: 8rem;
+  object-fit: contain;
+}
+
+.uploadHint {
+  color: var(--app-muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
 .descriptionInput {
   min-height: 8rem;
 }
@@ -384,6 +426,10 @@
   }
 
   .formGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profileImageGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

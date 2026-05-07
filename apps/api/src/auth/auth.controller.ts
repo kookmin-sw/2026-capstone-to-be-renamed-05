@@ -6,10 +6,19 @@ import {
   Post,
   Req,
   Res,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
+import {
+  COMPANY_LOGO_FIELD_NAME,
+  COMPANY_LOGO_MAX_BYTES,
+  saveCompanyLogoUpload,
+  type UploadedCompanyLogoFile,
+} from '../uploads/company-logo-upload';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -28,6 +37,18 @@ const cookieOptions = {
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Post('company-logo')
+  @UseInterceptors(
+    FileInterceptor(COMPANY_LOGO_FIELD_NAME, {
+      limits: { fileSize: COMPANY_LOGO_MAX_BYTES },
+    }),
+  )
+  async uploadCompanyLogo(
+    @UploadedFile() file: UploadedCompanyLogoFile | undefined,
+  ) {
+    return { logoUrl: await saveCompanyLogoUpload(file) };
+  }
 
   @Post('register')
   async register(

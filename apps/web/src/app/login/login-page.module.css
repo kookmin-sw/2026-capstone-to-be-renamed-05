@@ -39,3 +39,34 @@
   margin-top: 0.5rem;
   width: 100%;
 }
+
+.uploadPreview {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.uploadPreviewFrame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 6rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: #fff7fa;
+}
+
+.uploadPreviewFrame img {
+  width: 100%;
+  max-height: 7rem;
+  object-fit: contain;
+}
+
+.uploadPreviewText {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--gray-700);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}

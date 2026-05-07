@@ -143,6 +143,28 @@ export async function authRequest(
   return data.user;
 }
 
+export async function uploadCompanyLogo(file: File) {
+  const formData = new FormData();
+  formData.append("companyLogo", file);
+
+  const response = await fetch(`${API_BASE_URL}/auth/company-logo`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+  const data = (await response.json()) as {
+    logoUrl?: string;
+    message?: string | string[];
+  };
+  if (!response.ok || !data.logoUrl) {
+    const message = Array.isArray(data.message)
+      ? data.message.join(" ")
+      : data.message;
+    throw new Error(message ?? "기업 이미지 업로드에 실패했습니다.");
+  }
+  return data.logoUrl;
+}
+
 export async function fetchCurrentUser() {
   const response = await fetch(`${API_BASE_URL}/auth/me`, {
     credentials: "include",
@@ -187,6 +209,21 @@ export async function submitCompanyProfile(
     );
   }
   return (await response.json()) as CompanyProfileSubmissionItem;
+}
+
+export async function updateCompanyLogo(logoUrl: string) {
+  const response = await fetch(`${API_BASE_URL}/companies/me/logo`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ logoUrl }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "기업 이미지 변경에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as CompanyDetailItem;
 }
 
 export async function submitCompanyJob(payload: CompanyJobSubmissionPayload) {

@@ -106,6 +106,22 @@
   margin-left: auto;
 }
 
+.userActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.userName {
+  max-width: 10rem;
+  overflow: hidden;
+  color: var(--gray-700);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .landingActions {
   display: flex;
   align-items: center;
@@ -139,5 +155,13 @@
 
   .navLink {
     flex: none;
+  }
+
+  .spacer {
+    margin-left: 0;
+  }
+
+  .userName {
+    max-width: 8rem;
   }
 }

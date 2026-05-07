@@ -1,10 +1,11 @@
 "use client";
 
+import { LogOut } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ActionLink } from "@/components/ui/action-button";
-import { fetchCurrentUser, type AuthUser } from "@/lib/api";
+import { ActionButton, ActionLink } from "@/components/ui/action-button";
+import { fetchCurrentUser, logoutRequest, type AuthUser } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import styles from "./site-nav.module.css";
 
@@ -21,7 +22,9 @@ type SiteNavProps = {
 
 export function SiteNav({ variant = "app" }: SiteNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -52,6 +55,27 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
       : []),
   ];
 
+  async function logout() {
+    if (loggingOut) return;
+
+    setLoggingOut(true);
+    try {
+      await logoutRequest();
+      setUser(null);
+      if (pathname.startsWith("/company")) {
+        router.replace("/login");
+      } else {
+        router.refresh();
+      }
+    } catch (error) {
+      window.alert(
+        error instanceof Error ? error.message : "로그아웃에 실패했습니다.",
+      );
+    } finally {
+      setLoggingOut(false);
+    }
+  }
+
   return (
     <nav className={cn(styles.nav, isLanding && styles.landingNav)}>
       <div className={styles.inner}>
@@ -77,9 +101,21 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
         </div>
         <div className={styles.spacer}>
           {user ? (
-            <ActionLink href="/login" size="sm">
-              {user.displayName ?? user.username}
-            </ActionLink>
+            <div className={styles.userActions}>
+              <span className={styles.userName}>
+                {user.displayName ?? user.username}
+              </span>
+              <ActionButton
+                type="button"
+                variant="subtle"
+                size="sm"
+                disabled={loggingOut}
+                iconStart={<LogOut size={14} />}
+                onClick={logout}
+              >
+                {loggingOut ? "로그아웃 중" : "로그아웃"}
+              </ActionButton>
+            </div>
           ) : isLanding ? (
             <div className={styles.landingActions}>
               <Link href="/login" className={styles.loginLink}>

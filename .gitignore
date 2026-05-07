@@ -9,6 +9,7 @@ coverage/
 apps/web/.next/
 apps/api/dist/
 packages/shared/dist/
+apps/web/public/uploads/
 
 .env
 .env.*

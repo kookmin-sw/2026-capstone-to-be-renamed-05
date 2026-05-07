@@ -21,8 +21,9 @@ import { ActionLink } from "@/components/ui/action-button";
 import { IconTile } from "@/components/ui/icon-tile";
 import {
   buildJobFilterParams,
+  quickJobFilters,
   quickFilterState,
-  type JobFilterState,
+  type QuickJobFilterId,
 } from "@/lib/job-filters";
 import styles from "./page.module.css";
 
@@ -78,24 +79,12 @@ const stats: Array<{ icon: LucideIcon; value: string; label: string }> = [
   { icon: Building2, value: "300+", label: "제휴 기업" },
 ];
 
-const quickLinks: Array<{
-  icon: LucideIcon;
-  label: string;
-  values: Partial<JobFilterState>;
-}> = [
-  { icon: GraduationCap, label: "수습 CPA", values: { traineeStatus: "AVAILABLE" } },
-  { icon: UserRound, label: "신입", values: { maxExperienceYears: "0" } },
-  { icon: BriefcaseBusiness, label: "경력/이직", values: { minExperienceYears: "1" } },
-  {
-    icon: AlarmClock,
-    label: "마감 임박",
-    values: {
-      deadlineType: "FIXED_DATE",
-      deadlineWithinDays: "7",
-      sort: "deadlineAsc",
-    },
-  },
-];
+const quickFilterIcons: Record<QuickJobFilterId, LucideIcon> = {
+  trainee: GraduationCap,
+  entry: UserRound,
+  career: BriefcaseBusiness,
+  urgent: AlarmClock,
+};
 
 export default function Home() {
   return (
@@ -211,7 +200,7 @@ export default function Home() {
             <p>원하는 공고를 빠르게 찾아보세요</p>
           </div>
           <div className={styles.quickGrid}>
-            {quickLinks.map((item) => {
+            {quickJobFilters.map((item) => {
               const params = buildJobFilterParams(quickFilterState(item.values));
               return (
                 <Link
@@ -219,7 +208,7 @@ export default function Home() {
                   href={`/jobs?${params.toString()}`}
                   key={item.label}
                 >
-                  <IconTile icon={item.icon} size="lg" />
+                  <IconTile icon={quickFilterIcons[item.id]} size="lg" />
                   <span>{item.label}</span>
                 </Link>
               );

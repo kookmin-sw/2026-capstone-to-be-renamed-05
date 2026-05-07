@@ -38,18 +38,26 @@ export const defaultJobFilters: JobFilterState = {
   sort: "deadlineAsc",
 };
 
+export type QuickJobFilterId = "trainee" | "entry" | "career" | "urgent";
+
 export const quickJobFilters: {
+  id: QuickJobFilterId;
   label: string;
   values: Partial<JobFilterState>;
 }[] = [
-  { label: "수습 CPA", values: { traineeStatus: "AVAILABLE" } },
-  { label: "신입", values: { maxExperienceYears: "0" } },
   {
-    label: "주니어 이직",
-    values: { minExperienceYears: "1", maxExperienceYears: "3" },
+    id: "trainee",
+    label: "실무수습 가능",
+    values: { traineeStatus: "AVAILABLE" },
   },
-  { label: "경력 이직", values: { minExperienceYears: "4" } },
+  { id: "entry", label: "신입·인턴", values: { maxExperienceYears: "0" } },
   {
+    id: "career",
+    label: "경력 이직",
+    values: { minExperienceYears: "1" },
+  },
+  {
+    id: "urgent",
     label: "마감 임박",
     values: {
       deadlineType: "FIXED_DATE",

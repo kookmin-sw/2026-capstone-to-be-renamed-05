@@ -581,6 +581,29 @@ export default function JobsPage() {
                   />
                   <div className="min-w-[120px]">
                     <h3 className="mb-2 text-xs font-bold text-gray-800">
+                      마감 기간
+                    </h3>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs text-gray-500">
+                        N일 이내
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={filters.deadlineWithinDays}
+                        onChange={(e) =>
+                          setFilters({
+                            ...filters,
+                            deadlineWithinDays: e.target.value,
+                          })
+                        }
+                        placeholder="7"
+                        className="w-full rounded-lg border border-[var(--app-line)] px-2 py-1.5 text-xs outline-none focus:border-[var(--brand)]"
+                      />
+                    </div>
+                  </div>
+                  <div className="min-w-[120px]">
+                    <h3 className="mb-2 text-xs font-bold text-gray-800">
                       경력 연차
                     </h3>
                     <div className="flex flex-col gap-2">

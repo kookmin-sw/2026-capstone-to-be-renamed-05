@@ -3,8 +3,12 @@
 import {
   BriefcaseBusiness,
   Building2,
+  ClipboardCheck,
+  FileText,
   LayoutDashboard,
   LogOut,
+  Server,
+  Sparkles,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -21,9 +25,13 @@ import styles from "./admin.module.css";
 
 const navItems = [
   { href: "/admin", label: "대시보드", icon: LayoutDashboard },
-  { href: "/admin/jobs", label: "공고 관리", icon: BriefcaseBusiness },
-  { href: "/admin/companies", label: "회사 관리", icon: Building2 },
+  { href: "/admin/job-submissions", label: "공고 검수", icon: ClipboardCheck },
+  { href: "/admin/profile-submissions", label: "프로필 검수", icon: FileText },
+  { href: "/admin/ai-suggestions", label: "AI 태그 검수", icon: Sparkles },
+  { href: "/admin/jobs", label: "등록된 공고 목록", icon: BriefcaseBusiness },
+  { href: "/admin/companies", label: "등록된 회사 목록", icon: Building2 },
   { href: "/admin/members", label: "회원 리스트", icon: Users },
+  { href: "/admin/sources", label: "출처 관리", icon: Server },
 ] as const;
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -59,8 +67,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }, [isLoginPage, router]);
 
   const pageTitle = useMemo(() => {
-    if (pathname.startsWith("/admin/jobs")) return "공고 관리";
-    if (pathname.startsWith("/admin/companies")) return "회사 관리";
+    if (pathname.startsWith("/admin/job-submissions")) return "공고 검수";
+    if (pathname.startsWith("/admin/profile-submissions")) return "프로필 검수";
+    if (pathname.startsWith("/admin/ai-suggestions")) return "AI 태그 검수";
+    if (pathname.startsWith("/admin/sources")) return "출처 관리";
+    if (pathname.startsWith("/admin/jobs")) return "등록된 공고 목록";
+    if (pathname.startsWith("/admin/companies")) return "등록된 회사 목록";
     if (pathname.startsWith("/admin/members")) return "회원 리스트";
     return "대시보드";
   }, [pathname]);

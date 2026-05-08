@@ -413,6 +413,63 @@ export async function reviewAdminProfileSubmission(
   return (await response.json()) as CompanyProfileSubmissionItem;
 }
 
+export type AdminAiSuggestion = {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  summary: string;
+  tags: string[];
+  risks: string[];
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function refreshAdminJobCheckedAt(id: string) {
+  const response = await fetch(`${API_BASE_URL}/admin/jobs/${id}/refresh`, {
+    method: "PATCH",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "최종 확인 시각 업데이트에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as Record<string, unknown>;
+}
+
+export async function fetchAdminAiSuggestions() {
+  const response = await fetch(`${API_BASE_URL}/admin/ai-suggestions`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "AI 제안 목록을 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as { items: AdminAiSuggestion[] };
+}
+
+export async function reviewAdminAiSuggestion(
+  id: string,
+  action: "approve" | "reject",
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/ai-suggestions/${id}/${action}`,
+    {
+      method: "PATCH",
+      credentials: "include",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "AI 제안 검수 처리에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as AdminAiSuggestion;
+}
+
 async function readApiError(response: Response, fallback: string) {
   try {
     const data = (await response.json()) as { message?: string | string[] };

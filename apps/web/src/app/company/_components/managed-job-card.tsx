@@ -34,7 +34,7 @@ export function ManagedJobCard({
   const pendingEdit = job.pendingEditSubmission;
 
   return (
-    <article className={styles.jobCard}>
+    <article className={cn(styles.jobCard, isOpen ? styles.jobCardOpen : styles.jobCardClosed)}>
       <div className={styles.cardHeader}>
         <div className={styles.cardMain}>
           <div className={styles.badgeRow}>

@@ -78,121 +78,134 @@ export function JobSubmissionForm({
           </button>
         </div>
       ) : null}
-      <div className={styles.formGrid}>
-        <Field label="공고명">
-          <input
-            className="form-input"
-            required
-            value={form.title}
-            onChange={(event) =>
-              onChange({ ...form, title: event.target.value })
-            }
+      <div className={styles.formSection}>
+        <p className={styles.formSectionLabel}>기본 정보</p>
+        <div className={styles.formSectionGrid}>
+          <Field label="공고명">
+            <input
+              className="form-input"
+              required
+              value={form.title}
+              onChange={(event) =>
+                onChange({ ...form, title: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="원문 링크">
+            <input
+              className="form-input"
+              required
+              value={form.originalUrl}
+              onChange={(event) =>
+                onChange({ ...form, originalUrl: event.target.value })
+              }
+            />
+          </Field>
+        </div>
+      </div>
+      <div className={styles.formSection}>
+        <p className={styles.formSectionLabel}>채용 조건</p>
+        <div className={styles.formSectionGrid}>
+          <SelectField
+            label="직무군"
+            value={form.jobFamily}
+            options={JOB_FAMILIES}
+            labels={jobFamilyLabels}
+            onChange={(value) => onChange({ ...form, jobFamily: value })}
           />
-        </Field>
-        <Field label="원문 링크">
-          <input
-            className="form-input"
-            required
-            value={form.originalUrl}
-            onChange={(event) =>
-              onChange({ ...form, originalUrl: event.target.value })
-            }
+          <SelectField
+            label="고용 형태"
+            value={form.employmentType}
+            options={EMPLOYMENT_TYPES}
+            labels={employmentLabels}
+            onChange={(value) => onChange({ ...form, employmentType: value })}
           />
-        </Field>
-        <SelectField
-          label="직무군"
-          value={form.jobFamily}
-          options={JOB_FAMILIES}
-          labels={jobFamilyLabels}
-          onChange={(value) => onChange({ ...form, jobFamily: value })}
-        />
-        <SelectField
-          label="고용 형태"
-          value={form.employmentType}
-          options={EMPLOYMENT_TYPES}
-          labels={employmentLabels}
-          onChange={(value) => onChange({ ...form, employmentType: value })}
-        />
-        <SelectField
-          label="KICPA 조건"
-          value={form.kicpaCondition}
-          options={KICPA_CONDITIONS}
-          labels={kicpaLabels}
-          onChange={(value) => onChange({ ...form, kicpaCondition: value })}
-        />
-        <SelectField
-          label="수습 CPA"
-          value={form.traineeStatus}
-          options={TRAINEE_STATUSES}
-          labels={traineeLabels}
-          onChange={(value) => onChange({ ...form, traineeStatus: value })}
-        />
-        <Field label="실무수습기관">
-          <select
-            className="form-input"
-            value={form.practicalTrainingInstitution}
-            onChange={(event) =>
-              onChange({
-                ...form,
-                practicalTrainingInstitution: event.target.value,
-              })
-            }
-          >
-            <option value="">불명확</option>
-            <option value="true">가능</option>
-            <option value="false">불가</option>
-          </select>
-        </Field>
-        <SelectField
-          label="마감 유형"
-          value={form.deadlineType}
-          options={DEADLINE_TYPES}
-          labels={deadlineTypeLabels}
-          onChange={(value) => onChange({ ...form, deadlineType: value })}
-        />
-        <Field label="마감일">
-          <input
-            className="form-input"
-            disabled={form.deadlineType !== "FIXED_DATE"}
-            required={form.deadlineType === "FIXED_DATE"}
-            type="date"
-            value={form.deadline}
-            onChange={(event) =>
-              onChange({ ...form, deadline: event.target.value })
-            }
+          <SelectField
+            label="KICPA 조건"
+            value={form.kicpaCondition}
+            options={KICPA_CONDITIONS}
+            labels={kicpaLabels}
+            onChange={(value) => onChange({ ...form, kicpaCondition: value })}
           />
-        </Field>
-        <Field label="최소 경력">
-          <input
-            className="form-input"
-            min={0}
-            type="number"
-            value={form.minExperienceYears}
-            onChange={(event) =>
-              onChange({ ...form, minExperienceYears: event.target.value })
-            }
+          <SelectField
+            label="수습 CPA"
+            value={form.traineeStatus}
+            options={TRAINEE_STATUSES}
+            labels={traineeLabels}
+            onChange={(value) => onChange({ ...form, traineeStatus: value })}
           />
-        </Field>
-        <Field label="최대 경력">
-          <input
-            className="form-input"
-            min={0}
-            type="number"
-            value={form.maxExperienceYears}
-            onChange={(event) =>
-              onChange({ ...form, maxExperienceYears: event.target.value })
-            }
+          <Field label="실무수습기관">
+            <select
+              className="form-input"
+              value={form.practicalTrainingInstitution}
+              onChange={(event) =>
+                onChange({
+                  ...form,
+                  practicalTrainingInstitution: event.target.value,
+                })
+              }
+            >
+              <option value="">불명확</option>
+              <option value="true">가능</option>
+              <option value="false">불가</option>
+            </select>
+          </Field>
+        </div>
+      </div>
+      <div className={styles.formSection}>
+        <p className={styles.formSectionLabel}>마감 · 경력 · 지역</p>
+        <div className={styles.formSectionGrid}>
+          <SelectField
+            label="마감 유형"
+            value={form.deadlineType}
+            options={DEADLINE_TYPES}
+            labels={deadlineTypeLabels}
+            onChange={(value) => onChange({ ...form, deadlineType: value })}
           />
-        </Field>
-        <Field label="지역">
-          <input
-            className="form-input"
-            value={form.location}
-            onChange={(event) =>
-              onChange({ ...form, location: event.target.value })
-            }
-          />
-        </Field>
+          <Field label="마감일">
+            <input
+              className="form-input"
+              disabled={form.deadlineType !== "FIXED_DATE"}
+              required={form.deadlineType === "FIXED_DATE"}
+              type="date"
+              value={form.deadline}
+              onChange={(event) =>
+                onChange({ ...form, deadline: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="최소 경력">
+            <input
+              className="form-input"
+              min={0}
+              type="number"
+              value={form.minExperienceYears}
+              onChange={(event) =>
+                onChange({ ...form, minExperienceYears: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="최대 경력">
+            <input
+              className="form-input"
+              min={0}
+              type="number"
+              value={form.maxExperienceYears}
+              onChange={(event) =>
+                onChange({ ...form, maxExperienceYears: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="지역">
+            <input
+              className="form-input"
+              value={form.location}
+              onChange={(event) =>
+                onChange({ ...form, location: event.target.value })
+              }
+            />
+          </Field>
+        </div>
       </div>
       <Field label="공고 내용">
         <textarea

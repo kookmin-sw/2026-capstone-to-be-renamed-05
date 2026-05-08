@@ -5,7 +5,7 @@ import type {
   CompanyManagedJobItem,
   JobSubmissionItem,
 } from "@cpa/shared";
-import { BriefcaseBusiness } from "lucide-react";
+import { BriefcaseBusiness, Clock, CheckCircle2 as CheckCircle, Trash2 as TrashIcon } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 import { JobSubmissionForm } from "./_components/job-submission-form";
 import { ManagedJobCard } from "./_components/managed-job-card";
@@ -237,9 +237,7 @@ export default function CompanyPage() {
       <>
         <SiteNav />
         <main className={styles.page}>
-          <div className={styles.loadingText}>
-            기업 공고 관리 정보를 불러오는 중입니다.
-          </div>
+          <p className={styles.loadingText}>기업 공고 관리 정보를 불러오는 중입니다.</p>
         </main>
       </>
     );
@@ -277,33 +275,50 @@ export default function CompanyPage() {
     <>
       <SiteNav />
       <main className={styles.page}>
-        <div className={styles.container}>
-          <header className={styles.header}>
-            <div>
-              <p className={styles.eyebrow}>기업 공고 관리</p>
-              <h1 className={styles.title}>{company.name}</h1>
-              <p className={styles.description}>
-                {companyTypeLabels[company.type]} · 공개 {openJobs.length}건 ·
-                삭제 {closedJobs.length}건
-              </p>
+        <div className={styles.hero}>
+          <div className={styles.heroGlow} />
+          <div className={styles.heroInner}>
+            <div className={styles.heroContent}>
+              <div className={styles.companyLogo}>
+                {company.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={company.logoUrl} alt={`${company.name} 로고`} />
+                ) : (
+                  <span>{company.name.slice(0, 2)}</span>
+                )}
+              </div>
+              <div>
+                <p className={styles.eyebrow}>기업 공고 관리</p>
+                <h1 className={styles.title}>{company.name}</h1>
+                <p className={styles.description}>
+                  {companyTypeLabels[company.type]} · 공개 {openJobs.length}건 · 삭제 {closedJobs.length}건
+                </p>
+              </div>
             </div>
-            <ActionLink
-              href={`/companies/${company.id}`}
-              variant="subtle"
-              size="md"
-            >
+            <ActionLink href={`/companies/${company.id}`} variant="subtle" size="md">
               공개 페이지
             </ActionLink>
-          </header>
+          </div>
+        </div>
 
+        <div className={styles.container}>
           {message ? <div className={styles.message}>{message}</div> : null}
 
           <section className={styles.metricGrid}>
-            <Metric label="게시 중" value={`${openJobs.length}건`} />
-            <Metric label="삭제 처리" value={`${closedJobs.length}건`} />
+            <Metric
+              label="게시 중"
+              value={`${openJobs.length}건`}
+              icon={<BriefcaseBusiness size={18} />}
+            />
+            <Metric
+              label="삭제 처리"
+              value={`${closedJobs.length}건`}
+              icon={<TrashIcon size={18} />}
+            />
             <Metric
               label="검수 대기"
               value={`${pendingSubmissions.length}건`}
+              icon={<Clock size={18} />}
             />
           </section>
 
@@ -369,3 +384,4 @@ export default function CompanyPage() {
     </>
   );
 }
+

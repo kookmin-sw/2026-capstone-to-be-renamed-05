@@ -1,49 +1,119 @@
+/* ─── Layout ─────────────────────────────────────────────── */
+
 .page {
   min-height: 100vh;
   background: var(--background);
-  padding: 2rem 1.25rem;
-}
-
-.container,
-.sectionStack,
-.itemList,
-.historyList {
-  display: grid;
 }
 
 .container {
   max-width: 80rem;
   margin: 0 auto;
-  gap: 1.5rem;
+  padding: 2rem 1.25rem;
+  display: grid;
+  gap: 2rem;
 }
 
-.loadingText {
-  max-width: 72rem;
+/* ─── Hero Header ─────────────────────────────────────────── */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #fff0f5 0%, #ffd6e5 100%);
+  border-bottom: 1px solid var(--proto-brand-mid);
+}
+
+.heroGlow {
+  position: absolute;
+  top: -4rem;
+  right: -4rem;
+  width: 18rem;
+  height: 18rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(232, 69, 122, 0.2) 0%, transparent 70%);
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.heroInner {
+  position: relative;
+  max-width: 80rem;
   margin: 0 auto;
+  padding: 2rem 1.25rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.heroContent {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.companyLogo {
+  flex: none;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 1rem;
+  background: var(--brand);
+  color: var(--brand-foreground);
+  font-size: 1.5rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.companyLogo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.eyebrow {
+  color: var(--proto-brand);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.title {
+  margin-top: 0.2rem;
+  color: var(--gray-900);
+  font-size: 1.875rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.description {
+  margin-top: 0.375rem;
   color: var(--app-muted);
   font-size: 0.875rem;
 }
 
-.authCard,
-.message,
-.emptyPanel,
-.form,
-.requestCard,
-.jobCard,
-.historyPanel,
-.metric,
-.statusRow,
-.info {
-  border: 1px solid var(--app-line);
-  background: var(--surface);
+/* ─── Auth / Loading ──────────────────────────────────────── */
+
+.loadingText {
+  max-width: 80rem;
+  margin: 4rem auto;
+  padding: 0 1.25rem;
+  color: var(--app-muted);
+  font-size: 0.875rem;
 }
 
 .authCard {
-  max-width: 48rem;
-  margin: 0 auto;
+  max-width: 28rem;
+  margin: 6rem auto;
+  border: 1px solid var(--app-line);
+  background: var(--surface);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+  padding: 2rem;
 }
 
 .authTitle {
@@ -62,81 +132,100 @@
   margin-top: 1.25rem;
 }
 
-.header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-  border-bottom: 1px solid var(--app-line);
-  padding-bottom: 1.25rem;
-}
-
-.eyebrow {
-  color: var(--proto-brand);
-  font-size: 0.875rem;
-  font-weight: 800;
-}
-
-.title {
-  margin-top: 0.25rem;
-  color: var(--gray-900);
-  font-size: 1.875rem;
-  font-weight: 900;
-  letter-spacing: 0;
-  line-height: 1.2;
-}
-
-.description {
-  margin-top: 0.5rem;
-  color: var(--app-muted);
-  font-size: 0.875rem;
-}
+/* ─── Message ─────────────────────────────────────────────── */
 
 .message {
+  border: 1px solid var(--proto-brand-mid);
+  background: var(--proto-brand-light);
   border-radius: var(--radius-md);
-  padding: 0.75rem 1rem;
+  padding: 0.875rem 1rem;
   color: var(--gray-700);
   font-size: 0.875rem;
 }
+
+/* ─── Metric Grid ─────────────────────────────────────────── */
 
 .metricGrid {
   display: grid;
   gap: 1rem;
 }
 
-.managementGrid {
-  display: grid;
-  gap: 1.5rem;
+.metric {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid var(--app-line);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 1.25rem 1.5rem;
 }
 
+.metricIcon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-md);
+  background: var(--proto-brand-light);
+  color: var(--proto-brand);
+}
+
+.metricLabel {
+  color: var(--app-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.metricValue {
+  margin-top: 0.25rem;
+  color: var(--gray-900);
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* ─── Section Stack & Item List ───────────────────────────── */
+
 .sectionStack {
+  display: grid;
   gap: 1rem;
 }
 
 .itemList {
-  gap: 0.75rem;
+  display: grid;
+  gap: 0.875rem;
 }
 
-.emptyPanel {
-  border-radius: var(--radius-lg);
-  padding: 1.25rem;
-  color: var(--app-muted);
-  font-size: 0.875rem;
-}
+/* ─── Card base ───────────────────────────────────────────── */
 
 .form,
 .requestCard,
 .jobCard,
 .historyPanel {
+  border: 1px solid var(--app-line);
+  background: var(--surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  padding: 1.25rem;
+  padding: 1.5rem;
 }
+
+/* ─── Management Grid ─────────────────────────────────────── */
+
+.managementGrid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+/* ─── Form ────────────────────────────────────────────────── */
 
 .form {
   display: grid;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .editNotice {
@@ -148,7 +237,7 @@
   border: 1px solid var(--proto-brand-mid);
   border-radius: var(--radius-md);
   background: var(--proto-brand-light);
-  padding: 0.625rem 0.75rem;
+  padding: 0.75rem 1rem;
   font-size: 0.875rem;
 }
 
@@ -172,6 +261,17 @@
   gap: 1rem;
 }
 
+.descriptionInput {
+  min-height: 9rem;
+  resize: vertical;
+}
+
+.fitAction {
+  width: fit-content;
+}
+
+/* ─── Profile Image Settings ──────────────────────────────── */
+
 .profileImageGrid {
   display: grid;
   gap: 1rem;
@@ -185,7 +285,8 @@
 .logoPreviewLabel {
   color: var(--app-muted);
   font-size: 0.75rem;
-  font-weight: 800;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .logoPreviewFrame {
@@ -196,7 +297,7 @@
   overflow: hidden;
   border: 1px solid var(--app-line);
   border-radius: var(--radius-md);
-  background: #fbfbf8;
+  background: #fafafa;
   color: var(--proto-brand);
   font-size: 1.25rem;
   font-weight: 900;
@@ -211,24 +312,45 @@
 .uploadHint {
   color: var(--app-muted);
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
-.descriptionInput {
-  min-height: 8rem;
+/* ─── Empty Panel ─────────────────────────────────────────── */
+
+.emptyPanel {
+  border: 1px solid var(--app-line);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  color: var(--app-muted);
+  font-size: 0.875rem;
 }
 
-.fitAction {
-  width: fit-content;
-}
+/* ─── Request Card (신규 요청 대기) ────────────────────────── */
 
 .requestCard {
   border-color: var(--proto-brand-mid);
   background: var(--proto-brand-light);
 }
 
+/* ─── Job Card ────────────────────────────────────────────── */
+
 .jobCard {
-  background: var(--surface);
+  border-left-width: 4px;
+  transition: box-shadow 0.15s ease;
+}
+
+.jobCard:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.jobCardOpen {
+  border-left-color: var(--proto-brand);
+}
+
+.jobCardClosed {
+  border-left-color: var(--app-line);
+  opacity: 0.72;
 }
 
 .cardHeader {
@@ -243,44 +365,54 @@
   min-width: 0;
 }
 
-.badgeRow,
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .actionGroup {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-.badgeRow {
-  align-items: center;
-}
-
 .cardTitle {
   margin-top: 0.5rem;
   color: var(--gray-900);
-  font-size: 1.125rem;
-  font-weight: 900;
+  font-size: 1.0625rem;
+  font-weight: 800;
   line-height: 1.35;
 }
 
 .cardMeta {
   margin-top: 0.25rem;
   color: var(--app-muted);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
 }
 
 .infoGrid {
   display: grid;
   gap: 0.5rem;
-  margin-top: 1rem;
+  margin-top: 1.25rem;
   font-size: 0.875rem;
 }
+
+.disabledAction {
+  color: var(--app-muted);
+  opacity: 1;
+}
+
+/* ─── History Panel (요청 이력) ───────────────────────────── */
 
 .historyPanel {
   align-self: start;
 }
 
 .historyList {
-  gap: 0.75rem;
+  display: grid;
+  gap: 0.625rem;
   margin-top: 1rem;
 }
 
@@ -289,65 +421,11 @@
   font-size: 0.875rem;
 }
 
-.metric {
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  padding: 1rem;
-}
-
-.metricLabel,
-.infoLabel {
-  color: var(--app-muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.metricValue {
-  margin-top: 0.5rem;
-  color: var(--gray-900);
-  font-size: 1.5rem;
-  font-weight: 900;
-}
-
-.sectionTitle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.sectionHeading {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--gray-900);
-  font-size: 1.125rem;
-  font-weight: 900;
-}
-
-.sectionHeading svg {
-  color: var(--proto-brand);
-}
-
-.sectionCount {
-  flex: none;
-  border: 1px solid var(--app-line);
-  border-radius: 999px;
-  color: var(--app-muted);
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 800;
-}
-
-.field {
-  display: grid;
-  gap: 0.5rem;
-  color: var(--gray-700);
-  font-size: 0.875rem;
-  font-weight: 700;
-}
+/* ─── Status Row ──────────────────────────────────────────── */
 
 .statusRow {
+  border: 1px solid var(--app-line);
+  background: #fafafa;
   border-radius: var(--radius-md);
   padding: 0.75rem;
 }
@@ -362,27 +440,82 @@
 .statusTitle {
   min-width: 0;
   color: var(--gray-900);
-  font-size: 0.875rem;
-  font-weight: 800;
-}
-
-.statusValue {
-  flex: none;
-  color: var(--proto-brand);
-  font-size: 0.75rem;
-  font-weight: 900;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .statusMeta {
-  margin-top: 0.25rem;
+  margin-top: 0.3rem;
   color: var(--app-muted);
   font-size: 0.75rem;
 }
 
+.statusType {
+  font-weight: 600;
+  color: var(--gray-700);
+}
+
+/* ─── Section Title ───────────────────────────────────────── */
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--gray-900);
+  font-size: 1.0625rem;
+  font-weight: 900;
+}
+
+.sectionHeading svg {
+  color: var(--proto-brand);
+}
+
+.sectionCount {
+  flex: none;
+  border: 1px solid var(--app-line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--app-muted);
+  padding: 0.2rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* ─── Form Field ──────────────────────────────────────────── */
+
+.field {
+  display: grid;
+  gap: 0.4rem;
+  color: var(--gray-700);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+/* ─── Info Cell ───────────────────────────────────────────── */
+
 .info {
+  border: 1px solid var(--app-line);
+  background: #fafafa;
   border-radius: var(--radius-md);
-  background: #fbfbf8;
   padding: 0.625rem 0.75rem;
+}
+
+.infoLabel {
+  color: var(--app-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .infoValue {
@@ -390,17 +523,21 @@
   overflow-wrap: anywhere;
   color: var(--gray-900);
   font-size: 0.875rem;
-  font-weight: 800;
+  font-weight: 700;
 }
+
+/* ─── Badge ───────────────────────────────────────────────── */
 
 .badge {
   display: inline-flex;
   align-items: center;
   border: 1px solid;
   border-radius: 999px;
-  padding: 0.25rem 0.65rem;
-  font-size: 0.75rem;
-  font-weight: 900;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .badgeBrand {
@@ -415,16 +552,33 @@
   color: var(--app-muted);
 }
 
-.disabledAction {
-  color: var(--app-muted);
-  opacity: 1;
+.badgePending {
+  border-color: var(--proto-brand-mid);
+  background: var(--proto-brand-light);
+  color: var(--proto-brand);
 }
 
-@media (min-width: 768px) {
+.badgeSuccess {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.badgeDanger {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ─── Responsive ──────────────────────────────────────────── */
+
+@media (min-width: 640px) {
   .metricGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
 
+@media (min-width: 768px) {
   .formGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -440,7 +594,7 @@
 
 @media (min-width: 1024px) {
   .managementGrid {
-    grid-template-columns: minmax(0, 1fr) 22.5rem;
+    grid-template-columns: minmax(0, 1fr) 22rem;
   }
 }
 
@@ -455,8 +609,8 @@
 }
 
 @media (max-width: 640px) {
-  .page {
-    padding: 1.25rem 1rem;
+  .heroInner {
+    padding: 1.5rem 1rem;
   }
 
   .title {
@@ -467,4 +621,103 @@
   .fitAction {
     width: 100%;
   }
+
+  .container {
+    padding: 1.25rem 1rem;
+  }
+}
+
+/* ─── Form Sections ───────────────────────────────────────── */
+
+.formSection {
+  display: grid;
+  gap: 0.875rem;
+  padding: 1rem;
+  background: #fafafa;
+  border: 1px solid var(--app-line);
+  border-radius: var(--radius-md);
+}
+
+.formSectionLabel {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: var(--app-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.formSectionGrid {
+  display: grid;
+  gap: 0.875rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 1024px) {
+  .formSectionGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ─── Timeline ────────────────────────────────────────────── */
+
+.timeline {
+  margin-top: 1rem;
+  padding-left: 0.875rem;
+  border-left: 2px solid var(--app-line);
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+}
+
+.timelineItem {
+  position: relative;
+  padding-left: 1rem;
+}
+
+.timelineDot {
+  position: absolute;
+  left: -1.375rem;
+  top: 0.25rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  flex: none;
+}
+
+.timelineDotPending {
+  background: var(--proto-brand);
+  box-shadow: 0 0 0 3px var(--proto-brand-light);
+}
+
+.timelineDotSuccess {
+  background: #15803d;
+  box-shadow: 0 0 0 3px #f0fdf4;
+}
+
+.timelineDotDanger {
+  background: #dc2626;
+  box-shadow: 0 0 0 3px #fef2f2;
+}
+
+.timelineHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.timelineTitle {
+  min-width: 0;
+  color: var(--gray-900);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timelineMeta {
+  margin-top: 0.2rem;
+  color: var(--app-muted);
+  font-size: 0.75rem;
 }

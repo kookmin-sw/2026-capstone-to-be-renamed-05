@@ -1,5 +1,21 @@
+import { cn } from "@/lib/utils";
 import { statusLabel } from "../_lib/formatters";
+import { Badge } from "./badge";
 import styles from "../company-page.module.css";
+
+type BadgeTone = "brand" | "muted" | "success" | "danger" | "pending";
+
+function statusTone(status: string): BadgeTone {
+  if (status === "APPROVED") return "success";
+  if (status === "REJECTED") return "danger";
+  return "pending";
+}
+
+function dotClass(status: string): string {
+  if (status === "APPROVED") return styles.timelineDotSuccess;
+  if (status === "REJECTED") return styles.timelineDotDanger;
+  return styles.timelineDotPending;
+}
 
 export function StatusRow({
   title,
@@ -13,13 +29,14 @@ export function StatusRow({
   meta: string;
 }) {
   return (
-    <div className={styles.statusRow}>
-      <div className={styles.statusRowHeader}>
-        <p className={styles.statusTitle}>{title}</p>
-        <span className={styles.statusValue}>{statusLabel(status)}</span>
+    <div className={styles.timelineItem}>
+      <span className={cn(styles.timelineDot, dotClass(status))} />
+      <div className={styles.timelineHeader}>
+        <p className={styles.timelineTitle}>{title}</p>
+        <Badge tone={statusTone(status)}>{statusLabel(status)}</Badge>
       </div>
-      <p className={styles.statusMeta}>
-        {type === "UPDATE" ? "수정 요청" : "신규 게시"} · {meta}
+      <p className={styles.timelineMeta}>
+        {type === "EDIT" ? "수정 요청" : "신규 게시"} · {meta}
       </p>
     </div>
   );

@@ -222,6 +222,21 @@ export type JobFilterPreferenceResponse = {
   authenticated: boolean;
 };
 
+export type UserJobPresetItem = {
+  id: string;
+  filterState: JobFilterPreference;
+  autoLabel: string;
+  filterSignature: string;
+  createdAt: string;
+  updatedAt: string;
+  lastUsedAt: string | null;
+};
+
+export type UserJobPresetListResponse = {
+  items: UserJobPresetItem[];
+  authenticated: boolean;
+};
+
 export type EmployeeTrendPoint = {
   month: string;
   joined: number;

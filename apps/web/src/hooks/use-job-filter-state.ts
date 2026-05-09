@@ -11,6 +11,10 @@ import {
   type JobFilterState,
 } from "@/lib/job-filters";
 
+export type SetJobFiltersOptions = {
+  preserveUserPreset?: boolean;
+};
+
 export function useJobFilterState() {
   const [filters, setFilters] = useState<JobFilterState>(defaultJobFilters);
   const [ready, setReady] = useState(false);
@@ -57,7 +61,10 @@ export function useJobFilterState() {
     };
   }, []);
 
-  const queryString = useMemo(() => jobFiltersToQueryString(filters), [filters]);
+  const queryString = useMemo(
+    () => jobFiltersToQueryString(filters),
+    [filters],
+  );
 
   useEffect(() => {
     if (!ready) return;
@@ -86,9 +93,16 @@ export function useJobFilterState() {
     return () => window.clearTimeout(timer);
   }, [canPersist, filters, ready]);
 
-  const updateFilters = useCallback((next: JobFilterState) => {
-    setFilters({ ...next, quick: "" });
-  }, []);
+  const updateFilters = useCallback(
+    (next: JobFilterState, options: SetJobFiltersOptions = {}) => {
+      setFilters({
+        ...next,
+        quick: "",
+        userPresetId: options.preserveUserPreset ? next.userPresetId : "",
+      });
+    },
+    [],
+  );
 
   return {
     filters,

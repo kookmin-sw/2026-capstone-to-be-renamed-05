@@ -90,6 +90,7 @@ model User {
   updatedAt           DateTime @updatedAt
 
   ownedCompany                      Company?                   @relation("CompanyOwner")
+  jobPresets                        UserJobPreset[]
   jobSubmissions                    JobSubmission[]            @relation("JobSubmissionSubmitter")
   reviewedJobSubmissions            JobSubmission[]            @relation("JobSubmissionReviewer")
   companyProfileSubmissions         CompanyProfileSubmission[] @relation("CompanyProfileSubmissionSubmitter")
@@ -197,6 +198,22 @@ model JobLabel {
   label   Label  @relation(fields: [labelId], references: [id], onDelete: Cascade)
 
   @@id([jobId, labelId])
+}
+
+model UserJobPreset {
+  id              String    @id @default(uuid())
+  userId          String
+  filterState     Json
+  autoLabel       String
+  filterSignature String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastUsedAt      DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, filterSignature])
+  @@index([userId, createdAt])
 }
 
 model JobSubmission {

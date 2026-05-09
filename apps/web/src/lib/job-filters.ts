@@ -7,6 +7,7 @@ import {
 export type JobFilterState = {
   quick: string;
   preset: "" | JobPresetId;
+  userPresetId: string;
   search: string;
   jobFamily: string;
   companyType: string;
@@ -30,6 +31,7 @@ export type JobFilterState = {
 export const defaultJobFilters: JobFilterState = {
   quick: "",
   preset: "",
+  userPresetId: "",
   search: "",
   jobFamily: "",
   companyType: "",
@@ -118,6 +120,7 @@ export const jobFilterQueryKeys = new Set<string>([
   ...stringParamKeys,
   "quick",
   "preset",
+  "userPresetId",
   "traineeAvailable",
   "deadline",
   "locations",
@@ -150,9 +153,17 @@ export function parseJobFiltersFromParams(params: URLSearchParams) {
     : { ...defaultJobFilters };
   let hasAnyQuery = Boolean(quickFilter);
   const preset = normalizePresetParam(params.get("preset"));
+  const userPresetId = params.get("userPresetId")?.trim() ?? "";
 
   if (preset) {
     filters.preset = preset;
+    filters.userPresetId = "";
+    hasAnyQuery = true;
+  }
+
+  if (userPresetId) {
+    filters.userPresetId = userPresetId.slice(0, 80);
+    filters.preset = "";
     hasAnyQuery = true;
   }
 
@@ -231,6 +242,38 @@ export function jobFiltersToPreference(filters: JobFilterState) {
   return preference;
 }
 
+export function jobFiltersToPresetSnapshot(filters: JobFilterState) {
+  const preference = jobFiltersToPreference(filters);
+  if (preference.sort === defaultJobFilters.sort) {
+    delete preference.sort;
+  }
+  return orderJobFilterPreference(preference);
+}
+
+export function jobPresetSignatureFromFilters(filters: JobFilterState) {
+  return JSON.stringify(jobFiltersToPresetSnapshot(filters));
+}
+
+export function isMeaningfulJobPresetSnapshot(filters: JobFilterState) {
+  const snapshot = jobFiltersToPresetSnapshot(filters);
+  if (snapshot.selectedLocations?.length) return true;
+  return stringParamKeys.some(
+    (key) => key !== "sort" && Boolean(snapshot[key]),
+  );
+}
+
+export function userPresetState(
+  preference: JobFilterPreference,
+  userPresetId: string,
+): JobFilterState {
+  return {
+    ...normalizeJobFilterPreference(preference),
+    quick: "",
+    preset: "",
+    userPresetId,
+  };
+}
+
 export function quickFilterState(filter: QuickJobFilter) {
   return {
     ...defaultJobFilters,
@@ -249,13 +292,36 @@ export function buildJobUrlParams(filters: JobFilterState) {
       next.set(key, value);
     }
     if (filters.sort) next.set("sort", filters.sort);
-    if (filters.preset) next.set("preset", filters.preset);
+    appendPresetUrlParams(next, filters);
     return next;
   }
 
   const next = buildJobFilterParams(filters);
   if (filters.deadline) next.set("deadline", filters.deadline);
+  appendPresetUrlParams(next, filters);
   return next;
+}
+
+function orderJobFilterPreference(preference: JobFilterPreference) {
+  const ordered: JobFilterPreference = {};
+  for (const key of stringParamKeys) {
+    const value = preference[key];
+    if (typeof value === "string" && value) {
+      ordered[key] = value;
+    }
+  }
+  if (preference.selectedLocations?.length) {
+    ordered.selectedLocations = [...preference.selectedLocations];
+  }
+  return ordered;
+}
+
+function appendPresetUrlParams(
+  params: URLSearchParams,
+  filters: JobFilterState,
+) {
+  if (filters.preset) params.set("preset", filters.preset);
+  if (filters.userPresetId) params.set("userPresetId", filters.userPresetId);
 }
 
 function normalizePresetParam(value: string | null): JobPresetId | "" {

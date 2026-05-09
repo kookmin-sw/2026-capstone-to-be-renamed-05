@@ -1,21 +1,169 @@
 "use client";
 
-import { jobPresetConfigs } from "@cpa/shared";
-import type { JobFilterState } from "@/lib/job-filters";
+import { jobPresetConfigs, type UserJobPresetItem } from "@cpa/shared";
+import { Plus, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import type { SetJobFiltersOptions } from "@/hooks/use-job-filter-state";
+import {
+  createUserJobPreset,
+  deleteUserJobPreset,
+  fetchCurrentUser,
+  fetchUserJobPresets,
+  markUserJobPresetUsed,
+} from "@/lib/api";
+import {
+  isMeaningfulJobPresetSnapshot,
+  jobFiltersToPresetSnapshot,
+  jobPresetSignatureFromFilters,
+  userPresetState,
+  type JobFilterState,
+} from "@/lib/job-filters";
 import { cn } from "@/lib/utils";
 import styles from "./job-preset-bar.module.css";
 
 type JobPresetBarProps = {
   filters: JobFilterState;
-  onChange: (filters: JobFilterState) => void;
+  onChange: (filters: JobFilterState, options?: SetJobFiltersOptions) => void;
   className?: string;
 };
+
+const personalPresetLimit = 5;
 
 export function JobPresetBar({
   filters,
   onChange,
   className,
 }: JobPresetBarProps) {
+  const [authMode, setAuthMode] = useState<
+    "loading" | "guest" | "job-seeker" | "hidden"
+  >("loading");
+  const [personalPresets, setPersonalPresets] = useState<UserJobPresetItem[]>(
+    [],
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let ignore = false;
+
+    void fetchCurrentUser()
+      .then(async (user) => {
+        if (ignore) return null;
+        if (!user) {
+          setAuthMode("guest");
+          return null;
+        }
+        if (user.role !== "JOB_SEEKER") {
+          setAuthMode("hidden");
+          return null;
+        }
+        setAuthMode("job-seeker");
+        try {
+          const data = await fetchUserJobPresets();
+          if (!ignore) {
+            setPersonalPresets(data.items);
+            setError("");
+          }
+        } catch (caught) {
+          if (!ignore) {
+            setError(
+              caught instanceof Error
+                ? caught.message
+                : "개인 프리셋을 불러오지 못했습니다.",
+            );
+          }
+        }
+      })
+      .catch(() => {
+        if (!ignore) {
+          setAuthMode("guest");
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const signature = useMemo(
+    () => jobPresetSignatureFromFilters(filters),
+    [filters],
+  );
+  const canSave = useMemo(
+    () => isMeaningfulJobPresetSnapshot(filters),
+    [filters],
+  );
+  const isDuplicate = personalPresets.some(
+    (preset) => preset.filterSignature === signature,
+  );
+  const isAtLimit = personalPresets.length >= personalPresetLimit;
+  const saveDisabled =
+    authMode !== "job-seeker" || !canSave || isDuplicate || isAtLimit || saving;
+
+  const saveTitle = !canSave
+    ? "저장할 필터 조합이 없습니다."
+    : isDuplicate
+      ? "이미 저장된 조합입니다."
+      : isAtLimit
+        ? `개인 프리셋은 최대 ${personalPresetLimit}개까지 저장할 수 있습니다.`
+        : "현재 필터 조합 저장";
+
+  const applyBasePreset = (id: JobFilterState["preset"]) => {
+    onChange({
+      ...filters,
+      preset: filters.preset === id ? "" : id,
+      userPresetId: "",
+    });
+  };
+
+  const applyPersonalPreset = (preset: UserJobPresetItem) => {
+    onChange(userPresetState(preset.filterState, preset.id), {
+      preserveUserPreset: true,
+    });
+    markUserJobPresetUsed(preset.id)
+      .then((updated) => {
+        setPersonalPresets((current) =>
+          current.map((item) => (item.id === updated.id ? updated : item)),
+        );
+      })
+      .catch(() => {});
+  };
+
+  const handleSave = () => {
+    if (saveDisabled) return;
+    setSaving(true);
+    setError("");
+    createUserJobPreset(jobFiltersToPresetSnapshot(filters))
+      .then((created) => {
+        setPersonalPresets((current) => [...current, created]);
+        onChange(userPresetState(created.filterState, created.id), {
+          preserveUserPreset: true,
+        });
+      })
+      .catch((caught: Error) => {
+        setError(caught.message);
+      })
+      .finally(() => {
+        setSaving(false);
+      });
+  };
+
+  const handleDelete = (preset: UserJobPresetItem) => {
+    setError("");
+    deleteUserJobPreset(preset.id)
+      .then(() => {
+        setPersonalPresets((current) =>
+          current.filter((item) => item.id !== preset.id),
+        );
+        if (filters.userPresetId === preset.id) {
+          onChange({ ...filters, userPresetId: "" });
+        }
+      })
+      .catch((caught: Error) => {
+        setError(caught.message);
+      });
+  };
+
   return (
     <div className={cn(styles.root, className)}>
       <div className={styles.row}>
@@ -26,19 +174,67 @@ export function JobPresetBar({
             <button
               key={preset.id}
               type="button"
-              onClick={() =>
-                onChange({
-                  ...filters,
-                  preset: selected ? "" : preset.id,
-                })
-              }
+              onClick={() => applyBasePreset(preset.id)}
               className={cn(styles.chip, selected && styles.chipSelected)}
             >
               {preset.label}
             </button>
           );
         })}
+
+        {authMode !== "hidden" && <span className={styles.divider} />}
+        {authMode !== "hidden" && (
+          <span className={styles.groupLabel}>개인</span>
+        )}
+
+        {authMode === "guest" && (
+          <span className={styles.guestHint}>개인회원 로그인 시 저장 가능</span>
+        )}
+
+        {authMode === "job-seeker" &&
+          personalPresets.map((preset) => {
+            const selected = filters.userPresetId === preset.id;
+            return (
+              <span
+                key={preset.id}
+                className={cn(
+                  styles.personalChip,
+                  selected && styles.personalChipSelected,
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={() => applyPersonalPreset(preset)}
+                  className={styles.personalChipLabel}
+                >
+                  {preset.autoLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(preset)}
+                  className={styles.personalChipDelete}
+                  aria-label={`${preset.autoLabel} 삭제`}
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            );
+          })}
+
+        {authMode === "job-seeker" && (
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saveDisabled}
+            title={saveTitle}
+            className={cn(styles.saveButton, saveDisabled && styles.disabled)}
+          >
+            <Plus size={12} />
+            {saving ? "저장 중" : "내 조합 저장"}
+          </button>
+        )}
       </div>
+      {error && <p className={styles.error}>{error}</p>}
     </div>
   );
 }

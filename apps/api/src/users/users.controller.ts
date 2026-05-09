@@ -59,7 +59,11 @@ export class UsersController {
     @Req() req: RequestWithUser,
     @Body() dto: CreateJobPresetDto,
   ) {
-    return this.usersService.createJobPreset(req.user!.id, dto.filter);
+    return this.usersService.createJobPreset(
+      req.user!.id,
+      dto.filter,
+      dto.name,
+    );
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

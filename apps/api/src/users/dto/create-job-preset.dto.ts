@@ -1,7 +1,16 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsObject } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateJobPresetDto {
+  @ApiPropertyOptional({
+    example: '서울 감사 신입',
+    maxLength: 30,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  name?: string;
+
   @ApiProperty({
     example: {
       search: '감사',

@@ -2,7 +2,7 @@
 
 import { jobPresetConfigs, type UserJobPresetItem } from "@cpa/shared";
 import { Plus, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import type { SetJobFiltersOptions } from "@/hooks/use-job-filter-state";
 import {
   createUserJobPreset,
@@ -40,6 +40,8 @@ export function JobPresetBar({
   const [personalPresets, setPersonalPresets] = useState<UserJobPresetItem[]>(
     [],
   );
+  const [naming, setNaming] = useState(false);
+  const [draftName, setDraftName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -99,6 +101,7 @@ export function JobPresetBar({
   const isAtLimit = personalPresets.length >= personalPresetLimit;
   const saveDisabled =
     authMode !== "job-seeker" || !canSave || isDuplicate || isAtLimit || saving;
+  const confirmDisabled = saveDisabled || !draftName.trim();
 
   const saveTitle = !canSave
     ? "저장할 필터 조합이 없습니다."
@@ -107,6 +110,9 @@ export function JobPresetBar({
       : isAtLimit
         ? `개인 프리셋은 최대 ${personalPresetLimit}개까지 저장할 수 있습니다.`
         : "현재 필터 조합 저장";
+  const confirmTitle = !draftName.trim()
+    ? "프리셋 이름을 입력해 주세요."
+    : saveTitle;
 
   const applyBasePreset = (id: JobFilterState["preset"]) => {
     onChange({
@@ -129,13 +135,28 @@ export function JobPresetBar({
       .catch(() => {});
   };
 
-  const handleSave = () => {
+  const handleStartSave = () => {
     if (saveDisabled) return;
+    setNaming(true);
+    setError("");
+  };
+
+  const handleCancelName = () => {
+    if (saving) return;
+    setNaming(false);
+    setDraftName("");
+  };
+
+  const handleSave = (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+    if (confirmDisabled) return;
     setSaving(true);
     setError("");
-    createUserJobPreset(jobFiltersToPresetSnapshot(filters))
+    createUserJobPreset(jobFiltersToPresetSnapshot(filters), draftName.trim())
       .then((created) => {
         setPersonalPresets((current) => [...current, created]);
+        setNaming(false);
+        setDraftName("");
         onChange(userPresetState(created.filterState, created.id), {
           preserveUserPreset: true,
         });
@@ -221,10 +242,45 @@ export function JobPresetBar({
             );
           })}
 
-        {authMode === "job-seeker" && (
+        {authMode === "job-seeker" && naming && (
+          <form className={styles.nameForm} onSubmit={handleSave}>
+            <input
+              type="text"
+              value={draftName}
+              onChange={(event) => setDraftName(event.target.value)}
+              maxLength={30}
+              placeholder="프리셋 이름"
+              aria-label="개인 프리셋 이름"
+              disabled={saving}
+              className={styles.nameInput}
+              autoFocus
+            />
+            <button
+              type="submit"
+              disabled={confirmDisabled}
+              title={confirmTitle}
+              className={cn(
+                styles.nameConfirm,
+                confirmDisabled && styles.disabled,
+              )}
+            >
+              {saving ? "저장 중" : "저장"}
+            </button>
+            <button
+              type="button"
+              onClick={handleCancelName}
+              disabled={saving}
+              className={styles.nameCancel}
+            >
+              취소
+            </button>
+          </form>
+        )}
+
+        {authMode === "job-seeker" && !naming && (
           <button
             type="button"
-            onClick={handleSave}
+            onClick={handleStartSave}
             disabled={saveDisabled}
             title={saveTitle}
             className={cn(styles.saveButton, saveDisabled && styles.disabled)}

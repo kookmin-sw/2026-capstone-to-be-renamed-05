@@ -393,12 +393,15 @@ export async function fetchUserJobPresets() {
   return (await response.json()) as UserJobPresetListResponse;
 }
 
-export async function createUserJobPreset(filter: JobFilterPreference) {
+export async function createUserJobPreset(
+  filter: JobFilterPreference,
+  name?: string,
+) {
   const response = await fetch(`${API_BASE_URL}/users/me/job-presets`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ filter }),
+    body: JSON.stringify({ filter, name }),
   });
   if (!response.ok) {
     throw new Error(

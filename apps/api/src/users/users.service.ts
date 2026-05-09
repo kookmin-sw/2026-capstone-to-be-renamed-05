@@ -134,7 +134,11 @@ export class UsersService {
     };
   }
 
-  async createJobPreset(userId: string, filter: Record<string, unknown>) {
+  async createJobPreset(
+    userId: string,
+    filter: Record<string, unknown>,
+    name?: string,
+  ) {
     const normalized = this.normalizeJobPresetFilter(filter);
     if (!this.hasMeaningfulPresetFilter(normalized)) {
       throw new BadRequestException('저장할 필터 조합이 없습니다.');
@@ -160,7 +164,8 @@ export class UsersService {
       data: {
         userId,
         filterState: normalized,
-        autoLabel: this.createAutoLabel(normalized),
+        autoLabel:
+          this.normalizePresetName(name) ?? this.createAutoLabel(normalized),
         filterSignature,
       },
     });
@@ -267,6 +272,12 @@ export class UsersService {
 
   private createFilterSignature(filter: JobFilterPreference) {
     return JSON.stringify(this.orderJobFilterPreference(filter));
+  }
+
+  private normalizePresetName(value: string | undefined) {
+    if (!value) return null;
+    const name = value.trim().replace(/\s+/g, ' ').slice(0, 30);
+    return name || null;
   }
 
   private createAutoLabel(filter: JobFilterPreference) {

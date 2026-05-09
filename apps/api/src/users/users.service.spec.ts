@@ -85,6 +85,32 @@ describe('UsersService job presets', () => {
     expect(result.autoLabel).toBe('서울·감사·신입');
   });
 
+  it('uses a custom name as the personal preset label', async () => {
+    prisma.userJobPreset.create.mockImplementation(
+      (args: {
+        data: {
+          filterState: Record<string, unknown>;
+          autoLabel: string;
+          filterSignature: string;
+        };
+      }) =>
+        createRecord({
+          filterState: args.data.filterState,
+          autoLabel: args.data.autoLabel,
+          filterSignature: args.data.filterSignature,
+        }),
+    );
+
+    const result = await service.createJobPreset(
+      'user-1',
+      { search: '감사' },
+      '  감사 포지션  ',
+    );
+
+    expect(getLastCreateArgs(prisma).data.autoLabel).toBe('감사 포지션');
+    expect(result.autoLabel).toBe('감사 포지션');
+  });
+
   it('rejects duplicate personal preset signatures', async () => {
     prisma.userJobPreset.findFirst.mockResolvedValue({ id: 'preset-1' });
 

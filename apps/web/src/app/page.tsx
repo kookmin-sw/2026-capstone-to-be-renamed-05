@@ -81,6 +81,11 @@ const quickFilterIcons: Record<QuickJobFilterId, LucideIcon> = {
   deadlineSoon: AlarmClock,
 };
 
+const assetBasePath =
+  process.env.NEXT_PUBLIC_ASSET_PREFIX?.replace(/\/$/, '') ??
+  process.env.NEXT_PUBLIC_BASE_PATH?.replace(/\/$/, '') ??
+  '';
+
 export default function Home() {
   return (
     <main className={styles.page}>
@@ -109,7 +114,7 @@ export default function Home() {
           <div className={styles.heroVisual} aria-hidden="true">
             <Image
               className={styles.heroImage}
-              src="/landing/accountit-hero.png"
+              src={`${assetBasePath}/landing/accountit-hero.png`}
               alt=""
               width={1680}
               height={936}

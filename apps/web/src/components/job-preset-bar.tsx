@@ -188,7 +188,6 @@ export function JobPresetBar({
   return (
     <div className={cn(styles.root, className)}>
       <div className={styles.row}>
-        <span className={styles.groupLabel}>기본</span>
         {jobPresetConfigs.map((preset) => {
           const selected = filters.preset === preset.id;
           return (
@@ -204,9 +203,6 @@ export function JobPresetBar({
         })}
 
         {authMode !== "hidden" && <span className={styles.divider} />}
-        {authMode !== "hidden" && (
-          <span className={styles.groupLabel}>개인</span>
-        )}
 
         {authMode === "guest" && (
           <span className={styles.guestHint}>개인회원 로그인 시 저장 가능</span>

@@ -82,6 +82,26 @@ export class AdminController {
     return this.adminService.updateJobStatus(id, body.status);
   }
 
+  @Patch('jobs/:id/refresh')
+  refreshJobCheckedAt(@Param('id') id: string) {
+    return this.adminService.refreshJobCheckedAt(id);
+  }
+
+  @Get('ai-suggestions')
+  listAiSuggestions() {
+    return this.adminService.listAiSuggestions();
+  }
+
+  @Patch('ai-suggestions/:id/approve')
+  approveAiSuggestion(@Param('id') id: string) {
+    return this.adminService.reviewAiSuggestion(id, 'approve');
+  }
+
+  @Patch('ai-suggestions/:id/reject')
+  rejectAiSuggestion(@Param('id') id: string) {
+    return this.adminService.reviewAiSuggestion(id, 'reject');
+  }
+
   @Get('companies')
   listCompanies(@Query() query: Record<string, string | undefined>) {
     return this.adminService.listCompanies(query);
@@ -90,6 +110,19 @@ export class AdminController {
   @Get('companies/:id')
   getCompany(@Param('id') id: string) {
     return this.adminService.getCompany(id);
+  }
+
+  @Post('companies')
+  createCompany(@Body() body: Record<string, unknown>) {
+    return this.adminService.createCompany(body);
+  }
+
+  @Patch('companies/:id')
+  updateCompany(
+    @Param('id') id: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    return this.adminService.updateCompany(id, body);
   }
 
   @Get('members')

@@ -173,6 +173,66 @@ export class AdminService {
     return this.toAdminJob(job);
   }
 
+  async refreshJobCheckedAt(id: string) {
+    const job = await this.prisma.job.update({
+      where: { id },
+      data: { lastCheckedAt: new Date() },
+      include: adminJobInclude,
+    });
+    return this.toAdminJob(job);
+  }
+
+  async listAiSuggestions() {
+    const items = await this.prisma.aiSuggestion.findMany({
+      include: { job: { select: { id: true, title: true } } },
+      orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+    });
+    return {
+      items: items.map((item) => ({
+        id: item.id,
+        jobId: item.jobId,
+        jobTitle: item.job.title,
+        summary: item.summary,
+        tags: item.tags,
+        risks: item.risks,
+        status: item.status,
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString(),
+      })),
+    };
+  }
+
+  async reviewAiSuggestion(
+    id: string,
+    action: 'approve' | 'reject',
+  ) {
+    const suggestion = await this.prisma.aiSuggestion.findUnique({
+      where: { id },
+      select: { status: true },
+    });
+    if (!suggestion) {
+      throw new NotFoundException('AI 제안을 찾을 수 없습니다.');
+    }
+
+    const status = action === 'approve' ? 'APPROVED' : 'REJECTED';
+    const updated = await this.prisma.aiSuggestion.update({
+      where: { id },
+      data: { status },
+      include: { job: { select: { id: true, title: true } } },
+    });
+    return {
+      id: updated.id,
+      jobId: updated.jobId,
+      jobTitle: updated.job.title,
+      summary: updated.summary,
+      tags: updated.tags,
+      risks: updated.risks,
+      status: updated.status,
+      createdAt: updated.createdAt.toISOString(),
+      updatedAt: updated.updatedAt.toISOString(),
+    };
+  }
+
   async listCompanies(query: Record<string, string | undefined>) {
     const { page, pageSize } = this.parsePagination(query);
     const where = this.buildAdminCompanyWhere(query);
@@ -202,6 +262,69 @@ export class AdminService {
       include: adminCompanyInclude,
     });
     if (!company) throw new NotFoundException('Company not found.');
+    return this.toAdminCompany(company);
+  }
+
+  async updateCompany(id: string, payload: Record<string, unknown>) {
+    const existing = await this.prisma.company.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!existing) throw new NotFoundException('Company not found.');
+
+    const data = this.toCompanyWriteData(payload);
+
+    const company = await this.prisma.company.update({
+      where: { id },
+      data,
+      include: adminCompanyInclude,
+    });
+    return this.toAdminCompany(company);
+  }
+
+  async createCompany(payload: Record<string, unknown>) {
+    const name = typeof payload.name === 'string' ? payload.name.trim() : '';
+    if (!name) {
+      throw new BadRequestException('회사명은 필수입니다.');
+    }
+
+    const type =
+      typeof payload.type === 'string' && this.isCompanyType(payload.type)
+        ? payload.type
+        : 'LOCAL_ACCOUNTING_FIRM';
+
+    let ownerUserId = typeof payload.ownerUserId === 'string' ? payload.ownerUserId : '';
+    if (!ownerUserId) {
+      const admin = await this.prisma.user.findFirst({
+        where: { role: 'ADMIN' },
+        select: { id: true },
+      });
+      if (!admin) {
+        throw new BadRequestException('소유자를 지정할 수 없습니다.');
+      }
+      ownerUserId = admin.id;
+    }
+
+    const writeData = this.toCompanyWriteData(payload);
+
+    const company = await this.prisma.company.create({
+      data: {
+        name,
+        type: type as CompanyType,
+        websiteUrl: (writeData.websiteUrl as string | null) ?? null,
+        logoUrl: (writeData.logoUrl as string | null) ?? null,
+        description: (writeData.description as string | null) ?? null,
+        businessNumber: (writeData.businessNumber as string | null) ?? null,
+        externalLinks: (writeData.externalLinks as string[]) ?? [],
+        tags: (writeData.tags as string[]) ?? [],
+        employeeCount: (writeData.employeeCount as number | null) ?? null,
+        averageSalary: (writeData.averageSalary as number | null) ?? null,
+        foundedYear: (writeData.foundedYear as number | null) ?? null,
+        recentAttritionRate: (writeData.recentAttritionRate as number | null) ?? null,
+        owner: { connect: { id: ownerUserId } },
+      },
+      include: adminCompanyInclude,
+    });
     return this.toAdminCompany(company);
   }
 
@@ -723,6 +846,49 @@ export class AdminService {
       status: dto.status ?? JobStatus.OPEN,
       lastCheckedAt: new Date(),
     };
+  }
+
+  private toCompanyWriteData(payload: Record<string, unknown>): Prisma.CompanyUpdateInput {
+    const data: Prisma.CompanyUpdateInput = {};
+    if (typeof payload.name === 'string') data.name = payload.name.trim();
+    if (typeof payload.type === 'string' && this.isCompanyType(payload.type)) {
+      data.type = payload.type;
+    }
+    if (typeof payload.websiteUrl === 'string' || payload.websiteUrl === null) {
+      data.websiteUrl = payload.websiteUrl as string | null;
+    }
+    if (typeof payload.logoUrl === 'string' || payload.logoUrl === null) {
+      data.logoUrl = payload.logoUrl as string | null;
+    }
+    if (typeof payload.description === 'string' || payload.description === null) {
+      data.description = payload.description as string | null;
+    }
+    if (typeof payload.businessNumber === 'string' || payload.businessNumber === null) {
+      data.businessNumber = payload.businessNumber as string | null;
+    }
+    if (Array.isArray(payload.externalLinks)) {
+      data.externalLinks = payload.externalLinks.filter(
+        (item): item is string => typeof item === 'string',
+      );
+    }
+    if (Array.isArray(payload.tags)) {
+      data.tags = payload.tags.filter(
+        (item): item is string => typeof item === 'string',
+      );
+    }
+    if (typeof payload.employeeCount === 'number' || payload.employeeCount === null) {
+      data.employeeCount = payload.employeeCount as number | null;
+    }
+    if (typeof payload.averageSalary === 'number' || payload.averageSalary === null) {
+      data.averageSalary = payload.averageSalary as number | null;
+    }
+    if (typeof payload.foundedYear === 'number' || payload.foundedYear === null) {
+      data.foundedYear = payload.foundedYear as number | null;
+    }
+    if (typeof payload.recentAttritionRate === 'number' || payload.recentAttritionRate === null) {
+      data.recentAttritionRate = payload.recentAttritionRate as number | null;
+    }
+    return data;
   }
 
   private emptyJobStatusCounts() {

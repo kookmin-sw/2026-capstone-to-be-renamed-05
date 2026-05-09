@@ -485,47 +485,21 @@ export async function fetchAdminJobs(params: URLSearchParams) {
 }
 
 export async function fetchAdminJob(id: string) {
-  const job = enrichJobs(readState()).find((item) => item.id === id);
-  if (!job) throw new Error("공고를 찾을 수 없습니다.");
-  return job;
+  return apiJson<AdminJob>(`/admin/jobs/${id}`);
 }
 
 export async function createAdminJob(payload: AdminJobPayload) {
-  const state = readState();
-  const company = state.companies.find((item) => item.id === payload.companyId);
-  const source = state.sources.find((item) => item.id === payload.sourceId);
-  const saved: AdminJob = {
-    ...payload,
-    id: `demo-job-${Date.now()}`,
-    companyName: company?.name ?? "회사 미선택",
-    sourceName: source?.name ?? "출처 미선택",
-    lastCheckedAt: nowIso(),
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-  };
-  state.jobs.unshift(saved);
-  recalculateCompanyCounts(state);
-  writeState(state);
-  return saved;
+  return apiJson<AdminJob>("/admin/jobs", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function updateAdminJob(id: string, payload: AdminJobPayload) {
-  const state = readState();
-  const index = state.jobs.findIndex((job) => job.id === id);
-  if (index < 0) throw new Error("공고를 찾을 수 없습니다.");
-  const company = state.companies.find((item) => item.id === payload.companyId);
-  const source = state.sources.find((item) => item.id === payload.sourceId);
-  const saved: AdminJob = {
-    ...state.jobs[index],
-    ...payload,
-    companyName: company?.name ?? state.jobs[index].companyName,
-    sourceName: source?.name ?? state.jobs[index].sourceName,
-    updatedAt: nowIso(),
-  };
-  state.jobs[index] = saved;
-  recalculateCompanyCounts(state);
-  writeState(state);
-  return saved;
+  return apiJson<AdminJob>(`/admin/jobs/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function updateAdminJobStatus(id: string, status: JobStatus) {
@@ -542,40 +516,24 @@ export async function fetchAdminCompanies(params: URLSearchParams) {
 }
 
 export async function fetchAdminCompany(id: string) {
-  const company = readState().companies.find((item) => item.id === id);
-  if (!company) throw new Error("회사를 찾을 수 없습니다.");
-  return company;
+  return apiJson<AdminCompany>(`/admin/companies/${id}`);
 }
 
 export async function createAdminCompany(payload: AdminCompanyPayload) {
-  const state = readState();
-  const saved: AdminCompany = {
-    ...payload,
-    id: `demo-company-${Date.now()}`,
-    jobCount: 0,
-    createdAt: nowIso(),
-    updatedAt: nowIso(),
-  };
-  state.companies.unshift(saved);
-  writeState(state);
-  return saved;
+  return apiJson<AdminCompany>("/admin/companies", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function updateAdminCompany(
   id: string,
   payload: AdminCompanyPayload,
 ) {
-  const state = readState();
-  const index = state.companies.findIndex((company) => company.id === id);
-  if (index < 0) throw new Error("회사를 찾을 수 없습니다.");
-  const saved: AdminCompany = {
-    ...state.companies[index],
-    ...payload,
-    updatedAt: nowIso(),
-  };
-  state.companies[index] = saved;
-  writeState(state);
-  return saved;
+  return apiJson<AdminCompany>(`/admin/companies/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function fetchAdminMembers(params: URLSearchParams) {

@@ -5,6 +5,7 @@ coverage/
 .turbo/
 .playwright-cli/
 .codex/run-logs/
+.claude/worktrees/
 .next/
 apps/web/.next/
 apps/api/dist/

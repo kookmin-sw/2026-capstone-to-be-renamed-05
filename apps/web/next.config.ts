@@ -22,7 +22,28 @@ function s3RemotePatterns(): NonNullable<
   }
 }
 
+function basePath() {
+  const path = process.env.NEXT_PUBLIC_BASE_PATH?.trim();
+  if (!path || path === "/") return undefined;
+
+  const prefixed = path.startsWith("/") ? path : `/${path}`;
+  return prefixed.replace(/\/$/, "");
+}
+
+function assetPrefix() {
+  const prefix = process.env.NEXT_PUBLIC_ASSET_PREFIX?.trim();
+  if (!prefix || prefix === "/") return undefined;
+
+  const prefixed = prefix.startsWith("/") ? prefix : `/${prefix}`;
+  return prefixed.replace(/\/$/, "");
+}
+
+const configuredBasePath = basePath();
+const configuredAssetPrefix = assetPrefix();
+
 const nextConfig: NextConfig = {
+  ...(configuredBasePath ? { basePath: configuredBasePath } : {}),
+  ...(configuredAssetPrefix ? { assetPrefix: configuredAssetPrefix } : {}),
   output: "export",
   trailingSlash: true,
   transpilePackages: ["@cpa/shared"],

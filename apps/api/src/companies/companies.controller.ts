@@ -20,6 +20,7 @@ import { CompaniesService } from './companies.service';
 import { CreateCompanyJobSubmissionDto } from './dto/create-company-job-submission.dto';
 import { CreateCompanyProfileSubmissionDto } from './dto/create-company-profile-submission.dto';
 import { ListCompaniesDto } from './dto/list-companies.dto';
+import { UpdateCompanyBackgroundDto } from './dto/update-company-background.dto';
 import { UpdateCompanyLogoDto } from './dto/update-company-logo.dto';
 
 @ApiTags('companies')
@@ -57,6 +58,17 @@ export class CompaniesController {
   @Patch('me/logo')
   updateLogo(@Req() req: RequestWithUser, @Body() dto: UpdateCompanyLogoDto) {
     return this.companiesService.updateLogo(req.user!.id, dto);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.COMPANY)
+  @Patch('me/background')
+  updateBackground(
+    @Req() req: RequestWithUser,
+    @Body() dto: UpdateCompanyBackgroundDto,
+  ) {
+    return this.companiesService.updateBackground(req.user!.id, dto);
   }
 
   @ApiBearerAuth()

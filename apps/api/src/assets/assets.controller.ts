@@ -15,7 +15,9 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { AssetsService } from './assets.service';
+import { CreateCompanyBackgroundUploadUrlDto } from './dto/create-company-background-upload-url.dto';
 import { CreateCompanyLogoUploadUrlDto } from './dto/create-company-logo-upload-url.dto';
+import { COMPANY_BACKGROUND_MAX_BYTES } from './logo-asset.constants';
 
 @ApiTags('assets')
 @ApiBearerAuth()
@@ -33,6 +35,17 @@ export class AssetsController {
     return this.assetsService.createCompanyLogoUploadUrl(req.user!.id, dto);
   }
 
+  @Post('company-background/upload-url')
+  createCompanyBackgroundUploadUrl(
+    @Req() req: RequestWithUser,
+    @Body() dto: CreateCompanyBackgroundUploadUrlDto,
+  ) {
+    return this.assetsService.createCompanyBackgroundUploadUrl(
+      req.user!.id,
+      dto,
+    );
+  }
+
   @Post(':id/complete')
   completeUpload(@Req() req: RequestWithUser, @Param('id') id: string) {
     return this.assetsService.completeUpload(req.user!.id, id);
@@ -40,7 +53,7 @@ export class AssetsController {
 
   @Put(':id/local-upload')
   async uploadLocalAsset(@Req() req: RequestWithUser, @Param('id') id: string) {
-    const body = await readRequestBody(req, 2 * 1024 * 1024 + 1);
+    const body = await readRequestBody(req, COMPANY_BACKGROUND_MAX_BYTES + 1);
     return this.assetsService.uploadLocalAsset(
       req.user!.id,
       id,
@@ -59,7 +72,7 @@ async function readRequestBody(req: RequestWithUser, limitBytes: number) {
     totalBytes += buffer.length;
     if (totalBytes > limitBytes) {
       throw new BadRequestException(
-        'Company logo uploads must be 2MB or less.',
+        'Company image uploads are larger than the allowed limit.',
       );
     }
     chunks.push(buffer);

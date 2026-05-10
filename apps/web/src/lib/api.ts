@@ -78,6 +78,9 @@ type CompanyLogoAssetResponse = {
   };
 };
 
+type CompanyBackgroundUploadUrlResponse = CompanyLogoUploadUrlResponse;
+type CompanyBackgroundAssetResponse = CompanyLogoAssetResponse;
+
 export type CompanyJobSubmissionPayload = {
   title: string;
   description: string;
@@ -241,6 +244,72 @@ export async function uploadCompanyLogo(file: File) {
   };
 }
 
+export async function uploadCompanyBackground(file: File) {
+  const uploadUrlResponse = await fetch(
+    `${API_BASE_URL}/assets/company-background/upload-url`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type,
+        byteSize: file.size,
+      }),
+    },
+  );
+  const uploadUrlData =
+    (await uploadUrlResponse.json()) as CompanyBackgroundUploadUrlResponse & {
+      message?: string | string[];
+    };
+  if (!uploadUrlResponse.ok || !uploadUrlData.uploadUrl) {
+    throw new Error(
+      readMessage(
+        uploadUrlData.message,
+        "기업 배경 이미지 업로드 URL 생성에 실패했습니다.",
+      ),
+    );
+  }
+
+  const uploadResponse = await fetch(uploadUrlData.uploadUrl, {
+    method: uploadUrlData.method,
+    headers: uploadUrlData.headers,
+    credentials: uploadUrlData.requiresCredentials ? "include" : "omit",
+    body: file,
+  });
+  if (!uploadResponse.ok) {
+    throw new Error("기업 배경 이미지를 업로드하지 못했습니다.");
+  }
+
+  const completeResponse = await fetch(
+    `${API_BASE_URL}/assets/${uploadUrlData.assetId}/complete`,
+    {
+      method: "POST",
+      credentials: "include",
+    },
+  );
+  const completeData = (await completeResponse.json()) as
+    | CompanyBackgroundAssetResponse
+    | { message?: string | string[] };
+  if (!completeResponse.ok) {
+    const errorData = completeData as { message?: string | string[] };
+    throw new Error(
+      readMessage(
+        errorData.message,
+        "기업 배경 이미지 업로드 확인에 실패했습니다.",
+      ),
+    );
+  }
+  if (!("asset" in completeData)) {
+    throw new Error("기업 배경 이미지 업로드 확인에 실패했습니다.");
+  }
+
+  return {
+    assetId: completeData.asset.id,
+    publicUrl: completeData.asset.publicUrl,
+  };
+}
+
 export async function updateCompanyLogo(logoAssetId: string) {
   const response = await fetch(`${API_BASE_URL}/companies/me/logo`, {
     method: "PATCH",
@@ -251,6 +320,21 @@ export async function updateCompanyLogo(logoAssetId: string) {
   if (!response.ok) {
     throw new Error(
       await readApiError(response, "기업 이미지 변경에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as CompanyDetailItem;
+}
+
+export async function updateCompanyBackground(backgroundAssetId: string) {
+  const response = await fetch(`${API_BASE_URL}/companies/me/background`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ backgroundAssetId }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "기업 배경 이미지 변경에 실패했습니다."),
     );
   }
   return (await response.json()) as CompanyDetailItem;

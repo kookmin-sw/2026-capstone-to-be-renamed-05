@@ -6,7 +6,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PrismaService } from '../prisma/prisma.service';
 import { AssetsService } from './assets.service';
-import { COMPANY_LOGO_MAX_BYTES } from './logo-asset.constants';
+import {
+  COMPANY_BACKGROUND_MAX_BYTES,
+  COMPANY_LOGO_MAX_BYTES,
+} from './logo-asset.constants';
 
 const mockS3Send = jest.fn();
 const mockGetSignedUrl = jest.fn();
@@ -142,6 +145,70 @@ describe('AssetsService', () => {
     });
   });
 
+  it('creates company background upload URLs with background limits', async () => {
+    prisma.company.findUnique.mockResolvedValue({ id: 'company-1' });
+    let capturedCreateArg: unknown;
+    prisma.asset.create.mockImplementation((args: unknown) => {
+      capturedCreateArg = args;
+      return Promise.resolve({
+        id: 'asset-bg-1',
+        publicUrl:
+          'https://cpa-assets.s3.ap-northeast-2.amazonaws.com/company-backgrounds/company-1/background.jpg',
+      });
+    });
+
+    const result = await service.createCompanyBackgroundUploadUrl('user-1', {
+      fileName: ' background.jpg ',
+      contentType: 'image/jpeg',
+      byteSize: COMPANY_LOGO_MAX_BYTES + 100,
+    });
+
+    const createArg = capturedCreateArg as {
+      data: Record<string, unknown>;
+    };
+    expect(createArg.data).toMatchObject({
+      purpose: AssetPurpose.COMPANY_BACKGROUND,
+      status: AssetStatus.PENDING,
+      contentType: 'image/jpeg',
+      byteSize: COMPANY_LOGO_MAX_BYTES + 100,
+      originalName: 'background.jpg',
+      uploadedById: 'user-1',
+      companyId: 'company-1',
+    });
+    expect(createArg.data.key).toEqual(
+      expect.stringContaining('company-backgrounds/company-1/'),
+    );
+    expect(mockGetSignedUrl).toHaveBeenCalled();
+    expect(result).toMatchObject({
+      assetId: 'asset-bg-1',
+      uploadUrl: 'https://signed.example.com',
+      method: 'PUT',
+      headers: { 'Content-Type': 'image/jpeg' },
+      requiresCredentials: false,
+    });
+  });
+
+  it('rejects invalid company background content types and oversized files', async () => {
+    prisma.company.findUnique.mockResolvedValue({ id: 'company-1' });
+
+    await expect(
+      service.createCompanyBackgroundUploadUrl('user-1', {
+        fileName: 'background.gif',
+        contentType: 'image/gif',
+        byteSize: 100,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    await expect(
+      service.createCompanyBackgroundUploadUrl('user-1', {
+        fileName: 'background.png',
+        contentType: 'image/png',
+        byteSize: COMPANY_BACKGROUND_MAX_BYTES + 1,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.asset.create).not.toHaveBeenCalled();
+  });
+
   it('marks a pending asset ready after HeadObject verification', async () => {
     prisma.asset.findFirst.mockResolvedValue({
       id: 'asset-1',
@@ -251,6 +318,7 @@ describe('AssetsService', () => {
     const asset = {
       id: 'asset-1',
       status: AssetStatus.PENDING,
+      purpose: AssetPurpose.COMPANY_LOGO,
       bucket: 'local-assets',
       region: 'local',
       key: 'company-logos/company-1/logo.png',
@@ -292,6 +360,57 @@ describe('AssetsService', () => {
       });
       expect(result.asset).toEqual({
         id: 'asset-1',
+        publicUrl: asset.publicUrl,
+      });
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('writes local company background uploads and verifies with background limits', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'accountit-assets-'));
+    service = new AssetsService(
+      prisma as unknown as PrismaService,
+      createConfig({
+        ASSET_STORAGE_DRIVER: 'local',
+        LOCAL_ASSET_DIR: tempDir,
+        LOCAL_ASSET_PUBLIC_BASE_URL: 'http://localhost:3000/uploads',
+        API_PUBLIC_BASE_URL: 'http://localhost:4000',
+      }),
+    );
+    const body = Buffer.alloc(COMPANY_LOGO_MAX_BYTES + 100, 1);
+    const asset = {
+      id: 'asset-bg-1',
+      status: AssetStatus.PENDING,
+      purpose: AssetPurpose.COMPANY_BACKGROUND,
+      bucket: 'local-assets',
+      region: 'local',
+      key: 'company-backgrounds/company-1/background.png',
+      contentType: 'image/png',
+      byteSize: body.length,
+      publicUrl:
+        'http://localhost:3000/uploads/company-backgrounds/company-1/background.png',
+    };
+    prisma.asset.findFirst.mockResolvedValue(asset);
+    prisma.asset.update.mockResolvedValue({
+      id: 'asset-bg-1',
+      publicUrl: asset.publicUrl,
+    });
+
+    try {
+      await expect(
+        service.uploadLocalAsset('user-1', 'asset-bg-1', body, 'image/png'),
+      ).resolves.toEqual({ ok: true });
+      await expect(
+        readFile(
+          join(tempDir, 'company-backgrounds', 'company-1', 'background.png'),
+        ),
+      ).resolves.toEqual(body);
+
+      const result = await service.completeUpload('user-1', 'asset-bg-1');
+
+      expect(result.asset).toEqual({
+        id: 'asset-bg-1',
         publicUrl: asset.publicUrl,
       });
     } finally {

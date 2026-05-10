@@ -465,6 +465,17 @@ function CompanyCard({ company, bookmarked, onToggleBookmark }: { company: Compa
   return (
     <article className={styles.companyCard}>
       <div className={styles.banner}>
+        {company.backgroundUrl ? (
+          <>
+            <img
+              src={company.backgroundUrl}
+              alt=""
+              aria-hidden="true"
+              className={styles.bannerImage}
+            />
+            <div className={styles.bannerOverlay} />
+          </>
+        ) : null}
         {hasJobs && (
           <span className={styles.openBadge}>
             채용 중 {company.openJobCount}

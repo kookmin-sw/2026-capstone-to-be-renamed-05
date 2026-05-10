@@ -37,10 +37,7 @@ export class MypageController {
   }
 
   @Patch('profile')
-  updateProfile(
-    @Req() req: RequestWithUser,
-    @Body() dto: UpdateProfileDto,
-  ) {
+  updateProfile(@Req() req: RequestWithUser, @Body() dto: UpdateProfileDto) {
     return this.mypageService.updateProfile(req.user!.id, dto);
   }
 
@@ -48,10 +45,7 @@ export class MypageController {
 
   @Get('bookmarks')
   @ApiQuery({ name: 'type', enum: ['JOB', 'COMPANY'], required: false })
-  listBookmarks(
-    @Req() req: RequestWithUser,
-    @Query('type') type?: string,
-  ) {
+  listBookmarks(@Req() req: RequestWithUser, @Query('type') type?: string) {
     const targetType =
       type === 'JOB'
         ? BookmarkTargetType.JOB
@@ -62,10 +56,7 @@ export class MypageController {
   }
 
   @Post('bookmarks')
-  createBookmark(
-    @Req() req: RequestWithUser,
-    @Body() dto: CreateBookmarkDto,
-  ) {
+  createBookmark(@Req() req: RequestWithUser, @Body() dto: CreateBookmarkDto) {
     return this.mypageService.createBookmark(
       req.user!.id,
       dto.targetType,

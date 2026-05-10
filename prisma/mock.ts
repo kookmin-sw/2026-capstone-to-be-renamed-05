@@ -1,5 +1,7 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import {
+  AssetPurpose,
+  AssetStatus,
   Company,
   CompanyType,
   DeadlineType,
@@ -122,6 +124,36 @@ const companyTypeTags: Record<CompanyType, string[]> = {
   [CompanyType.FINANCIAL_COMPANY]: ["금융사", "리스크", "내부통제"],
   [CompanyType.GENERAL_COMPANY]: ["인하우스", "내부회계", "상장사"],
   [CompanyType.PUBLIC_INSTITUTION]: ["공공기관", "예산", "정산"],
+};
+
+const companyBackgroundByType: Record<
+  CompanyType,
+  { fileName: string; originalName: string }
+> = {
+  [CompanyType.BIG4]: {
+    fileName: "big4.png",
+    originalName: "Big4 accounting office background",
+  },
+  [CompanyType.LOCAL_ACCOUNTING_FIRM]: {
+    fileName: "local-accounting-firm.png",
+    originalName: "Local accounting firm background",
+  },
+  [CompanyType.MID_SMALL_ACCOUNTING_FIRM]: {
+    fileName: "mid-small-accounting-firm.png",
+    originalName: "Small tax accounting office background",
+  },
+  [CompanyType.FINANCIAL_COMPANY]: {
+    fileName: "financial-company.png",
+    originalName: "Financial company background",
+  },
+  [CompanyType.GENERAL_COMPANY]: {
+    fileName: "general-company.png",
+    originalName: "Corporate finance team background",
+  },
+  [CompanyType.PUBLIC_INSTITUTION]: {
+    fileName: "public-institution.png",
+    originalName: "Public institution finance office background",
+  },
 };
 
 function calculateRecentAttritionRate(trend: EmployeeTrendPoint[]) {
@@ -566,6 +598,47 @@ function buildCareerVerificationMetadata(company: Company) {
   return null;
 }
 
+async function upsertCompanyBackgroundAsset(company: Company, ownerUserId: string) {
+  const background = companyBackgroundByType[company.type];
+  const publicUrl = `/company-backgrounds/${background.fileName}`;
+  const key = `mock-company-backgrounds/${company.id}/${background.fileName}`;
+  const asset = await prisma.asset.upsert({
+    where: { key },
+    update: {
+      purpose: AssetPurpose.COMPANY_BACKGROUND,
+      status: AssetStatus.READY,
+      bucket: "static-public",
+      region: "local",
+      publicUrl,
+      contentType: "image/png",
+      byteSize: 1,
+      originalName: background.originalName,
+      uploadedById: ownerUserId,
+      companyId: company.id,
+      completedAt: new Date("2026-05-10T00:00:00.000Z"),
+    },
+    create: {
+      purpose: AssetPurpose.COMPANY_BACKGROUND,
+      status: AssetStatus.READY,
+      bucket: "static-public",
+      region: "local",
+      key,
+      publicUrl,
+      contentType: "image/png",
+      byteSize: 1,
+      originalName: background.originalName,
+      uploadedById: ownerUserId,
+      companyId: company.id,
+      completedAt: new Date("2026-05-10T00:00:00.000Z"),
+    },
+  });
+
+  await prisma.company.update({
+    where: { id: company.id },
+    data: { backgroundAsset: { connect: { id: asset.id } } },
+  });
+}
+
 async function main() {
   const passwordHash = await argon2.hash(MOCK_PASSWORD);
 
@@ -804,6 +877,12 @@ async function main() {
           ownerUserId: companyOwners[index].id,
         },
       }),
+    ),
+  );
+
+  await Promise.all(
+    companies.map((company, index) =>
+      upsertCompanyBackgroundAsset(company, companyOwners[index].id),
     ),
   );
 

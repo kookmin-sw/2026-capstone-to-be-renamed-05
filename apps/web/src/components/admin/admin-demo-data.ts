@@ -65,6 +65,7 @@ export type AdminCompany = {
   type: AdminCompanyType;
   websiteUrl: string | null;
   logoUrl: string | null;
+  backgroundUrl: string | null;
   description: string | null;
   businessNumber: string | null;
   externalLinks: string[];
@@ -125,7 +126,7 @@ export type AdminJobPayload = Omit<
 
 export type AdminCompanyPayload = Omit<
   AdminCompany,
-  "id" | "logoUrl" | "jobCount" | "createdAt" | "updatedAt"
+  "id" | "logoUrl" | "backgroundUrl" | "jobCount" | "createdAt" | "updatedAt"
 >;
 
 type DemoState = {
@@ -250,6 +251,7 @@ function seedState(): DemoState {
       type: "LOCAL_ACCOUNTING_FIRM",
       websiteUrl: "https://example.com/hanbit",
       logoUrl: "/company-logos/hanbit-accounting.png",
+      backgroundUrl: "/company-backgrounds/local-accounting-firm.png",
       description: "수습 CPA와 감사 실무 포지션을 다루는 데모 회사입니다.",
       businessNumber: "104-86-45219",
       externalLinks: ["https://example.com/hanbit/careers"],
@@ -268,6 +270,7 @@ function seedState(): DemoState {
       type: "GENERAL_COMPANY",
       websiteUrl: "https://example.com/dunamu",
       logoUrl: "/company-logos/dunamu.png",
+      backgroundUrl: "/company-backgrounds/general-company.png",
       description: "내부회계와 재무 리포팅 포지션을 다루는 데모 회사입니다.",
       businessNumber: "120-88-18432",
       externalLinks: ["https://example.com/dunamu/careers"],

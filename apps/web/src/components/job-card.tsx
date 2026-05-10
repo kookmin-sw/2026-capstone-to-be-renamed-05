@@ -115,6 +115,17 @@ export function JobGridCard({ job, bookmarked, onToggleBookmark }: { job: JobLis
   return (
     <article className={styles.gridCard}>
       <div className={styles.banner}>
+        {job.companyBackgroundUrl ? (
+          <>
+            <img
+              src={job.companyBackgroundUrl}
+              alt=""
+              aria-hidden="true"
+              className={styles.bannerImage}
+            />
+            <div className={styles.bannerOverlay} />
+          </>
+        ) : null}
         {dDayLabel && (
           <span
             className={cn(styles.dDay, isUrgent && styles.urgent)}

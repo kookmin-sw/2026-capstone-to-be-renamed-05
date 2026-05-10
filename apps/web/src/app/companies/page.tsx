@@ -3,6 +3,7 @@
 import type { CompanyListItem } from "@cpa/shared";
 import {
   ArrowRight,
+  Bookmark,
   Building2,
   CircleDollarSign,
   RefreshCw,
@@ -15,7 +16,7 @@ import { useEffect, useMemo, useState } from "react";
 import { SiteNav } from "@/components/site-nav";
 import { ActionButton, ActionLink } from "@/components/ui/action-button";
 import { FilterInput, FilterSelect } from "@/components/ui/filter-select";
-import { fetchCompanies } from "@/lib/api";
+import { fetchCompanies, fetchCurrentUser, fetchMyBookmarks, createMyBookmark, deleteMyBookmark } from "@/lib/api";
 import { companyTypeLabels } from "@/lib/labels";
 import { companyDetailHref } from "@/lib/routes";
 import styles from "./companies-page.module.css";
@@ -47,6 +48,50 @@ export default function CompaniesPage() {
   const [companyOpenTotal, setCompanyOpenTotal] = useState(0);
   const [companyNoJobTotal, setCompanyNoJobTotal] = useState(0);
   const [filterOpen, setFilterOpen] = useState(true);
+  const [bookmarkedCompanyIds, setBookmarkedCompanyIds] = useState<Set<string>>(new Set());
+  const [isJobSeeker, setIsJobSeeker] = useState(false);
+
+  // 북마크 목록 로드
+  useEffect(() => {
+    let ignore = false;
+    fetchCurrentUser()
+      .then((user) => {
+        if (ignore) return;
+        if (user?.role === "JOB_SEEKER") {
+          setIsJobSeeker(true);
+          return fetchMyBookmarks("COMPANY").then((data) => {
+            if (!ignore) {
+              setBookmarkedCompanyIds(new Set(data.items.map((bm) => bm.targetId)));
+            }
+          });
+        }
+      })
+      .catch(() => {});
+    return () => { ignore = true; };
+  }, []);
+
+  async function toggleCompanyBookmark(companyId: string) {
+    if (!isJobSeeker) return;
+    if (bookmarkedCompanyIds.has(companyId)) {
+      try {
+        const data = await fetchMyBookmarks("COMPANY");
+        const bm = data.items.find((item) => item.targetId === companyId);
+        if (bm) {
+          await deleteMyBookmark(bm.id);
+          setBookmarkedCompanyIds((prev) => {
+            const next = new Set(prev);
+            next.delete(companyId);
+            return next;
+          });
+        }
+      } catch {}
+    } else {
+      try {
+        await createMyBookmark("COMPANY", companyId);
+        setBookmarkedCompanyIds((prev) => new Set(prev).add(companyId));
+      } catch {}
+    }
+  }
 
   const companyParams = useMemo(() => {
     const next = new URLSearchParams({ sort: companySort });
@@ -395,7 +440,12 @@ export default function CompaniesPage() {
         ) : companies.length ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {companies.map((company) => (
-              <CompanyCard key={company.id} company={company} />
+              <CompanyCard
+                key={company.id}
+                company={company}
+                bookmarked={bookmarkedCompanyIds.has(company.id)}
+                onToggleBookmark={isJobSeeker ? toggleCompanyBookmark : undefined}
+              />
             ))}
           </div>
         ) : (
@@ -408,7 +458,7 @@ export default function CompaniesPage() {
   );
 }
 
-function CompanyCard({ company }: { company: CompanyListItem }) {
+function CompanyCard({ company, bookmarked, onToggleBookmark }: { company: CompanyListItem; bookmarked?: boolean; onToggleBookmark?: (companyId: string) => void }) {
   const initial = company.name.charAt(0);
   const hasJobs = company.openJobCount > 0;
 
@@ -471,14 +521,30 @@ function CompanyCard({ company }: { company: CompanyListItem }) {
           </div>
         )}
 
-        <ActionLink
-          href={companyDetailHref(company.id)}
-          size="sm"
-          className={styles.cardAction}
-          iconEnd={<ArrowRight size={13} />}
-        >
-          상세 보기
-        </ActionLink>
+        <div className={styles.cardActions}>
+          <ActionLink
+            href={companyDetailHref(company.id)}
+            size="sm"
+            className={styles.cardAction}
+            iconEnd={<ArrowRight size={13} />}
+          >
+            상세 보기
+          </ActionLink>
+          {onToggleBookmark && (
+            <button
+              type="button"
+              className={styles.bookmarkBtn}
+              onClick={() => onToggleBookmark(company.id)}
+              aria-label={bookmarked ? "북마크 해제" : "북마크 추가"}
+            >
+              <Bookmark
+                size={16}
+                fill={bookmarked ? "#facc15" : "none"}
+                stroke={bookmarked ? "#facc15" : "currentColor"}
+              />
+            </button>
+          )}
+        </div>
       </div>
     </article>
   );

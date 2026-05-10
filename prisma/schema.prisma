@@ -105,6 +105,8 @@ model User {
   companyProfileSubmissions         CompanyProfileSubmission[] @relation("CompanyProfileSubmissionSubmitter")
   reviewedCompanyProfileSubmissions CompanyProfileSubmission[] @relation("CompanyProfileSubmissionReviewer")
   uploadedAssets                    Asset[]                    @relation("AssetUploader")
+  bookmarks                         Bookmark[]
+  resumes                           Resume[]
 }
 
 model Company {
@@ -334,4 +336,37 @@ model ImportRun {
   errorRows    Int      @default(0)
   notes        String?
   createdAt    DateTime @default(now())
+}
+
+enum BookmarkTargetType {
+  JOB
+  COMPANY
+}
+
+model Bookmark {
+  id         String             @id @default(uuid())
+  userId     String
+  targetType BookmarkTargetType
+  targetId   String
+  createdAt  DateTime           @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetType, targetId])
+  @@index([userId, targetType, createdAt])
+}
+
+model Resume {
+  id           String   @id @default(uuid())
+  userId       String
+  fileName     String
+  fileUrl      String
+  contentType  String
+  byteSize     Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

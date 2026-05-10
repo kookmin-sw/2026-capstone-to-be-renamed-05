@@ -330,3 +330,47 @@ export type CompanyDashboardResponse = {
   company: CompanyDetailItem;
   pendingProfileSubmission: CompanyProfileSubmissionItem | null;
 };
+
+// ─── Mypage ──────────────────────────────────────────────────
+
+export const BOOKMARK_TARGET_TYPES = ["JOB", "COMPANY"] as const;
+export type BookmarkTargetType = (typeof BOOKMARK_TARGET_TYPES)[number];
+
+export type BookmarkItem = {
+  id: string;
+  targetType: BookmarkTargetType;
+  targetId: string;
+  targetTitle: string;
+  targetSubtitle: string | null;
+  createdAt: string;
+};
+
+export type BookmarkListResponse = {
+  items: BookmarkItem[];
+};
+
+export type ResumeItem = {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  contentType: string;
+  byteSize: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ResumeListResponse = {
+  items: ResumeItem[];
+};
+
+export type MyProfileResponse = {
+  id: string;
+  username: string;
+  displayName: string | null;
+  role: string;
+  createdAt: string;
+};
+
+export type UpdateProfilePayload = {
+  displayName?: string;
+};

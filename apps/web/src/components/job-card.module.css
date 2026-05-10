@@ -217,6 +217,26 @@
   flex: 1;
 }
 
+.bookmarkBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--gray-400);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.bookmarkBtn:hover {
+  border-color: #facc15;
+  color: #facc15;
+  background: #fefce8;
+}
+
 .compactRow {
   display: grid;
   gap: 0.75rem;

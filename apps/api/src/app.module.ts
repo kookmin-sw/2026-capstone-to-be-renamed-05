@@ -7,6 +7,7 @@ import { AssetsModule } from './assets/assets.module';
 import { AuthModule } from './auth/auth.module';
 import { CompaniesModule } from './companies/companies.module';
 import { JobsModule } from './jobs/jobs.module';
+import { MypageModule } from './mypage/mypage.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { resolveEnvFilePaths } from './config/runtime-environment';
@@ -22,6 +23,7 @@ import { resolveEnvFilePaths } from './config/runtime-environment';
     AuthModule,
     CompaniesModule,
     JobsModule,
+    MypageModule,
     UsersModule,
     AdminModule,
   ],

@@ -1,4 +1,7 @@
 import type {
+  BookmarkItem,
+  BookmarkListResponse,
+  BookmarkTargetType,
   CompanyDashboardResponse,
   CompanyDetailItem,
   CompanyListItem,
@@ -15,6 +18,9 @@ import type {
   JobListItem,
   JobSubmissionItem,
   KicpaCondition,
+  MyProfileResponse,
+  ResumeItem,
+  ResumeListResponse,
   TraineeStatus,
   UserJobPresetItem,
   UserJobPresetListResponse,
@@ -652,4 +658,125 @@ async function readApiError(response: Response, fallback: string) {
 function readMessage(message: string | string[] | undefined, fallback: string) {
   if (Array.isArray(message)) return message.join(" ");
   return message ?? fallback;
+}
+
+// ─── Mypage ──────────────────────────────────────────────────
+
+export async function fetchMyProfile() {
+  const response = await fetch(`${API_BASE_URL}/mypage/profile`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "프로필을 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as MyProfileResponse;
+}
+
+export async function updateMyProfile(data: { displayName?: string }) {
+  const response = await fetch(`${API_BASE_URL}/mypage/profile`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "프로필 수정에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as MyProfileResponse;
+}
+
+export async function fetchMyBookmarks(type?: BookmarkTargetType) {
+  const params = type ? `?type=${type}` : "";
+  const response = await fetch(`${API_BASE_URL}/mypage/bookmarks${params}`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "북마크를 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as BookmarkListResponse;
+}
+
+export async function createMyBookmark(
+  targetType: BookmarkTargetType,
+  targetId: string,
+) {
+  const response = await fetch(`${API_BASE_URL}/mypage/bookmarks`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ targetType, targetId }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "북마크 추가에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as BookmarkItem;
+}
+
+export async function deleteMyBookmark(id: string) {
+  const response = await fetch(`${API_BASE_URL}/mypage/bookmarks/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "북마크 삭제에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as { ok: boolean };
+}
+
+export async function fetchMyResumes() {
+  const response = await fetch(`${API_BASE_URL}/mypage/resumes`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "이력서를 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as ResumeListResponse;
+}
+
+export async function uploadMyResume(file: File) {
+  // 1. 서버에 메타데이터 등록
+  const response = await fetch(`${API_BASE_URL}/mypage/resumes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({
+      fileName: file.name,
+      contentType: file.type || "application/octet-stream",
+      byteSize: file.size,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "이력서 업로드에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as ResumeItem;
+}
+
+export async function deleteMyResume(id: string) {
+  const response = await fetch(`${API_BASE_URL}/mypage/resumes/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "이력서 삭제에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as { ok: boolean };
 }

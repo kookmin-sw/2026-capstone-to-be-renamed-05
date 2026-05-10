@@ -14,6 +14,7 @@ const navItems = [
   { href: "/jobs", label: "채용공고", key: "jobs" },
   { href: "/companies", label: "회사소개", key: "companies" },
   { href: "/calendar", label: "마감일 캘린더", key: "calendar" },
+  { href: "/community", label: "커뮤니티", key: "community" },
 ] as const;
 
 type SiteNavProps = {
@@ -115,15 +116,6 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
               >
                 {loggingOut ? "로그아웃 중" : "로그아웃"}
               </ActionButton>
-            </div>
-          ) : isLanding ? (
-            <div className={styles.landingActions}>
-              <Link href="/login" className={styles.loginLink}>
-                로그인
-              </Link>
-              <ActionLink href="/login?mode=register" size="sm">
-                회원가입
-              </ActionLink>
             </div>
           ) : (
             <ActionLink href="/login" size="sm">

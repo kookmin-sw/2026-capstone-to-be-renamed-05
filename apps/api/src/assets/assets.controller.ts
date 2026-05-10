@@ -1,4 +1,13 @@
-import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Param,
+  Post,
+  Put,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import type { RequestWithUser } from '../auth/auth.types';
@@ -28,4 +37,33 @@ export class AssetsController {
   completeUpload(@Req() req: RequestWithUser, @Param('id') id: string) {
     return this.assetsService.completeUpload(req.user!.id, id);
   }
+
+  @Put(':id/local-upload')
+  async uploadLocalAsset(@Req() req: RequestWithUser, @Param('id') id: string) {
+    const body = await readRequestBody(req, 2 * 1024 * 1024 + 1);
+    return this.assetsService.uploadLocalAsset(
+      req.user!.id,
+      id,
+      body,
+      req.headers['content-type'],
+    );
+  }
+}
+
+async function readRequestBody(req: RequestWithUser, limitBytes: number) {
+  const chunks: Buffer[] = [];
+  let totalBytes = 0;
+
+  for await (const chunk of req as AsyncIterable<Buffer | string>) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    totalBytes += buffer.length;
+    if (totalBytes > limitBytes) {
+      throw new BadRequestException(
+        'Company logo uploads must be 2MB or less.',
+      );
+    }
+    chunks.push(buffer);
+  }
+
+  return Buffer.concat(chunks);
 }

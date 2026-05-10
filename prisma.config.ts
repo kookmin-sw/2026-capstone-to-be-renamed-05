@@ -1,16 +1,21 @@
-import 'dotenv/config';
-import { defineConfig } from 'prisma/config';
+import { config as loadDotenv } from "dotenv";
+import { defineConfig } from "prisma/config";
+import {
+  resolveDatabaseUrl,
+  resolveEnvFilePaths,
+} from "./apps/api/src/config/runtime-environment";
 
-const localDatabaseUrl =
-  'postgresql://cpa:cpa@localhost:5432/cpa_jobs?schema=public';
+for (const envFilePath of resolveEnvFilePaths()) {
+  loadDotenv({ path: envFilePath, override: false });
+}
 
 export default defineConfig({
-  schema: 'prisma/schema.prisma',
+  schema: "prisma/schema.prisma",
   migrations: {
-    path: 'prisma/migrations',
-    seed: 'tsx prisma/seed.ts',
+    path: "prisma/migrations",
+    seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env.DATABASE_URL ?? localDatabaseUrl,
+    url: resolveDatabaseUrl(),
   },
 });

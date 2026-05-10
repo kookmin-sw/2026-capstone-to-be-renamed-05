@@ -19,10 +19,9 @@ import type {
   UserJobPresetItem,
   UserJobPresetListResponse,
 } from "@cpa/shared";
+import { getApiBaseUrl } from "./runtime-config";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  (process.env.NODE_ENV === "production" ? "/api" : "http://localhost:4000");
+const API_BASE_URL = getApiBaseUrl();
 
 export type JobListResponse = {
   items: JobListItem[];
@@ -63,6 +62,7 @@ type CompanyLogoUploadUrlResponse = {
   headers: Record<string, string>;
   publicUrl: string;
   expiresIn: number;
+  requiresCredentials?: boolean;
 };
 
 type CompanyLogoAssetResponse = {
@@ -202,10 +202,11 @@ export async function uploadCompanyLogo(file: File) {
   const s3Response = await fetch(uploadUrlData.uploadUrl, {
     method: uploadUrlData.method,
     headers: uploadUrlData.headers,
+    credentials: uploadUrlData.requiresCredentials ? "include" : "omit",
     body: file,
   });
   if (!s3Response.ok) {
-    throw new Error("S3에 기업 이미지를 업로드하지 못했습니다.");
+    throw new Error("기업 이미지를 업로드하지 못했습니다.");
   }
 
   const completeResponse = await fetch(

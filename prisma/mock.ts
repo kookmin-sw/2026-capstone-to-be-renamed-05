@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import {
   Company,
@@ -14,6 +13,15 @@ import {
   UserRole,
 } from "@prisma/client";
 import argon2 from "argon2";
+import { config as loadDotenv } from "dotenv";
+import {
+  resolveEnvFilePaths,
+  resolvePrismaPostgresConfig,
+} from "../apps/api/src/config/runtime-environment";
+
+for (const envFilePath of resolveEnvFilePaths()) {
+  loadDotenv({ path: envFilePath, override: false });
+}
 
 const TARGET_COMPANY_COUNT = 75;
 const TARGET_JOB_COUNT = 300;
@@ -36,14 +44,10 @@ const legacyMockUsers = [
   { username: "company", displayName: "기업 담당자", role: UserRole.COMPANY },
 ];
 
-const connectionString = process.env.DATABASE_URL;
+const { connectionString, schema } = resolvePrismaPostgresConfig();
 
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({
-    connectionString:
-      connectionString ??
-      "postgresql://cpa:cpa@localhost:5432/cpa_jobs?schema=public",
-  }),
+  adapter: new PrismaPg({ connectionString }, schema ? { schema } : undefined),
 });
 
 type EmployeeTrendPoint = {
@@ -545,17 +549,17 @@ async function upsertJob(jobData: SeedJob, lastCheckedAt = new Date()) {
 function buildCareerVerificationMetadata(company: Company) {
   if (company.type === CompanyType.BIG4) {
     return {
-      careerVerificationSignals: ['BIG4', 'MAJOR_ACCOUNTING_FIRM'],
-      careerVerificationNote: 'Mock seed: Big4 company type',
-      careerVerificationSource: 'mock-company-type',
+      careerVerificationSignals: ["BIG4", "MAJOR_ACCOUNTING_FIRM"],
+      careerVerificationNote: "Mock seed: Big4 company type",
+      careerVerificationSource: "mock-company-type",
     };
   }
 
   if (company.type === CompanyType.PUBLIC_INSTITUTION) {
     return {
-      careerVerificationSignals: ['PUBLIC_INSTITUTION', 'PUBLIC_EQUIVALENT'],
-      careerVerificationNote: 'Mock seed: public institution company type',
-      careerVerificationSource: 'mock-company-type',
+      careerVerificationSignals: ["PUBLIC_INSTITUTION", "PUBLIC_EQUIVALENT"],
+      careerVerificationNote: "Mock seed: public institution company type",
+      careerVerificationSource: "mock-company-type",
     };
   }
 

@@ -1,3 +1,5 @@
+import { getApiBaseUrl } from "@/lib/runtime-config";
+
 export type JobStatus = "OPEN" | "CLOSED" | "DRAFT";
 export type AdminRole = "JOB_SEEKER" | "COMPANY" | "ADMIN";
 export type AdminCompanyType =
@@ -19,16 +21,9 @@ export type AdminEmploymentType =
   | "CONTRACT"
   | "INTERN"
   | "PART_TIME";
-export type AdminKicpaCondition =
-  | "REQUIRED"
-  | "PREFERRED"
-  | "NONE"
-  | "UNCLEAR";
+export type AdminKicpaCondition = "REQUIRED" | "PREFERRED" | "NONE" | "UNCLEAR";
 export type AdminTraineeStatus = "AVAILABLE" | "UNAVAILABLE" | "UNCLEAR";
-export type AdminDeadlineType =
-  | "FIXED_DATE"
-  | "UNTIL_FILLED"
-  | "ALWAYS_OPEN";
+export type AdminDeadlineType = "FIXED_DATE" | "UNTIL_FILLED" | "ALWAYS_OPEN";
 
 export type AdminUser = {
   id: string;
@@ -143,9 +138,7 @@ type DemoState = {
 const stateKey = "accountit-admin-demo-state";
 const sessionKey = "accountit-admin-demo-user";
 const sessionUserKey = "accountit-admin-api-user";
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  (process.env.NODE_ENV === "production" ? "/api" : "http://localhost:4000");
+const API_BASE_URL = getApiBaseUrl();
 const demoAdminAccounts = [
   { username: "test001", password: "password123" },
 ] as const;
@@ -289,8 +282,18 @@ function seedState(): DemoState {
     },
   ];
   const sources: AdminSource[] = [
-    { id: "demo-source-1", name: "KICPA 구인 게시판", baseUrl: null, description: null },
-    { id: "demo-source-2", name: "기업 채용 페이지", baseUrl: null, description: null },
+    {
+      id: "demo-source-1",
+      name: "KICPA 구인 게시판",
+      baseUrl: null,
+      description: null,
+    },
+    {
+      id: "demo-source-2",
+      name: "기업 채용 페이지",
+      baseUrl: null,
+      description: null,
+    },
   ];
   const jobs: AdminJob[] = [
     {
@@ -321,7 +324,8 @@ function seedState(): DemoState {
     {
       id: "demo-job-2",
       title: "내부회계관리제도 담당자",
-      description: "상장사 내부회계 운영 평가와 외부감사 대응 업무를 담당합니다.",
+      description:
+        "상장사 내부회계 운영 평가와 외부감사 대응 업무를 담당합니다.",
       companyId: companies[1].id,
       companyName: companies[1].name,
       sourceId: sources[1].id,
@@ -382,7 +386,10 @@ function writeState(state: DemoState) {
   window.sessionStorage.setItem(stateKey, JSON.stringify(state));
 }
 
-function paginate<T>(items: T[], params: URLSearchParams): AdminListResponse<T> {
+function paginate<T>(
+  items: T[],
+  params: URLSearchParams,
+): AdminListResponse<T> {
   const page = Number(params.get("page") ?? "1");
   const pageSize = Number(params.get("pageSize") ?? "20");
   return {

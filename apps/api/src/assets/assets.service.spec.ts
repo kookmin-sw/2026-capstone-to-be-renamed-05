@@ -1,6 +1,9 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AssetPurpose, AssetStatus } from '@prisma/client';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { PrismaService } from '../prisma/prisma.service';
 import { AssetsService } from './assets.service';
 import { COMPANY_LOGO_MAX_BYTES } from './logo-asset.constants';
@@ -26,15 +29,13 @@ jest.mock('@aws-sdk/s3-request-presigner', () => ({
 }));
 
 describe('AssetsService', () => {
-  const env = {
+  const s3Env: Record<string, string | undefined> = {
+    ASSET_STORAGE_DRIVER: 's3',
     AWS_REGION: 'ap-northeast-2',
     S3_ASSET_BUCKET: 'cpa-assets',
     S3_PUBLIC_BASE_URL: 'https://cpa-assets.s3.ap-northeast-2.amazonaws.com',
     S3_PRESIGN_EXPIRES_SECONDS: '300',
   };
-  const config = {
-    get: jest.fn((key: keyof typeof env) => env[key]),
-  } as unknown as ConfigService;
 
   let prisma: {
     company: { findUnique: jest.Mock };
@@ -59,7 +60,10 @@ describe('AssetsService', () => {
     mockGetSignedUrl
       .mockReset()
       .mockResolvedValue('https://signed.example.com');
-    service = new AssetsService(prisma as unknown as PrismaService, config);
+    service = new AssetsService(
+      prisma as unknown as PrismaService,
+      createConfig(s3Env),
+    );
   });
 
   it('rejects company logo upload URLs for users without a company', async () => {
@@ -134,6 +138,7 @@ describe('AssetsService', () => {
       uploadUrl: 'https://signed.example.com',
       method: 'PUT',
       headers: { 'Content-Type': 'image/png' },
+      requiresCredentials: false,
     });
   });
 
@@ -197,4 +202,106 @@ describe('AssetsService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(prisma.asset.update).not.toHaveBeenCalled();
   });
+
+  it('creates local upload URLs without S3 configuration', async () => {
+    prisma.company.findUnique.mockResolvedValue({ id: 'company-1' });
+    prisma.asset.create.mockResolvedValue({
+      id: 'asset-1',
+      publicUrl:
+        'http://localhost:3000/uploads/company-logos/company-1/logo.png',
+    });
+    service = new AssetsService(
+      prisma as unknown as PrismaService,
+      createConfig({
+        ASSET_STORAGE_DRIVER: 'local',
+        LOCAL_ASSET_DIR: join(tmpdir(), 'accountit-assets'),
+        LOCAL_ASSET_PUBLIC_BASE_URL: 'http://localhost:3000/uploads',
+        API_PUBLIC_BASE_URL: 'http://localhost:4000',
+      }),
+    );
+
+    const result = await service.createCompanyLogoUploadUrl('user-1', {
+      fileName: 'logo.png',
+      contentType: 'image/png',
+      byteSize: 123,
+    });
+
+    expect(mockGetSignedUrl).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      assetId: 'asset-1',
+      uploadUrl: 'http://localhost:4000/assets/asset-1/local-upload',
+      method: 'PUT',
+      headers: { 'Content-Type': 'image/png' },
+      requiresCredentials: true,
+    });
+  });
+
+  it('writes local uploads and marks them ready after file verification', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'accountit-assets-'));
+    service = new AssetsService(
+      prisma as unknown as PrismaService,
+      createConfig({
+        ASSET_STORAGE_DRIVER: 'local',
+        LOCAL_ASSET_DIR: tempDir,
+        LOCAL_ASSET_PUBLIC_BASE_URL: 'http://localhost:3000/uploads',
+        API_PUBLIC_BASE_URL: 'http://localhost:4000',
+      }),
+    );
+    const body = Buffer.from('png-bytes');
+    const asset = {
+      id: 'asset-1',
+      status: AssetStatus.PENDING,
+      bucket: 'local-assets',
+      region: 'local',
+      key: 'company-logos/company-1/logo.png',
+      contentType: 'image/png',
+      byteSize: body.length,
+      publicUrl:
+        'http://localhost:3000/uploads/company-logos/company-1/logo.png',
+    };
+    prisma.asset.findFirst.mockResolvedValue(asset);
+    let capturedUpdateArg: unknown;
+    prisma.asset.update.mockImplementation((args: unknown) => {
+      capturedUpdateArg = args;
+      return Promise.resolve({
+        id: 'asset-1',
+        publicUrl: asset.publicUrl,
+      });
+    });
+
+    try {
+      await expect(
+        service.uploadLocalAsset('user-1', 'asset-1', body, 'image/png'),
+      ).resolves.toEqual({ ok: true });
+      await expect(
+        readFile(join(tempDir, 'company-logos', 'company-1', 'logo.png')),
+      ).resolves.toEqual(body);
+
+      const result = await service.completeUpload('user-1', 'asset-1');
+
+      expect(mockS3Send).not.toHaveBeenCalled();
+      const updateArg = capturedUpdateArg as {
+        where: Record<string, unknown>;
+        data: Record<string, unknown>;
+      };
+      expect(updateArg.where).toEqual({ id: 'asset-1' });
+      expect(updateArg.data).toMatchObject({
+        status: AssetStatus.READY,
+        byteSize: body.length,
+        contentType: 'image/png',
+      });
+      expect(result.asset).toEqual({
+        id: 'asset-1',
+        publicUrl: asset.publicUrl,
+      });
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
 });
+
+function createConfig(env: Record<string, string | undefined>) {
+  return {
+    get: jest.fn((key: string) => env[key]),
+  } as unknown as ConfigService;
+}

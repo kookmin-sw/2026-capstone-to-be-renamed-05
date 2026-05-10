@@ -3,13 +3,18 @@
 import { Check, ChevronDown, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { koreaRegions } from "@/lib/regions";
+import { cn } from "@/lib/utils";
 
 export function RegionFilterDialog({
   selectedLocations,
   onChange,
+  variant = "default",
+  className,
 }: {
   selectedLocations: string[];
   onChange: (locations: string[]) => void;
+  variant?: "default" | "compact";
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [activeProvince, setActiveProvince] = useState("전국");
@@ -76,34 +81,53 @@ export function RegionFilterDialog({
       current.filter((selected) => selected !== location),
     );
   };
+  const compact = variant === "compact";
 
   return (
-    <div>
-      <p className="text-sm font-medium text-[var(--app-muted)]">지역</p>
+    <div className={className}>
+      <p
+        className={
+          compact
+            ? "mb-2 text-xs font-bold text-gray-800"
+            : "text-sm font-medium text-[var(--app-muted)]"
+        }
+      >
+        지역
+      </p>
       <button
         type="button"
         onClick={openDialog}
-        className="mt-2 flex w-full items-center justify-between border border-[var(--app-line)] bg-white px-3 py-2 text-left text-[var(--foreground)]"
+        className={cn(
+          "flex w-full items-center justify-between border border-[var(--app-line)] bg-white text-left text-[var(--foreground)] outline-none focus:border-[var(--brand)]",
+          compact
+            ? "rounded-lg px-2 py-1.5 text-xs"
+            : "mt-2 px-3 py-2 text-sm",
+        )}
       >
-        <span className={selectedLocations.length ? "" : "text-[var(--app-muted)]"}>
+        <span
+          className={cn(
+            "truncate",
+            selectedLocations.length ? "" : "text-[var(--app-muted)]",
+          )}
+        >
           {summary}
         </span>
         <ChevronDown size={16} />
       </button>
 
       {selectedLocations.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {selectedLocations.slice(0, 3).map((location) => (
+        <div className={compact ? "mt-2 flex flex-wrap gap-1.5" : "mt-2 flex flex-wrap gap-2"}>
+          {selectedLocations.slice(0, compact ? 2 : 3).map((location) => (
             <span
               key={location}
-              className="rounded border border-[var(--app-line)] bg-[#fbfbf8] px-2 py-1 text-xs text-[var(--app-muted)]"
+              className="max-w-full truncate rounded border border-[var(--app-line)] bg-[#fbfbf8] px-2 py-1 text-xs text-[var(--app-muted)]"
             >
               {displayLocation(location)}
             </span>
           ))}
-          {selectedLocations.length > 3 && (
+          {selectedLocations.length > (compact ? 2 : 3) && (
             <span className="rounded border border-[var(--app-line)] bg-[#fbfbf8] px-2 py-1 text-xs text-[var(--app-muted)]">
-              +{selectedLocations.length - 3}
+              +{selectedLocations.length - (compact ? 2 : 3)}
             </span>
           )}
         </div>

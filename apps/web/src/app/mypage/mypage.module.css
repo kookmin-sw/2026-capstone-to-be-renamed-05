@@ -142,6 +142,13 @@
   background: #fafafa;
 }
 
+.fieldHint {
+  color: var(--app-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
 .input {
   width: 100%;
   padding: 0.625rem 0.75rem;
@@ -418,8 +425,22 @@
   font-size: 0.875rem;
 }
 
+.loadErrorDetail {
+  margin-top: 0.75rem;
+  color: var(--app-muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
 .authAction {
   margin-top: 1.25rem;
+}
+
+.authActions {
+  margin-top: 1.25rem;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 /* ─── Responsive ──────────────────────────────────────────── */

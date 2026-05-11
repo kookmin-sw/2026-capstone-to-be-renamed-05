@@ -1,4 +1,7 @@
-import type { CompanyProfileProposal } from '@cpa/shared';
+import type {
+  CompanyProfileProposal,
+  PersonalVerificationRequestItem,
+} from '@cpa/shared';
 import {
   BadRequestException,
   ConflictException,
@@ -7,7 +10,11 @@ import {
 } from '@nestjs/common';
 import {
   CompanyType,
+  CpaVerificationStatus,
+  EmploymentHistoryStatus,
   JobStatus,
+  PersonalCareerStage,
+  PersonalVerificationRequestStatus,
   Prisma,
   SubmissionStatus,
   SubmissionType,
@@ -29,6 +36,11 @@ const profileSubmissionInclude = {
   reviewedBy: { select: { username: true } },
 } satisfies Prisma.CompanyProfileSubmissionInclude;
 
+const personalVerificationRequestInclude = {
+  user: { select: { username: true, displayName: true } },
+  reviewedBy: { select: { username: true } },
+} satisfies Prisma.PersonalVerificationRequestInclude;
+
 type JobSubmissionRecord = Prisma.JobSubmissionGetPayload<{
   include: typeof jobSubmissionInclude;
 }>;
@@ -36,6 +48,11 @@ type JobSubmissionRecord = Prisma.JobSubmissionGetPayload<{
 type ProfileSubmissionRecord = Prisma.CompanyProfileSubmissionGetPayload<{
   include: typeof profileSubmissionInclude;
 }>;
+
+type PersonalVerificationRequestRecord =
+  Prisma.PersonalVerificationRequestGetPayload<{
+    include: typeof personalVerificationRequestInclude;
+  }>;
 
 const adminJobInclude = {
   company: {
@@ -362,6 +379,120 @@ export class AdminService {
     };
   }
 
+  async listPersonalVerificationRequests(): Promise<{
+    items: PersonalVerificationRequestItem[];
+  }> {
+    const items = await this.prisma.personalVerificationRequest.findMany({
+      include: personalVerificationRequestInclude,
+      orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+    });
+
+    return {
+      items: items.map((item) => this.toPersonalVerificationRequestItem(item)),
+    };
+  }
+
+  async approvePersonalVerificationRequest(
+    id: string,
+    adminUserId: string,
+    adminNote?: string,
+  ): Promise<PersonalVerificationRequestItem> {
+    return this.prisma.$transaction(async (tx) => {
+      const request = await tx.personalVerificationRequest.findUnique({
+        where: { id },
+        include: personalVerificationRequestInclude,
+      });
+      if (!request) {
+        throw new NotFoundException('CPA verification request not found.');
+      }
+      this.assertVerificationPending(request.status);
+
+      const reviewedAt = new Date();
+      await tx.personalProfile.upsert({
+        where: { userId: request.userId },
+        update: {
+          cpaVerificationStatus: CpaVerificationStatus.CPA_VERIFIED,
+          careerStage: request.requestedCareerStage,
+          employmentHistoryStatus: this.employmentHistoryForCareerStage(
+            request.requestedCareerStage,
+          ),
+          verifiedAt: reviewedAt,
+        },
+        create: {
+          userId: request.userId,
+          cpaVerificationStatus: CpaVerificationStatus.CPA_VERIFIED,
+          careerStage: request.requestedCareerStage,
+          employmentHistoryStatus: this.employmentHistoryForCareerStage(
+            request.requestedCareerStage,
+          ),
+          verifiedAt: reviewedAt,
+        },
+      });
+
+      const reviewed = await tx.personalVerificationRequest.update({
+        where: { id },
+        data: {
+          status: PersonalVerificationRequestStatus.APPROVED,
+          adminNote: this.optionalTrimmed(adminNote),
+          reviewedById: adminUserId,
+          reviewedAt,
+          birthDate: null,
+          registrationNumber: null,
+        },
+        include: personalVerificationRequestInclude,
+      });
+
+      return this.toPersonalVerificationRequestItem(reviewed);
+    });
+  }
+
+  async rejectPersonalVerificationRequest(
+    id: string,
+    adminUserId: string,
+    adminNote?: string,
+  ): Promise<PersonalVerificationRequestItem> {
+    return this.prisma.$transaction(async (tx) => {
+      const request = await tx.personalVerificationRequest.findUnique({
+        where: { id },
+        include: personalVerificationRequestInclude,
+      });
+      if (!request) {
+        throw new NotFoundException('CPA verification request not found.');
+      }
+      this.assertVerificationPending(request.status);
+
+      await tx.personalProfile.upsert({
+        where: { userId: request.userId },
+        update: {
+          cpaVerificationStatus: CpaVerificationStatus.UNVERIFIED,
+          careerStage: null,
+          employmentHistoryStatus: EmploymentHistoryStatus.UNKNOWN,
+          verifiedAt: null,
+        },
+        create: {
+          userId: request.userId,
+          cpaVerificationStatus: CpaVerificationStatus.UNVERIFIED,
+          employmentHistoryStatus: EmploymentHistoryStatus.UNKNOWN,
+        },
+      });
+
+      const reviewed = await tx.personalVerificationRequest.update({
+        where: { id },
+        data: {
+          status: PersonalVerificationRequestStatus.REJECTED,
+          adminNote: this.optionalTrimmed(adminNote),
+          reviewedById: adminUserId,
+          reviewedAt: new Date(),
+          birthDate: null,
+          registrationNumber: null,
+        },
+        include: personalVerificationRequestInclude,
+      });
+
+      return this.toPersonalVerificationRequestItem(reviewed);
+    });
+  }
+
   async listJobSubmissions() {
     const items = await this.prisma.jobSubmission.findMany({
       include: jobSubmissionInclude,
@@ -612,6 +743,20 @@ export class AdminService {
     }
   }
 
+  private assertVerificationPending(status: PersonalVerificationRequestStatus) {
+    if (status !== PersonalVerificationRequestStatus.PENDING) {
+      throw new ConflictException(
+        'CPA verification request is already reviewed.',
+      );
+    }
+  }
+
+  private employmentHistoryForCareerStage(stage: PersonalCareerStage) {
+    return stage === PersonalCareerStage.CPA_UNPLACED
+      ? EmploymentHistoryStatus.NONE
+      : EmploymentHistoryStatus.HAS_EMPLOYMENT;
+  }
+
   private toCompanyUpdateData(proposed: CompanyProfileProposal) {
     const data: Prisma.CompanyUpdateInput = {};
     if (proposed.name !== undefined) data.name = proposed.name;
@@ -710,6 +855,28 @@ export class AdminService {
       createdAt: submission.createdAt.toISOString(),
       updatedAt: submission.updatedAt.toISOString(),
       reviewedAt: submission.reviewedAt?.toISOString() ?? null,
+    };
+  }
+
+  private toPersonalVerificationRequestItem(
+    request: PersonalVerificationRequestRecord,
+  ): PersonalVerificationRequestItem {
+    return {
+      id: request.id,
+      userId: request.userId,
+      username: request.user.username,
+      displayName: request.user.displayName,
+      applicantName: request.applicantName,
+      birthDate: request.birthDate,
+      registrationNumber: request.registrationNumber,
+      registrationNumberLast4: request.registrationNumberLast4,
+      requestedCareerStage: request.requestedCareerStage,
+      status: request.status,
+      adminNote: request.adminNote,
+      reviewedByUsername: request.reviewedBy?.username ?? null,
+      reviewedAt: request.reviewedAt?.toISOString() ?? null,
+      createdAt: request.createdAt.toISOString(),
+      updatedAt: request.updatedAt.toISOString(),
     };
   }
 

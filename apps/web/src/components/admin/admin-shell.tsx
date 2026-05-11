@@ -9,6 +9,7 @@ import {
   LogOut,
   Server,
   Sparkles,
+  UserCheck,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -26,11 +27,12 @@ import styles from "./admin.module.css";
 const navItems = [
   { href: "/admin", label: "대시보드", icon: LayoutDashboard },
   { href: "/admin/job-submissions", label: "공고 검수", icon: ClipboardCheck },
-  { href: "/admin/profile-submissions", label: "프로필 검수", icon: FileText },
-  { href: "/admin/ai-suggestions", label: "AI 태그 검수", icon: Sparkles },
-  { href: "/admin/jobs", label: "등록된 공고 목록", icon: BriefcaseBusiness },
-  { href: "/admin/companies", label: "등록된 회사 목록", icon: Building2 },
-  { href: "/admin/members", label: "회원 리스트", icon: Users },
+  { href: "/admin/profile-submissions", label: "회사 프로필 검수", icon: FileText },
+  { href: "/admin/cpa-verifications", label: "CPA 검증", icon: UserCheck },
+  { href: "/admin/ai-suggestions", label: "AI 제안 검수", icon: Sparkles },
+  { href: "/admin/jobs", label: "등록 공고", icon: BriefcaseBusiness },
+  { href: "/admin/companies", label: "등록 회사", icon: Building2 },
+  { href: "/admin/members", label: "회원 목록", icon: Users },
   { href: "/admin/sources", label: "출처 관리", icon: Server },
 ] as const;
 
@@ -68,12 +70,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   const pageTitle = useMemo(() => {
     if (pathname.startsWith("/admin/job-submissions")) return "공고 검수";
-    if (pathname.startsWith("/admin/profile-submissions")) return "프로필 검수";
-    if (pathname.startsWith("/admin/ai-suggestions")) return "AI 태그 검수";
+    if (pathname.startsWith("/admin/profile-submissions")) {
+      return "회사 프로필 검수";
+    }
+    if (pathname.startsWith("/admin/cpa-verifications")) return "CPA 검증";
+    if (pathname.startsWith("/admin/ai-suggestions")) return "AI 제안 검수";
     if (pathname.startsWith("/admin/sources")) return "출처 관리";
-    if (pathname.startsWith("/admin/jobs")) return "등록된 공고 목록";
-    if (pathname.startsWith("/admin/companies")) return "등록된 회사 목록";
-    if (pathname.startsWith("/admin/members")) return "회원 리스트";
+    if (pathname.startsWith("/admin/jobs")) return "등록 공고";
+    if (pathname.startsWith("/admin/companies")) return "등록 회사";
+    if (pathname.startsWith("/admin/members")) return "회원 목록";
     return "대시보드";
   }, [pathname]);
 
@@ -137,15 +142,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div>
             <h1 className={styles.topbarTitle}>{pageTitle}</h1>
             <p className={styles.topbarCaption}>
-              직접 URL로 접근하는 프로토타입 관리자 화면
+              운영 데이터와 검수 상태를 관리합니다.
             </p>
           </div>
           <div className={styles.userArea}>
             <div className={styles.userText}>
               <p className={styles.userName}>
-                {user?.displayName ?? user?.username}
+                {user.displayName ?? user.username}
               </p>
-              <p className={styles.userSubtext}>{user?.username}</p>
+              <p className={styles.userSubtext}>{user.username}</p>
             </div>
             <button
               type="button"

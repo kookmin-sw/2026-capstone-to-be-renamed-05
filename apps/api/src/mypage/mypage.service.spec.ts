@@ -1,5 +1,15 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import {
+  CpaVerificationStatus,
+  EmploymentHistoryStatus,
+  PersonalCareerStage,
+  PersonalVerificationRequestStatus,
+} from '@prisma/client';
 import {
   mkdir,
   mkdtemp,
@@ -137,6 +147,100 @@ describe('MypageService resumes', () => {
   });
 });
 
+describe('MypageService CPA verification requests', () => {
+  let tx: {
+    personalProfile: { upsert: jest.Mock };
+    personalVerificationRequest: { create: jest.Mock };
+  };
+  let prisma: {
+    personalVerificationRequest: {
+      findFirst: jest.Mock;
+    };
+    $transaction: jest.Mock;
+  };
+  let service: MypageService;
+
+  beforeEach(() => {
+    tx = {
+      personalProfile: { upsert: jest.fn() },
+      personalVerificationRequest: { create: jest.fn() },
+    };
+    prisma = {
+      personalVerificationRequest: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      $transaction: jest.fn((callback: (client: typeof tx) => unknown) =>
+        callback(tx),
+      ),
+    };
+    service = new MypageService(
+      prisma as unknown as PrismaService,
+      createConfig({}),
+    );
+  });
+
+  it('creates a pending CPA verification request and stores only a masked suffix separately', async () => {
+    tx.personalVerificationRequest.create.mockResolvedValue({
+      id: 'request-1',
+      userId: 'user-1',
+      user: { username: 'jobseeker', displayName: 'CPA user' },
+      applicantName: 'Kim CPA',
+      birthDate: '1998-03-14',
+      registrationNumber: 'CPA-123456',
+      registrationNumberLast4: '3456',
+      requestedCareerStage: PersonalCareerStage.CPA_UNPLACED,
+      status: PersonalVerificationRequestStatus.PENDING,
+      adminNote: null,
+      reviewedBy: null,
+      reviewedAt: null,
+      createdAt,
+      updatedAt: createdAt,
+    });
+
+    const result = await service.createPersonalVerificationRequest('user-1', {
+      applicantName: ' Kim CPA ',
+      birthDate: '1998-03-14',
+      registrationNumber: 'CPA-123456',
+      requestedCareerStage: PersonalCareerStage.CPA_UNPLACED,
+    });
+
+    expect(tx.personalProfile.upsert).toHaveBeenCalledWith({
+      where: { userId: 'user-1' },
+      update: { cpaVerificationStatus: CpaVerificationStatus.PENDING },
+      create: {
+        userId: 'user-1',
+        cpaVerificationStatus: CpaVerificationStatus.PENDING,
+        employmentHistoryStatus: EmploymentHistoryStatus.UNKNOWN,
+      },
+    });
+    const createArg = firstMockArg<{
+      data: {
+        applicantName: string;
+        registrationNumberLast4: string | null;
+      };
+    }>(tx.personalVerificationRequest.create);
+    expect(createArg.data.applicantName).toBe('Kim CPA');
+    expect(createArg.data.registrationNumberLast4).toBe('3456');
+    expect(result.status).toBe(PersonalVerificationRequestStatus.PENDING);
+  });
+
+  it('rejects duplicate pending CPA verification requests', async () => {
+    prisma.personalVerificationRequest.findFirst.mockResolvedValue({
+      id: 'request-1',
+    });
+
+    await expect(
+      service.createPersonalVerificationRequest('user-1', {
+        applicantName: 'Kim CPA',
+        birthDate: '1998-03-14',
+        registrationNumber: '123456',
+        requestedCareerStage: PersonalCareerStage.TRAINEE,
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(tx.personalVerificationRequest.create).not.toHaveBeenCalled();
+  });
+});
+
 function resumeRecord(overrides: Record<string, unknown> = {}) {
   return {
     id: 'resume-1',
@@ -155,4 +259,8 @@ function createConfig(values: Record<string, string | undefined>) {
   return {
     get: jest.fn((key: string) => values[key]),
   } as unknown as ConfigService;
+}
+
+function firstMockArg<T>(mock: { mock: { calls: unknown[][] } }): T {
+  return mock.mock.calls[0][0] as T;
 }

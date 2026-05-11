@@ -3,9 +3,14 @@
 .compactRow {
   background: var(--surface);
   box-shadow: var(--shadow-md);
+  border: 1px solid var(--app-line);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
   transition:
     transform 160ms ease,
-    box-shadow 160ms ease;
+    box-shadow 160ms ease,
+    border-color 160ms ease;
 }
 
 .card:hover,
@@ -13,9 +18,11 @@
 .compactRow:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
+  border-color: var(--brand);
 }
 
 .card {
+  display: block;
   border-radius: 1.25rem;
   padding: 1.25rem;
 }
@@ -85,11 +92,11 @@
   position: relative;
   display: flex;
   align-items: flex-end;
-  min-height: 7rem;
+  min-height: 5rem;
   background:
-    radial-gradient(circle at 92% 12%, rgba(232, 69, 122, 0.12), transparent 9rem),
+    radial-gradient(circle at 92% 12%, rgba(232, 69, 122, 0.1), transparent 7rem),
     var(--gray-50);
-  padding: 1rem 1.25rem 0.85rem;
+  padding: 0.65rem 1.25rem 0.65rem;
 }
 
 .bannerImage,

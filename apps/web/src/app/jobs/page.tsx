@@ -10,7 +10,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { JobPresetBar } from "@/components/job-preset-bar";
 import { JobGridCard } from "@/components/job-card";
 import { jobSortLabels } from "@/components/job-filter-panel";
@@ -18,6 +18,7 @@ import { RegionFilterDialog } from "@/components/region-filter-dialog";
 import { SiteNav } from "@/components/site-nav";
 import { ActionButton } from "@/components/ui/action-button";
 import { FilterSelect } from "@/components/ui/filter-select";
+import { Pagination } from "@/components/ui/pagination";
 import { useJobFilterState } from "@/hooks/use-job-filter-state";
 import { fetchJobCalendar, fetchJobs, fetchMyBookmarks, createMyBookmark, deleteMyBookmark, fetchCurrentUser } from "@/lib/api";
 import { calendarDaysToMap, jobsBetween } from "@/lib/calendar-data";
@@ -86,8 +87,11 @@ function JobsSidebarCalendar({
       {/* 캘린더 카드 */}
       <div className="rounded-2xl bg-white p-5 shadow-md">
         {/* 제목 */}
-        <div className="mb-3 flex items-baseline gap-1.5">
+        <div className="mb-3 flex items-center justify-between">
           <span className="text-sm font-bold text-gray-900">마감일 캘린더</span>
+          <Link href={calendarHref} className={styles.sidebarMore}>
+            크게 보기 <ArrowRight size={12} />
+          </Link>
         </div>
 
         {/* 월 이동 */}
@@ -529,6 +533,8 @@ function splitMultiValue(value: string) {
     .filter(Boolean);
 }
 
+const PAGE_SIZE = 12;
+
 /* ── 메인 페이지 ── */
 export default function JobsPage() {
   const [jobs, setJobs] = useState<JobListItem[]>([]);
@@ -540,6 +546,7 @@ export default function JobsPage() {
   const [calendarDays, setCalendarDays] = useState<JobCalendarDay[]>([]);
   const [calendarLoading, setCalendarLoading] = useState(true);
   const [calendarError, setCalendarError] = useState("");
+  const [page, setPage] = useState(1);
   const { filters, setFilters, ready, queryString } = useJobFilterState();
   const [bookmarkedJobIds, setBookmarkedJobIds] = useState<Set<string>>(new Set());
   const [isJobSeeker, setIsJobSeeker] = useState(false);
@@ -587,7 +594,22 @@ export default function JobsPage() {
     }
   }
 
-  const params = useMemo(() => buildJobFilterParams(filters), [filters]);
+  // 필터 변경 시 페이지를 1로 리셋
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    setPage(1);
+  }, [queryString]);
+
+  const params = useMemo(() => {
+    const p = buildJobFilterParams(filters);
+    p.set("page", String(page));
+    p.set("pageSize", String(PAGE_SIZE));
+    return p;
+  }, [filters, page]);
 
   const calendarRange = useMemo(() => {
     const grid = getCalendarGridRange(miniMonth);
@@ -708,17 +730,6 @@ export default function JobsPage() {
             <ActionButton type="button" iconStart={<Search size={15} />}>
               검색
             </ActionButton>
-            <select
-              value={filters.sort}
-              onChange={(e) => setFilters({ ...filters, sort: e.target.value })}
-              className="rounded-xl border border-[var(--app-line)] bg-white px-3 py-2.5 text-sm font-medium text-gray-700 outline-none"
-            >
-              {Object.entries(jobSortLabels).map(([v, l]) => (
-                <option key={v} value={v}>
-                  {l}
-                </option>
-              ))}
-            </select>
           </div>
 
           <JobPresetBar filters={filters} onChange={setFilters} />
@@ -890,13 +901,26 @@ export default function JobsPage() {
           {/* 공고 그리드 */}
           <div>
             {!loading && (
-              <p className="mb-4 text-sm text-gray-500">
-                공고{" "}
-                <span className="font-bold text-gray-900">
-                  {total.toLocaleString("ko-KR")}
-                </span>
-                건
-              </p>
+              <div className="mb-4 flex items-center justify-between">
+                <p className="text-sm text-gray-500">
+                  공고{" "}
+                  <span className="font-bold text-gray-900">
+                    {total.toLocaleString("ko-KR")}
+                  </span>
+                  건
+                </p>
+                <select
+                  value={filters.sort}
+                  onChange={(e) => setFilters({ ...filters, sort: e.target.value })}
+                  className="rounded-xl border border-[var(--app-line)] bg-white px-3 py-2.5 text-sm font-medium text-gray-700 outline-none"
+                >
+                  {Object.entries(jobSortLabels).map(([v, l]) => (
+                    <option key={v} value={v}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              </div>
             )}
             {error && (
               <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -927,6 +951,13 @@ export default function JobsPage() {
               <div className="rounded-2xl border border-[var(--app-line)] bg-white p-10 text-center text-sm text-[var(--app-muted)]">
                 검색 조건에 맞는 공고가 없습니다.
               </div>
+            )}
+            {!loading && (
+              <Pagination
+                page={page}
+                totalPages={Math.ceil(total / PAGE_SIZE)}
+                onPageChange={setPage}
+              />
             )}
           </div>
 

@@ -1,6 +1,54 @@
 export const USER_ROLES = ["JOB_SEEKER", "COMPANY", "ADMIN"] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
+export const CPA_VERIFICATION_STATUSES = [
+  "UNVERIFIED",
+  "PENDING",
+  "CPA_VERIFIED",
+  "REJECTED",
+] as const;
+export type CpaVerificationStatus =
+  (typeof CPA_VERIFICATION_STATUSES)[number];
+
+export const PERSONAL_CAREER_STAGES = [
+  "CPA_UNPLACED",
+  "TRAINEE",
+  "LICENSED_CPA",
+] as const;
+export type PersonalCareerStage = (typeof PERSONAL_CAREER_STAGES)[number];
+
+export const EMPLOYMENT_HISTORY_STATUSES = [
+  "UNKNOWN",
+  "NONE",
+  "HAS_EMPLOYMENT",
+] as const;
+export type EmploymentHistoryStatus =
+  (typeof EMPLOYMENT_HISTORY_STATUSES)[number];
+
+export const PERSONAL_VERIFICATION_REQUEST_STATUSES = [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+] as const;
+export type PersonalVerificationRequestStatus =
+  (typeof PERSONAL_VERIFICATION_REQUEST_STATUSES)[number];
+
+export const COMMUNITY_BOARD_TYPES = [
+  "CPA_PREP",
+  "TRAINEE",
+  "SENIOR",
+  "FREE",
+] as const;
+export type CommunityBoardType = (typeof COMMUNITY_BOARD_TYPES)[number];
+
+export const COMMUNITY_POST_STATUSES = [
+  "QUESTION",
+  "ANSWERED",
+  "FREE",
+  "INFO",
+] as const;
+export type CommunityPostStatus = (typeof COMMUNITY_POST_STATUSES)[number];
+
 export const JOB_FAMILIES = [
   "AUDIT",
   "TAX",
@@ -371,8 +419,99 @@ export type MyProfileResponse = {
   displayName: string | null;
   role: string;
   createdAt: string;
+  cpaVerificationStatus: CpaVerificationStatus;
+  careerStage: PersonalCareerStage | null;
+  employmentHistoryStatus: EmploymentHistoryStatus;
+  verifiedAt: string | null;
+  traineeRoomAccess: boolean;
+  pendingVerificationRequest: PersonalVerificationRequestItem | null;
 };
 
 export type UpdateProfilePayload = {
   displayName?: string;
+};
+
+export type PersonalVerificationRequestItem = {
+  id: string;
+  userId: string;
+  username: string;
+  displayName: string | null;
+  applicantName: string;
+  birthDate: string | null;
+  registrationNumber: string | null;
+  registrationNumberLast4: string | null;
+  requestedCareerStage: PersonalCareerStage;
+  status: PersonalVerificationRequestStatus;
+  adminNote: string | null;
+  reviewedByUsername: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PersonalVerificationRequestListResponse = {
+  items: PersonalVerificationRequestItem[];
+};
+
+export type CreatePersonalVerificationRequestPayload = {
+  applicantName: string;
+  birthDate: string;
+  registrationNumber: string;
+  requestedCareerStage: PersonalCareerStage;
+};
+
+export type ReviewPersonalVerificationRequestPayload = {
+  adminNote?: string;
+};
+
+export type CommunityPostItem = {
+  id: string;
+  boardType: CommunityBoardType;
+  title: string;
+  content: string;
+  status: CommunityPostStatus;
+  tags: string[];
+  authorName: string;
+  isAnonymous: boolean;
+  createdAt: string;
+  updatedAt: string;
+  viewCount: number;
+  commentCount: number;
+  likeCount: number;
+  isResolved: boolean;
+  acceptedAnswerId: string | null;
+};
+
+export type CommunityAnswerItem = {
+  id: string;
+  postId: string;
+  content: string;
+  authorName: string;
+  isAnonymous: boolean;
+  createdAt: string;
+  updatedAt: string;
+  likeCount: number;
+  isAccepted: boolean;
+};
+
+export type CommunityPostListResponse = {
+  items: CommunityPostItem[];
+};
+
+export type CommunityPostDetailResponse = {
+  post: CommunityPostItem;
+  answers: CommunityAnswerItem[];
+};
+
+export type CreateCommunityPostPayload = {
+  boardType: CommunityBoardType;
+  title: string;
+  content: string;
+  tags?: string[];
+  isAnonymous?: boolean;
+};
+
+export type CreateCommunityAnswerPayload = {
+  content: string;
+  isAnonymous?: boolean;
 };

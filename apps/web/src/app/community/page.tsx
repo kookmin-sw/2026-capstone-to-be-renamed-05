@@ -1,15 +1,12 @@
 "use client";
 
-import { MessageCircle, PenSquare, RefreshCw, Search } from "lucide-react";
+import { LockKeyhole, MessageCircle, PenSquare, RefreshCw, Search } from "lucide-react";
 import Link from "next/link";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SiteNav } from "@/components/site-nav";
 import { ActionButton, ActionLink } from "@/components/ui/action-button";
-import {
-  getPosts,
-  getTrendingPosts,
-} from "@/lib/community-api";
+import { getPosts, getTrendingPosts } from "@/lib/community-api";
 import {
   BOARD_TYPES,
   boardTypeLabels,
@@ -81,16 +78,54 @@ function CommunityPageContent() {
   const router = useRouter();
   const activeBoard = (searchParams.get("board") as BoardType | null) ?? "CPA_PREP";
 
+  const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [trendingPosts, setTrendingPosts] = useState<CommunityPost[]>([]);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [sort, setSort] = useState<SortOrder>("latest");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const posts = useMemo(
-    () => getPosts({ board: activeBoard, search, sort }),
-    [activeBoard, search, sort],
-  );
+  useEffect(() => {
+    let ignore = false;
+    void Promise.resolve().then(async () => {
+      if (ignore) return;
+      setLoading(true);
+      setError("");
+      try {
+        const items = await getPosts({ board: activeBoard, search, sort });
+        if (!ignore) setPosts(items);
+      } catch (caught) {
+        if (!ignore) {
+          setPosts([]);
+          setError(
+            caught instanceof Error
+              ? caught.message
+              : "게시글을 불러오지 못했습니다.",
+          );
+        }
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [activeBoard, search, sort]);
 
-  const trendingPosts = useMemo(() => getTrendingPosts(), []);
+  useEffect(() => {
+    let ignore = false;
+    getTrendingPosts()
+      .then((items) => {
+        if (!ignore) setTrendingPosts(items);
+      })
+      .catch(() => {
+        if (!ignore) setTrendingPosts([]);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   function handleSearch() {
     setSearch(searchInput.trim());
@@ -108,6 +143,8 @@ function CommunityPageContent() {
     router.push(`/community?board=${board}`);
   }
 
+  const traineeLocked = activeBoard === "TRAINEE" && Boolean(error);
+
   return (
     <main className="min-h-screen bg-[var(--background)]">
       <SiteNav />
@@ -116,7 +153,7 @@ function CommunityPageContent() {
         <div className="mx-auto max-w-7xl px-6 pt-6 pb-4">
           <h1 className="text-2xl font-semibold text-gray-900">커뮤니티</h1>
           <p className="mt-1 text-sm leading-relaxed text-gray-500">
-            회계사 준비생부터 현직 회계사까지, 경험과 정보를 나눠요.
+            CPA 준비생부터 현직 회계사까지, 경험과 정보를 나누는 공간입니다.
           </p>
 
           <div className="mt-4 flex items-center gap-2">
@@ -129,7 +166,7 @@ function CommunityPageContent() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="제목, 내용, 키워드로 검색하세요"
+                placeholder="제목, 내용, 태그로 검색"
                 className="w-full rounded-xl border border-[var(--app-line)] bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-[var(--brand)]"
               />
             </div>
@@ -185,25 +222,40 @@ function CommunityPageContent() {
                   <option value="latest">최신순</option>
                   <option value="popular">인기순</option>
                 </select>
-                <ActionLink
-                  href={communityWriteHref(activeBoard)}
-                  variant="outline"
-                  size="sm"
-                  iconStart={<PenSquare size={14} />}
-                >
-                  글쓰기
-                </ActionLink>
+                {traineeLocked ? (
+                  <ActionLink href="/mypage" variant="outline" size="sm">
+                    CPA 검증하기
+                  </ActionLink>
+                ) : (
+                  <ActionLink
+                    href={communityWriteHref(activeBoard)}
+                    variant="outline"
+                    size="sm"
+                    iconStart={<PenSquare size={14} />}
+                  >
+                    글쓰기
+                  </ActionLink>
+                )}
               </div>
             </div>
 
             <div className={styles.postList}>
-              {posts.length > 0 ? (
+              {loading ? (
+                <div className={styles.emptyState}>게시글을 불러오는 중입니다.</div>
+              ) : traineeLocked ? (
+                <div className={styles.emptyState}>
+                  <LockKeyhole size={22} className="mx-auto mb-2 text-[var(--brand)]" />
+                  수습 CPA 방은 CPA 검증이 완료된 개인회원만 입장할 수 있습니다.
+                </div>
+              ) : error ? (
+                <div className={styles.emptyState}>{error}</div>
+              ) : posts.length > 0 ? (
                 posts.map((post) => <PostRow key={post.id} post={post} />)
               ) : (
                 <div className={styles.emptyState}>
                   {search
                     ? `"${search}"에 해당하는 게시글이 없습니다.`
-                    : "아직 게시글이 없습니다. 첫 번째 글을 작성해보세요!"}
+                    : "아직 게시글이 없습니다. 첫 번째 글을 작성해보세요."}
                 </div>
               )}
             </div>
@@ -229,9 +281,11 @@ function CommunityPageContent() {
                     </span>
                   </Link>
                 ))}
+                {!trendingPosts.length && (
+                  <span className={styles.trendingTitle}>아직 인기 글이 없습니다.</span>
+                )}
               </div>
             </div>
-
           </aside>
         </div>
       </div>

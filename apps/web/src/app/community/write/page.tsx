@@ -13,6 +13,7 @@ import {
   boardTypeLabels,
   type BoardType,
 } from "@/lib/community-types";
+import { communityDetailHref } from "@/lib/routes";
 import styles from "./community-write.module.css";
 
 function CommunityWriteContent() {
@@ -26,6 +27,7 @@ function CommunityWriteContent() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState("");
 
   const availableTags = boardTags[activeBoard];
 
@@ -38,24 +40,32 @@ function CommunityWriteContent() {
   function handleBoardChange(board: BoardType) {
     setActiveBoard(board);
     setSelectedTags([]);
+    setMessage("");
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!title.trim() || !content.trim()) {
-      alert("제목과 내용을 입력해주세요.");
+      setMessage("제목과 내용을 입력해주세요.");
       return;
     }
     setSubmitting(true);
-    const post = createPost({
-      boardType: activeBoard,
-      title: title.trim(),
-      content: content.trim(),
-      tags: selectedTags,
-      isAnonymous,
-      authorName: "익명",
-    });
-    router.push(`/community?board=${activeBoard}`);
-    void post;
+    setMessage("");
+    try {
+      const post = await createPost({
+        boardType: activeBoard,
+        title: title.trim(),
+        content: content.trim(),
+        tags: selectedTags,
+        isAnonymous,
+      });
+      router.push(communityDetailHref(post.id));
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "게시글 등록에 실패했습니다.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -106,6 +116,12 @@ function CommunityWriteContent() {
         <div className={styles.layout}>
           <div className={styles.form}>
             <div className={styles.formInner}>
+              {message && (
+                <div className="rounded-xl border border-[var(--app-line)] bg-[#fbfbf8] p-3 text-sm text-gray-700">
+                  {message}
+                </div>
+              )}
+
               <div className={styles.formField}>
                 <label className={styles.formLabel}>
                   제목 <span className={styles.required}>*</span>
@@ -122,8 +138,7 @@ function CommunityWriteContent() {
 
               <div className={styles.formField}>
                 <label className={styles.formLabel}>
-                  카테고리{" "}
-                  <span className={styles.optional}>(선택)</span>
+                  카테고리 <span className={styles.optional}>(선택)</span>
                 </label>
                 <div className={styles.tagGrid}>
                   {availableTags.map((tag) => (
@@ -156,9 +171,7 @@ function CommunityWriteContent() {
               </div>
 
               <div className={styles.formField}>
-                <label className={styles.formLabel}>
-                  익명 설정
-                </label>
+                <label className={styles.formLabel}>익명 설정</label>
                 <label className={styles.anonymousRow}>
                   <input
                     type="checkbox"
@@ -170,7 +183,7 @@ function CommunityWriteContent() {
                   </span>
                 </label>
                 <p className={styles.anonymousHint}>
-                  • 개인 정보는 노출되지 않으며, 닉네임은 &apos;익명&apos;으로 표시됩니다.
+                  체크를 해제하면 표시 이름 또는 아이디가 노출됩니다.
                 </p>
               </div>
             </div>
@@ -184,7 +197,7 @@ function CommunityWriteContent() {
                 disabled={submitting || !title.trim() || !content.trim()}
                 onClick={handleSubmit}
               >
-                등록하기
+                {submitting ? "등록 중" : "등록하기"}
               </ActionButton>
             </div>
           </div>
@@ -194,13 +207,23 @@ function CommunityWriteContent() {
               <p className={styles.sidebarCardTitle}>게시글 작성 가이드</p>
               <div className={styles.guideList}>
                 {[
-                  { icon: "?", title: "구체적으로 작성해 주세요", desc: "상황, 배경, 질문을 구체적으로 적을수록 더 정확한 답변을 받을 수 있어요." },
-                  { icon: "🔍", title: "검색 후 질문해 주세요", desc: "이미 답변된 질문일 수 있어요. 검색 후 질문하면 더 좋아요." },
-                  { icon: "#", title: "관련 태그를 활용해주세요", desc: "적절한 태그는 유사한 질문을 받은 전문가에게 노출될 확률을 높여요." },
-                  { icon: "✓", title: "커뮤니티 규칙을 지켜주세요", desc: "비방, 광고, 욕설 등은 제재 대상이 될 수 있습니다." },
+                  {
+                    title: "상황을 구체적으로 적어주세요",
+                    desc: "배경, 질문, 원하는 답변 범위를 함께 적으면 더 정확한 답변을 받을 수 있습니다.",
+                  },
+                  {
+                    title: "민감정보는 제외해주세요",
+                    desc: "실명, 연락처, 회사 내부자료 등은 게시하지 않는 편이 안전합니다.",
+                  },
+                  {
+                    title: "수습 CPA 방은 검증 후 이용됩니다",
+                    desc: "CPA 검증이 완료된 개인회원만 수습 CPA 방에 글을 쓸 수 있습니다.",
+                  },
                 ].map((guide) => (
                   <div key={guide.title} className={styles.guideItem}>
-                    <div className={styles.guideIcon}>{guide.icon}</div>
+                    <div className={styles.guideIcon}>
+                      <Check size={14} />
+                    </div>
                     <div className={styles.guideText}>
                       <p className={styles.guideTextTitle}>{guide.title}</p>
                       <p className={styles.guideTextDesc}>{guide.desc}</p>
@@ -208,25 +231,6 @@ function CommunityWriteContent() {
                   </div>
                 ))}
               </div>
-            </div>
-
-            <div className={styles.sidebarCard}>
-              <p className={styles.sidebarCardTitle}>이런 질문이 더 좋아요!</p>
-              <div className={styles.goodExamples}>
-                {[
-                  '"OO 회계법인 실무수습은 어떤가요?"',
-                  '"1차 시험 공부 시간 배분 어떻게 하시나요?"',
-                  '"세법 선택과목 어떤 걸 추천하시나요?"',
-                ].map((ex) => (
-                  <div key={ex} className={styles.goodExample}>
-                    <Check size={13} className={styles.goodExampleCheck} />
-                    {ex}
-                  </div>
-                ))}
-              </div>
-              <p className={styles.goodExampleHint}>
-                구체적인 질문일수록 좋은 답변을 받을 확률이 높아져요!
-              </p>
             </div>
           </aside>
         </div>

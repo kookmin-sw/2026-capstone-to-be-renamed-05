@@ -89,6 +89,45 @@ enum AssetStatus {
   READY
 }
 
+enum CpaVerificationStatus {
+  UNVERIFIED
+  PENDING
+  CPA_VERIFIED
+  REJECTED
+}
+
+enum PersonalCareerStage {
+  CPA_UNPLACED
+  TRAINEE
+  LICENSED_CPA
+}
+
+enum EmploymentHistoryStatus {
+  UNKNOWN
+  NONE
+  HAS_EMPLOYMENT
+}
+
+enum PersonalVerificationRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CommunityBoardType {
+  CPA_PREP
+  TRAINEE
+  SENIOR
+  FREE
+}
+
+enum CommunityPostStatus {
+  QUESTION
+  ANSWERED
+  FREE
+  INFO
+}
+
 model User {
   id                  String   @id @default(uuid())
   username            String   @unique
@@ -108,6 +147,48 @@ model User {
   uploadedAssets                    Asset[]                    @relation("AssetUploader")
   bookmarks                         Bookmark[]
   resumes                           Resume[]
+  personalProfile                    PersonalProfile?
+  personalVerificationRequests       PersonalVerificationRequest[] @relation("PersonalVerificationRequestSubmitter")
+  reviewedPersonalVerificationRequests PersonalVerificationRequest[] @relation("PersonalVerificationRequestReviewer")
+  communityPosts                     CommunityPost[] @relation("CommunityPostAuthor")
+  communityAnswers                   CommunityAnswer[] @relation("CommunityAnswerAuthor")
+}
+
+model PersonalProfile {
+  userId                  String                    @id
+  cpaVerificationStatus   CpaVerificationStatus     @default(UNVERIFIED)
+  careerStage             PersonalCareerStage?
+  employmentHistoryStatus EmploymentHistoryStatus   @default(UNKNOWN)
+  verifiedAt              DateTime?
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([cpaVerificationStatus])
+  @@index([careerStage])
+}
+
+model PersonalVerificationRequest {
+  id                      String                            @id @default(uuid())
+  userId                  String
+  applicantName           String
+  birthDate               String?
+  registrationNumber      String?
+  registrationNumberLast4 String?
+  requestedCareerStage    PersonalCareerStage
+  status                  PersonalVerificationRequestStatus @default(PENDING)
+  adminNote               String?
+  reviewedById            String?
+  reviewedAt              DateTime?
+  createdAt               DateTime                          @default(now())
+  updatedAt               DateTime                          @updatedAt
+
+  user       User  @relation("PersonalVerificationRequestSubmitter", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("PersonalVerificationRequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([status, createdAt])
 }
 
 model Company {
@@ -373,4 +454,44 @@ model Resume {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+model CommunityPost {
+  id               String              @id @default(uuid())
+  boardType        CommunityBoardType
+  title            String
+  content          String
+  status           CommunityPostStatus @default(QUESTION)
+  tags             String[]            @default([])
+  authorId         String
+  isAnonymous      Boolean             @default(true)
+  viewCount        Int                 @default(0)
+  likeCount        Int                 @default(0)
+  acceptedAnswerId String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  author  User              @relation("CommunityPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  answers CommunityAnswer[]
+
+  @@index([boardType, createdAt])
+  @@index([authorId, createdAt])
+}
+
+model CommunityAnswer {
+  id          String   @id @default(uuid())
+  postId      String
+  authorId    String
+  content     String
+  isAnonymous Boolean  @default(true)
+  likeCount   Int      @default(0)
+  isAccepted  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User          @relation("CommunityAnswerAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@index([authorId, createdAt])
 }

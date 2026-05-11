@@ -10,17 +10,21 @@ interface AnswerListProps {
   onAccept: (answerId: string) => void;
 }
 
-export function AnswerList({ answers, isResolved, onLike, onAccept }: AnswerListProps) {
+export function AnswerList({
+  answers,
+  isResolved,
+  onLike,
+  onAccept,
+}: AnswerListProps) {
   return (
     <div className={styles.answersSection}>
       <div className={styles.answersHeader}>
-        답변
-        <span className={styles.answersCount}>{answers.length}</span>
+        답변 <span className={styles.answersCount}>{answers.length}</span>
       </div>
 
       {answers.length === 0 ? (
         <div className={styles.emptyAnswers}>
-          아직 답변이 없습니다. 첫 번째 답변을 달아주세요!
+          아직 답변이 없습니다. 첫 번째 답변을 남겨주세요.
         </div>
       ) : (
         answers.map((answer) => (
@@ -29,7 +33,7 @@ export function AnswerList({ answers, isResolved, onLike, onAccept }: AnswerList
             className={`${styles.answerCard} ${answer.isAccepted ? styles.answerAccepted : ""}`}
           >
             {answer.isAccepted && (
-              <div className={styles.acceptedBadge}>✓ 채택된 답변</div>
+              <div className={styles.acceptedBadge}>채택된 답변</div>
             )}
             <div className={styles.answerMeta}>
               <span className={styles.answerAuthor}>{answer.authorName}</span>

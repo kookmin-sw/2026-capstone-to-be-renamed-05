@@ -28,6 +28,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import type { RequestWithUser } from '../auth/auth.types';
 import { CreateBookmarkDto } from './dto/create-bookmark.dto';
+import { CreatePersonalVerificationRequestDto } from './dto/create-personal-verification-request.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { MypageService, RESUME_MAX_BYTES } from './mypage.service';
 
@@ -49,6 +50,17 @@ export class MypageController {
   @Patch('profile')
   updateProfile(@Req() req: RequestWithUser, @Body() dto: UpdateProfileDto) {
     return this.mypageService.updateProfile(req.user!.id, dto);
+  }
+
+  @Post('cpa-verification-requests')
+  createPersonalVerificationRequest(
+    @Req() req: RequestWithUser,
+    @Body() dto: CreatePersonalVerificationRequestDto,
+  ) {
+    return this.mypageService.createPersonalVerificationRequest(
+      req.user!.id,
+      dto,
+    );
   }
 
   // ─── Bookmarks ───────────────────────────────────────────

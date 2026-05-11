@@ -5,11 +5,18 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { BookmarkTargetType } from '@prisma/client';
+import {
+  BookmarkTargetType,
+  CpaVerificationStatus,
+  EmploymentHistoryStatus,
+  PersonalVerificationRequestStatus,
+  Prisma,
+} from '@prisma/client';
 import type {
   BookmarkItem,
   BookmarkListResponse,
   MyProfileResponse,
+  PersonalVerificationRequestItem,
   ResumeItem,
   ResumeListResponse,
 } from '@cpa/shared';
@@ -26,6 +33,7 @@ import {
 } from 'node:path';
 import { resolveWorkspaceRoot } from '../config/runtime-environment';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreatePersonalVerificationRequestDto } from './dto/create-personal-verification-request.dto';
 
 const RESUME_LIMIT = 5;
 export const RESUME_MAX_BYTES = 10 * 1024 * 1024;
@@ -54,6 +62,29 @@ const RESUME_CONTENT_TYPES_BY_EXTENSION = new Map<string, Set<string>>([
 
 const FALLBACK_RESUME_CONTENT_TYPE = 'application/octet-stream';
 
+const verificationRequestInclude = {
+  user: { select: { username: true, displayName: true } },
+  reviewedBy: { select: { username: true } },
+} satisfies Prisma.PersonalVerificationRequestInclude;
+
+const profileInclude = {
+  personalProfile: true,
+  personalVerificationRequests: {
+    where: { status: PersonalVerificationRequestStatus.PENDING },
+    include: verificationRequestInclude,
+    orderBy: { createdAt: 'desc' },
+    take: 1,
+  },
+} satisfies Prisma.UserInclude;
+
+type ProfileUserRecord = Prisma.UserGetPayload<{
+  include: typeof profileInclude;
+}>;
+
+type VerificationRequestRecord = Prisma.PersonalVerificationRequestGetPayload<{
+  include: typeof verificationRequestInclude;
+}>;
+
 @Injectable()
 export class MypageService {
   constructor(
@@ -64,22 +95,10 @@ export class MypageService {
   async getProfile(userId: string): Promise<MyProfileResponse> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        username: true,
-        displayName: true,
-        role: true,
-        createdAt: true,
-      },
+      include: profileInclude,
     });
-    if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.');
-    return {
-      id: user.id,
-      username: user.username,
-      displayName: user.displayName,
-      role: user.role,
-      createdAt: user.createdAt.toISOString(),
-    };
+    if (!user) throw new NotFoundException('User not found.');
+    return this.toProfileResponse(user);
   }
 
   async updateProfile(
@@ -91,28 +110,69 @@ export class MypageService {
       updateData.displayName = data.displayName.trim() || null;
     }
 
-    const user = await this.prisma.user.update({
+    await this.prisma.user.update({
       where: { id: userId },
       data: updateData,
-      select: {
-        id: true,
-        username: true,
-        displayName: true,
-        role: true,
-        createdAt: true,
-      },
     });
 
-    return {
-      id: user.id,
-      username: user.username,
-      displayName: user.displayName,
-      role: user.role,
-      createdAt: user.createdAt.toISOString(),
-    };
+    return this.getProfile(userId);
   }
 
-  // ─── Bookmarks ───────────────────────────────────────────
+  async createPersonalVerificationRequest(
+    userId: string,
+    dto: CreatePersonalVerificationRequestDto,
+  ): Promise<PersonalVerificationRequestItem> {
+    const existingPending =
+      await this.prisma.personalVerificationRequest.findFirst({
+        where: {
+          userId,
+          status: PersonalVerificationRequestStatus.PENDING,
+        },
+        select: { id: true },
+      });
+    if (existingPending) {
+      throw new ConflictException(
+        'A pending CPA verification request already exists.',
+      );
+    }
+
+    const applicantName = dto.applicantName.trim();
+    const birthDate = dto.birthDate.trim();
+    const registrationNumber = dto.registrationNumber.trim();
+
+    if (!applicantName || !birthDate || !registrationNumber) {
+      throw new BadRequestException(
+        'CPA verification information is required.',
+      );
+    }
+
+    const request = await this.prisma.$transaction(async (tx) => {
+      await tx.personalProfile.upsert({
+        where: { userId },
+        update: { cpaVerificationStatus: CpaVerificationStatus.PENDING },
+        create: {
+          userId,
+          cpaVerificationStatus: CpaVerificationStatus.PENDING,
+          employmentHistoryStatus: EmploymentHistoryStatus.UNKNOWN,
+        },
+      });
+
+      return tx.personalVerificationRequest.create({
+        data: {
+          userId,
+          applicantName,
+          birthDate,
+          registrationNumber,
+          registrationNumberLast4:
+            this.registrationNumberLast4(registrationNumber),
+          requestedCareerStage: dto.requestedCareerStage,
+        },
+        include: verificationRequestInclude,
+      });
+    });
+
+    return this.toVerificationRequestItem(request);
+  }
 
   async listBookmarks(
     userId: string,
@@ -138,7 +198,6 @@ export class MypageService {
     targetType: BookmarkTargetType,
     targetId: string,
   ): Promise<BookmarkItem> {
-    // 대상 존재 확인
     await this.validateBookmarkTarget(targetType, targetId);
 
     const existing = await this.prisma.bookmark.findUnique({
@@ -147,7 +206,7 @@ export class MypageService {
       },
     });
     if (existing) {
-      throw new ConflictException('이미 북마크에 추가된 항목입니다.');
+      throw new ConflictException('This item is already bookmarked.');
     }
 
     const bookmark = await this.prisma.bookmark.create({
@@ -162,7 +221,7 @@ export class MypageService {
       where: { id, userId },
     });
     if (!bookmark) {
-      throw new NotFoundException('북마크를 찾을 수 없습니다.');
+      throw new NotFoundException('Bookmark not found.');
     }
     await this.prisma.bookmark.delete({ where: { id } });
     return { ok: true };
@@ -177,13 +236,13 @@ export class MypageService {
         where: { id: targetId },
         select: { id: true },
       });
-      if (!job) throw new BadRequestException('존재하지 않는 공고입니다.');
+      if (!job) throw new BadRequestException('Job does not exist.');
     } else {
       const company = await this.prisma.company.findUnique({
         where: { id: targetId },
         select: { id: true },
       });
-      if (!company) throw new BadRequestException('존재하지 않는 회사입니다.');
+      if (!company) throw new BadRequestException('Company does not exist.');
     }
   }
 
@@ -193,7 +252,7 @@ export class MypageService {
     targetId: string;
     createdAt: Date;
   }): Promise<BookmarkItem> {
-    let targetTitle = '(삭제됨)';
+    let targetTitle = '(deleted)';
     let targetSubtitle: string | null = null;
 
     if (bookmark.targetType === BookmarkTargetType.JOB) {
@@ -226,8 +285,6 @@ export class MypageService {
     };
   }
 
-  // ─── Resumes ─────────────────────────────────────────────
-
   async listResumes(userId: string): Promise<ResumeListResponse> {
     const resumes = await this.prisma.resume.findMany({
       where: { userId },
@@ -251,7 +308,7 @@ export class MypageService {
     const count = await this.prisma.resume.count({ where: { userId } });
     if (count >= RESUME_LIMIT) {
       throw new BadRequestException(
-        `이력서는 최대 ${RESUME_LIMIT}개까지 업로드할 수 있습니다.`,
+        `You can upload up to ${RESUME_LIMIT} resumes.`,
       );
     }
 
@@ -288,7 +345,7 @@ export class MypageService {
       where: { id, userId },
     });
     if (!resume) {
-      throw new NotFoundException('이력서를 찾을 수 없습니다.');
+      throw new NotFoundException('Resume not found.');
     }
 
     const filePath = this.resolveStoredResumePath(
@@ -306,7 +363,7 @@ export class MypageService {
         byteSize: file.size,
       };
     } catch {
-      throw new NotFoundException('이력서 파일을 찾을 수 없습니다.');
+      throw new NotFoundException('Resume file not found.');
     }
   }
 
@@ -315,7 +372,7 @@ export class MypageService {
       where: { id, userId },
     });
     if (!resume) {
-      throw new NotFoundException('이력서를 찾을 수 없습니다.');
+      throw new NotFoundException('Resume not found.');
     }
     await this.prisma.resume.delete({ where: { id } });
     const filePath = this.resolveStoredResumePath(
@@ -334,7 +391,7 @@ export class MypageService {
   }) {
     const fileName = this.normalizeOriginalName(data.fileName);
     if (!fileName) {
-      throw new BadRequestException('이력서 파일명이 필요합니다.');
+      throw new BadRequestException('Resume file name is required.');
     }
 
     const extension = extname(fileName).toLowerCase();
@@ -342,14 +399,14 @@ export class MypageService {
       RESUME_CONTENT_TYPES_BY_EXTENSION.get(extension);
     if (!allowedContentTypes) {
       throw new BadRequestException(
-        '이력서는 PDF, DOC, DOCX, HWP, HWPX 파일만 업로드할 수 있습니다.',
+        'Only PDF, DOC, DOCX, HWP, and HWPX resumes can be uploaded.',
       );
     }
     if (data.body.length <= 0) {
-      throw new BadRequestException('빈 이력서 파일은 업로드할 수 없습니다.');
+      throw new BadRequestException('Empty resume files cannot be uploaded.');
     }
     if (data.body.length > RESUME_MAX_BYTES) {
-      throw new BadRequestException('이력서는 10MB 이하로 업로드해 주세요.');
+      throw new BadRequestException('Resume files must be 10MB or smaller.');
     }
 
     const contentType =
@@ -360,7 +417,7 @@ export class MypageService {
       !allowedContentTypes.has(contentType)
     ) {
       throw new BadRequestException(
-        '이력서 파일 형식과 확장자가 일치하지 않습니다.',
+        'Resume file content type does not match its extension.',
       );
     }
 
@@ -406,7 +463,7 @@ export class MypageService {
       targetPath !== rootPath &&
       !targetPath.startsWith(`${rootPath}${sep}`)
     ) {
-      throw new BadRequestException('이력서 저장 경로가 올바르지 않습니다.');
+      throw new BadRequestException('Invalid resume storage path.');
     }
     return targetPath;
   }
@@ -420,6 +477,53 @@ export class MypageService {
     return isAbsolute(configuredPath)
       ? configuredPath
       : join(workspaceRoot, configuredPath);
+  }
+
+  private toProfileResponse(user: ProfileUserRecord): MyProfileResponse {
+    const profile = user.personalProfile;
+    const pendingRequest = user.personalVerificationRequests[0] ?? null;
+    const cpaVerificationStatus =
+      profile?.cpaVerificationStatus ?? CpaVerificationStatus.UNVERIFIED;
+
+    return {
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      role: user.role,
+      createdAt: user.createdAt.toISOString(),
+      cpaVerificationStatus,
+      careerStage: profile?.careerStage ?? null,
+      employmentHistoryStatus:
+        profile?.employmentHistoryStatus ?? EmploymentHistoryStatus.UNKNOWN,
+      verifiedAt: profile?.verifiedAt?.toISOString() ?? null,
+      traineeRoomAccess:
+        cpaVerificationStatus === CpaVerificationStatus.CPA_VERIFIED,
+      pendingVerificationRequest: pendingRequest
+        ? this.toVerificationRequestItem(pendingRequest)
+        : null,
+    };
+  }
+
+  private toVerificationRequestItem(
+    request: VerificationRequestRecord,
+  ): PersonalVerificationRequestItem {
+    return {
+      id: request.id,
+      userId: request.userId,
+      username: request.user.username,
+      displayName: request.user.displayName,
+      applicantName: request.applicantName,
+      birthDate: request.birthDate,
+      registrationNumber: request.registrationNumber,
+      registrationNumberLast4: request.registrationNumberLast4,
+      requestedCareerStage: request.requestedCareerStage,
+      status: request.status,
+      adminNote: request.adminNote,
+      reviewedByUsername: request.reviewedBy?.username ?? null,
+      reviewedAt: request.reviewedAt?.toISOString() ?? null,
+      createdAt: request.createdAt.toISOString(),
+      updatedAt: request.updatedAt.toISOString(),
+    };
   }
 
   private toResumeItem(resume: {
@@ -440,5 +544,10 @@ export class MypageService {
       createdAt: resume.createdAt.toISOString(),
       updatedAt: resume.updatedAt.toISOString(),
     };
+  }
+
+  private registrationNumberLast4(value: string) {
+    const normalized = value.replace(/[^0-9A-Za-z]/g, '');
+    return normalized ? normalized.slice(-4) : null;
   }
 }

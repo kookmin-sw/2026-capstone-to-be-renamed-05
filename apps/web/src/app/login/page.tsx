@@ -34,6 +34,7 @@ function LoginPageContent() {
   const [companyName, setCompanyName] = useState("");
   const [companyType, setCompanyType] = useState("LOCAL_ACCOUNTING_FIRM");
   const [message, setMessage] = useState("");
+  const nextPath = getSafeNextPath(searchParams.get("next"));
 
   useEffect(() => {
     if (mode !== "register") return;
@@ -76,7 +77,7 @@ function LoginPageContent() {
       }
       const user = await authRequest(mode, payload);
       setMessage(`${user?.username} 계정으로 로그인되었습니다.`);
-      router.push(nextPathForRole(user));
+      router.replace(nextPath ?? nextPathForRole(user));
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "요청에 실패했습니다.",
@@ -228,4 +229,11 @@ function nextPathForRole(user: AuthUser | undefined) {
   if (user?.role === "COMPANY") return "/company";
   if (user?.role === "ADMIN") return "/admin";
   return "/jobs";
+}
+
+function getSafeNextPath(value: string | null) {
+  if (!value) return null;
+  if (!value.startsWith("/") || value.startsWith("//")) return null;
+  if (value.startsWith("/login")) return null;
+  return value;
 }

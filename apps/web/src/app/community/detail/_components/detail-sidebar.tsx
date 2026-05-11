@@ -1,9 +1,6 @@
 import Link from "next/link";
 import { ActionButton } from "@/components/ui/action-button";
-import {
-  boardTypeLabels,
-  type CommunityPost,
-} from "@/lib/community-types";
+import { boardTypeLabels, type CommunityPost } from "@/lib/community-types";
 import { communityDetailHref, communityWriteHref } from "@/lib/routes";
 import { formatDate, isQABoard } from "../_lib/community-detail-utils";
 import styles from "../community-detail.module.css";
@@ -23,18 +20,24 @@ export function DetailSidebar({ post, relatedPosts }: DetailSidebarProps) {
         <div>
           <div className={styles.sidebarInfoRow}>
             <span className={styles.sidebarInfoLabel}>게시판</span>
-            <span className={styles.sidebarInfoValue}>{boardTypeLabels[post.boardType]}</span>
+            <span className={styles.sidebarInfoValue}>
+              {boardTypeLabels[post.boardType]}
+            </span>
           </div>
           <div className={styles.sidebarInfoRow}>
             <span className={styles.sidebarInfoLabel}>작성일</span>
-            <span className={styles.sidebarInfoValue}>{formatDate(post.createdAt)}</span>
+            <span className={styles.sidebarInfoValue}>
+              {formatDate(post.createdAt)}
+            </span>
           </div>
           <div className={styles.sidebarInfoRow}>
-            <span className={styles.sidebarInfoLabel}>조회수</span>
+            <span className={styles.sidebarInfoLabel}>조회</span>
             <span className={styles.sidebarInfoValue}>{post.viewCount}</span>
           </div>
           <div className={styles.sidebarInfoRow}>
-            <span className={styles.sidebarInfoLabel}>{showQA ? "답변" : "댓글"}</span>
+            <span className={styles.sidebarInfoLabel}>
+              {showQA ? "답변" : "댓글"}
+            </span>
             <span className={styles.sidebarInfoValue}>{post.commentCount}</span>
           </div>
           <div className={styles.sidebarInfoRow}>
@@ -46,13 +49,11 @@ export function DetailSidebar({ post, relatedPosts }: DetailSidebarProps) {
 
       {showQA && (
         <div className={styles.resolveGuideCard}>
-          <p className={styles.resolveGuideTitle}>
-            <span>💡</span> 답변 채택 안내
-          </p>
+          <p className={styles.resolveGuideTitle}>답변 채택 안내</p>
           <p className={styles.resolveGuideDesc}>
             {post.isResolved
               ? "채택된 답변이 있는 질문입니다."
-              : "도움이 된 답변의 '채택하기' 버튼을 눌러주세요. 질문이 '답변완료' 상태로 바뀝니다."}
+              : "작성자는 가장 도움이 된 답변을 채택해 질문을 답변완료 상태로 바꿀 수 있습니다."}
           </p>
           <ActionButton
             type="button"
@@ -86,7 +87,7 @@ export function DetailSidebar({ post, relatedPosts }: DetailSidebarProps) {
             href={`/community?board=${post.boardType}`}
             className={styles.relatedMore}
           >
-            더 보기 →
+            더 보기
           </Link>
         </div>
       )}

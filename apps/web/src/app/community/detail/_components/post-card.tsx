@@ -1,6 +1,11 @@
 import { Heart } from "lucide-react";
 import type { CommunityPost } from "@/lib/community-types";
-import { isQABoard, relativeTime, statusBadgeClass, statusLabel } from "../_lib/community-detail-utils";
+import {
+  isQABoard,
+  relativeTime,
+  statusBadgeClass,
+  statusLabel,
+} from "../_lib/community-detail-utils";
 import styles from "../community-detail.module.css";
 
 interface PostCardProps {
@@ -55,7 +60,9 @@ export function PostCard({ post, liked, onLike }: PostCardProps) {
         </button>
 
         {showQA && !post.isResolved && (
-          <p className={styles.resolveButtonDesc}>도움이 된 답변을 채택해주세요</p>
+          <p className={styles.resolveButtonDesc}>
+            작성자는 가장 도움이 된 답변을 채택할 수 있습니다.
+          </p>
         )}
       </div>
     </div>

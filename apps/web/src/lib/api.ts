@@ -8,6 +8,14 @@ import type {
   CompanyManagedJobItem,
   CompanyProfileSubmissionItem,
   CompanyType,
+  CommunityAnswerItem,
+  CommunityBoardType,
+  CommunityPostDetailResponse,
+  CommunityPostItem,
+  CommunityPostListResponse,
+  CreateCommunityAnswerPayload,
+  CreateCommunityPostPayload,
+  CreatePersonalVerificationRequestPayload,
   DeadlineType,
   EmploymentType,
   JobFamily,
@@ -19,6 +27,9 @@ import type {
   JobSubmissionItem,
   KicpaCondition,
   MyProfileResponse,
+  PersonalVerificationRequestItem,
+  PersonalVerificationRequestListResponse,
+  ReviewPersonalVerificationRequestPayload,
   ResumeItem,
   ResumeListResponse,
   TraineeStatus,
@@ -353,6 +364,129 @@ export async function fetchCurrentUser() {
   return data.user ?? null;
 }
 
+export async function fetchCommunityPosts(options: {
+  board?: CommunityBoardType;
+  search?: string;
+  sort?: "latest" | "popular";
+} = {}) {
+  const params = new URLSearchParams();
+  if (options.board) params.set("board", options.board);
+  if (options.search?.trim()) params.set("search", options.search.trim());
+  if (options.sort) params.set("sort", options.sort);
+  const query = params.toString();
+  const response = await fetch(
+    `${API_BASE_URL}/community/posts${query ? `?${query}` : ""}`,
+    {
+      credentials: "include",
+      cache: "no-store",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "커뮤니티 게시글을 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as CommunityPostListResponse;
+}
+
+export async function fetchCommunityPost(id: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/community/posts/${encodeURIComponent(id)}`,
+    {
+      credentials: "include",
+      cache: "no-store",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "커뮤니티 게시글을 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as CommunityPostDetailResponse;
+}
+
+export async function createCommunityPost(
+  payload: CreateCommunityPostPayload,
+) {
+  const response = await fetch(`${API_BASE_URL}/community/posts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "커뮤니티 게시글을 등록하지 못했습니다."),
+    );
+  }
+  return (await response.json()) as CommunityPostItem;
+}
+
+export async function createCommunityAnswer(
+  postId: string,
+  payload: CreateCommunityAnswerPayload,
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/community/posts/${encodeURIComponent(postId)}/answers`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "답변을 등록하지 못했습니다."),
+    );
+  }
+  return (await response.json()) as CommunityAnswerItem;
+}
+
+export async function likeCommunityPost(id: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/community/posts/${encodeURIComponent(id)}/like`,
+    {
+      method: "POST",
+      credentials: "include",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await readApiError(response, "좋아요 처리에 실패했습니다."));
+  }
+  return (await response.json()) as CommunityPostItem;
+}
+
+export async function likeCommunityAnswer(id: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/community/answers/${encodeURIComponent(id)}/like`,
+    {
+      method: "POST",
+      credentials: "include",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await readApiError(response, "좋아요 처리에 실패했습니다."));
+  }
+  return (await response.json()) as CommunityAnswerItem;
+}
+
+export async function resolveCommunityPost(id: string, answerId: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/community/posts/${encodeURIComponent(id)}/resolve`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ answerId }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await readApiError(response, "답변 채택에 실패했습니다."));
+  }
+  return (await response.json()) as CommunityPostDetailResponse;
+}
+
 export async function fetchCompanyDashboard() {
   const response = await fetch(`${API_BASE_URL}/companies/me`, {
     credentials: "include",
@@ -673,6 +807,44 @@ export async function reviewAdminProfileSubmission(
   return (await response.json()) as CompanyProfileSubmissionItem;
 }
 
+export async function fetchAdminCpaVerificationRequests() {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/cpa-verification-requests`,
+    {
+      credentials: "include",
+      cache: "no-store",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "CPA 검증 요청을 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as PersonalVerificationRequestListResponse;
+}
+
+export async function reviewAdminCpaVerificationRequest(
+  id: string,
+  action: "approve" | "reject",
+  payload: ReviewPersonalVerificationRequestPayload = {},
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/cpa-verification-requests/${id}/${action}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "CPA 검증 요청 처리에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as PersonalVerificationRequestItem;
+}
+
 export type AdminAiSuggestion = {
   id: string;
   jobId: string;
@@ -772,6 +944,26 @@ export async function updateMyProfile(data: { displayName?: string }) {
     );
   }
   return (await response.json()) as MyProfileResponse;
+}
+
+export async function submitMyCpaVerificationRequest(
+  payload: CreatePersonalVerificationRequestPayload,
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/mypage/cpa-verification-requests`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "CPA 검증 요청을 제출하지 못했습니다."),
+    );
+  }
+  return (await response.json()) as PersonalVerificationRequestItem;
 }
 
 export async function fetchMyBookmarks(type?: BookmarkTargetType) {

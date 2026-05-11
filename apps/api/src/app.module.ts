@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { AssetsModule } from './assets/assets.module';
 import { AuthModule } from './auth/auth.module';
 import { CompaniesModule } from './companies/companies.module';
+import { CommunityModule } from './community/community.module';
 import { JobsModule } from './jobs/jobs.module';
 import { MypageModule } from './mypage/mypage.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -22,6 +23,7 @@ import { resolveEnvFilePaths } from './config/runtime-environment';
     AssetsModule,
     AuthModule,
     CompaniesModule,
+    CommunityModule,
     JobsModule,
     MypageModule,
     UsersModule,

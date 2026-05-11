@@ -36,6 +36,8 @@ const navItems = [
   { href: "/admin/sources", label: "출처 관리", icon: Server },
 ] as const;
 
+const loginPath = "/admin/login";
+
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -56,7 +58,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             setChecking(false);
             return;
           }
-          router.replace("/admin/login");
+          router.replace(adminLoginRedirect(pathname));
         }
         setUser(nextUser);
         setChecking(false);
@@ -66,7 +68,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       ignore = true;
       window.clearTimeout(timer);
     };
-  }, [isLoginPage, router]);
+  }, [isLoginPage, pathname, router]);
 
   const pageTitle = useMemo(() => {
     if (pathname.startsWith("/admin/job-submissions")) return "공고 검수";
@@ -84,7 +86,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   async function logout() {
     await logoutAdminDemo();
-    router.replace("/admin/login");
+    router.replace(loginPath);
   }
 
   if (isLoginPage) return <>{children}</>;
@@ -166,4 +168,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       </section>
     </main>
   );
+}
+
+function adminLoginRedirect(pathname: string) {
+  if (pathname === "/admin/login") return loginPath;
+  return `${loginPath}?next=${encodeURIComponent(pathname)}`;
 }

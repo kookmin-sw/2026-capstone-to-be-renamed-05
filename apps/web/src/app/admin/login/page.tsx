@@ -1,18 +1,28 @@
 "use client";
 
 import { ShieldCheck } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useState } from "react";
 import { loginAdminDemo } from "@/components/admin/admin-demo-data";
 import styles from "@/components/admin/admin.module.css";
 import { cn } from "@/lib/utils";
 
 export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={<main className={styles.loginPage} />}>
+      <AdminLoginPageContent />
+    </Suspense>
+  );
+}
+
+function AdminLoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [username, setUsername] = useState("test001");
   const [password, setPassword] = useState("password123");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const nextPath = getSafeAdminNextPath(searchParams.get("next"));
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -20,7 +30,7 @@ export default function AdminLoginPage() {
     setSubmitting(true);
     try {
       await loginAdminDemo(username, password);
-      router.replace("/admin");
+      router.replace(nextPath ?? "/admin");
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -90,4 +100,11 @@ export default function AdminLoginPage() {
       </div>
     </main>
   );
+}
+
+function getSafeAdminNextPath(value: string | null) {
+  if (!value) return null;
+  if (!value.startsWith("/admin") || value.startsWith("//")) return null;
+  if (value.startsWith("/admin/login")) return null;
+  return value;
 }

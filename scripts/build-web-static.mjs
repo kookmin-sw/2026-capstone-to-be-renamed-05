@@ -1,4 +1,19 @@
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+import { config as loadDotenv } from "dotenv";
+
+for (const envFileName of [
+  ".env.local",
+  ".env.aws",
+  ".env.production",
+  ".env",
+]) {
+  const envFilePath = resolve(process.cwd(), envFileName);
+  if (existsSync(envFilePath)) {
+    loadDotenv({ path: envFilePath, override: false });
+  }
+}
 
 const env = {
   ...process.env,

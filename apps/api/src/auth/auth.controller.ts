@@ -18,6 +18,7 @@ import type { RequestWithUser } from './auth.types';
 import { isServerRuntime } from '../config/runtime-environment';
 
 const ACCESS_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+type Env = Record<string, string | undefined>;
 
 @ApiTags('auth')
 @Controller('auth')
@@ -63,7 +64,7 @@ export class AuthController {
     return {
       httpOnly: true,
       sameSite: 'lax',
-      secure: isServerRuntime(),
+      secure: shouldUseSecureAuthCookie(),
       path: '/',
       maxAge: ACCESS_TOKEN_MAX_AGE_MS,
     };
@@ -74,4 +75,17 @@ export class AuthController {
     delete options.maxAge;
     return options;
   }
+}
+
+export function shouldUseSecureAuthCookie(env: Env = process.env) {
+  const configured = parseBooleanEnv(env.AUTH_COOKIE_SECURE);
+  return configured ?? isServerRuntime(env);
+}
+
+function parseBooleanEnv(value: string | undefined) {
+  const normalized = value?.trim().toLowerCase();
+  if (!normalized) return undefined;
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return undefined;
 }

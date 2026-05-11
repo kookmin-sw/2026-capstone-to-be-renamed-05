@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { JobPresetBar } from "@/components/job-preset-bar";
 import { JobGridCard } from "@/components/job-card";
 import { jobSortLabels } from "@/components/job-filter-panel";
+import { RegionFilterDialog } from "@/components/region-filter-dialog";
 import { SiteNav } from "@/components/site-nav";
 import { ActionButton } from "@/components/ui/action-button";
 import { FilterSelect } from "@/components/ui/filter-select";
@@ -442,6 +443,25 @@ function MultiCheckboxColumn({
   );
 }
 
+function RegionFilterColumn({
+  filters,
+  onChange,
+}: {
+  filters: JobFilterState;
+  onChange: (f: JobFilterState) => void;
+}) {
+  return (
+    <RegionFilterDialog
+      className="min-w-[170px]"
+      variant="compact"
+      selectedLocations={filters.selectedLocations}
+      onChange={(selectedLocations) =>
+        onChange({ ...filters, selectedLocations })
+      }
+    />
+  );
+}
+
 function DeadlineSoonColumn({
   filters,
   onChange,
@@ -751,6 +771,7 @@ export default function JobsPage() {
                     filters={filters}
                     onChange={setFilters}
                   />
+                  <RegionFilterColumn filters={filters} onChange={setFilters} />
                   <CheckboxColumn
                     title="고용 형태"
                     field="employmentType"

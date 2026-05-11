@@ -1,0 +1,486 @@
+/* ─── Page container ──────────────────────────────────────── */
+
+.pageWrap {
+  margin: 0 auto;
+  max-width: 80rem;
+  padding: 1.5rem;
+}
+
+
+/* ─── Layout ──────────────────────────────────────────────── */
+
+.layout {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sidebar {
+  flex: none;
+  width: 22rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.postCard {
+  background: white;
+  border: 1px solid var(--app-line);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.postHeader {
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--app-line);
+}
+
+.postTitleRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.875rem;
+}
+
+.postTitle {
+  flex: 1;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  line-height: 1.4;
+}
+
+.badge {
+  flex: none;
+  margin-top: 0.2rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.badgeQuestion {
+  background: var(--gray-100);
+  color: var(--gray-600);
+}
+
+.badgeAnswered {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.badgeFree {
+  background: var(--gray-50);
+  color: var(--gray-500);
+  border: 1px solid var(--app-line);
+}
+
+.badgeInfo {
+  background: var(--gray-100);
+  color: var(--gray-700);
+}
+
+.postMeta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.8125rem;
+  color: var(--app-muted);
+}
+
+.postMetaDot {
+  color: var(--app-line);
+}
+
+.postTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+}
+
+.tag {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gray-500);
+  background: var(--gray-50);
+  border: 1px solid var(--app-line);
+  border-radius: 999px;
+  padding: 0.2rem 0.625rem;
+}
+
+.postContent {
+  padding: 1.25rem 1.5rem;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--gray-800);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.postFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1.5rem;
+  border-top: 1px solid var(--app-line);
+  background: var(--gray-50);
+}
+
+.likeButton {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--app-line);
+  border-radius: 999px;
+  background: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.likeButton:hover {
+  background: var(--brand-soft);
+  color: var(--brand);
+  border-color: var(--brand);
+}
+
+.resolveButton {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--brand);
+  border-radius: 999px;
+  background: white;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--brand);
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.resolveButton:hover {
+  background: var(--brand);
+  color: white;
+}
+
+.resolveButtonDesc {
+  font-size: 0.75rem;
+  color: var(--app-muted);
+}
+
+.answersSection {
+  background: white;
+  border: 1px solid var(--app-line);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.answersHeader {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--app-line);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.answersCount {
+  color: var(--brand);
+}
+
+.answerCard {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--app-line);
+}
+
+.answerCard:last-child {
+  border-bottom: none;
+}
+
+.answerAccepted {
+  background: #fff8fa;
+  border-left: 3px solid var(--brand);
+}
+
+.acceptedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--brand);
+  background: var(--brand-soft);
+  border-radius: 999px;
+  padding: 0.2rem 0.625rem;
+  margin-bottom: 0.625rem;
+}
+
+.answerMeta {
+  font-size: 0.8125rem;
+  color: var(--app-muted);
+  margin-bottom: 0.625rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.answerAuthor {
+  font-weight: 600;
+  color: var(--gray-700);
+}
+
+.answerContent {
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--gray-800);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 0.875rem;
+}
+
+.answerFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.answerLikeButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--gray-500);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  transition: color 160ms ease;
+}
+
+.answerLikeButton:hover {
+  color: var(--brand);
+}
+
+.answerAcceptButton {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--brand);
+  background: none;
+  border: 1px solid var(--brand);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.answerAcceptButton:hover {
+  background: var(--brand);
+  color: white;
+}
+
+.emptyAnswers {
+  padding: 2.5rem;
+  text-align: center;
+  color: var(--app-muted);
+  font-size: 0.9375rem;
+}
+
+.replySection {
+  background: white;
+  border: 1px solid var(--app-line);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.replyHeader {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--app-line);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.replyInner {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.replyTextarea {
+  width: 100%;
+  border: 1px solid var(--app-line);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  font-size: 0.9375rem;
+  outline: none;
+  color: var(--gray-900);
+  background: white;
+  resize: vertical;
+  min-height: 7rem;
+  line-height: 1.6;
+  font-family: inherit;
+  transition: border-color 160ms ease;
+}
+
+.replyTextarea:focus {
+  border-color: var(--brand);
+}
+
+.replyFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.anonymousRow {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  cursor: pointer;
+}
+
+.anonymousRow input[type="checkbox"] {
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+
+.anonymousLabel {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  cursor: pointer;
+}
+
+.sidebarCard {
+  background: white;
+  border: 1px solid var(--app-line);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.sidebarCardTitle {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: 0.875rem;
+}
+
+.sidebarInfoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.375rem 0;
+  font-size: 0.8125rem;
+  border-bottom: 1px solid var(--app-line);
+}
+
+.sidebarInfoRow:last-child {
+  border-bottom: none;
+}
+
+.sidebarInfoLabel {
+  color: var(--app-muted);
+}
+
+.sidebarInfoValue {
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.resolveGuideCard {
+  background: var(--brand-soft);
+  border: 1px solid var(--brand-mid, rgba(232, 69, 122, 0.2));
+  border-radius: 1rem;
+  padding: 1.25rem;
+}
+
+.resolveGuideTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: 0.5rem;
+}
+
+.resolveGuideDesc {
+  font-size: 0.8125rem;
+  color: var(--gray-600);
+  line-height: 1.5;
+  margin-bottom: 0.875rem;
+}
+
+.relatedList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.relatedItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--app-line);
+  font-size: 0.8125rem;
+  color: var(--gray-700);
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.relatedItem:last-child {
+  border-bottom: none;
+}
+
+.relatedItem:hover {
+  color: var(--brand);
+}
+
+.relatedDot {
+  flex: none;
+  color: var(--app-muted);
+  margin-top: 0.15rem;
+}
+
+.relatedMore {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--gray-500);
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.relatedMore:hover {
+  color: var(--brand);
+}

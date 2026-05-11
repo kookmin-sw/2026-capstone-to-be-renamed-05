@@ -14,12 +14,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { JobPresetBar } from "@/components/job-preset-bar";
 import { JobGridCard } from "@/components/job-card";
 import { jobSortLabels } from "@/components/job-filter-panel";
+import { RegionFilterDialog } from "@/components/region-filter-dialog";
 import { SiteNav } from "@/components/site-nav";
 import { ActionButton } from "@/components/ui/action-button";
 import { FilterSelect } from "@/components/ui/filter-select";
 import { Pagination } from "@/components/ui/pagination";
 import { useJobFilterState } from "@/hooks/use-job-filter-state";
-import { fetchJobCalendar, fetchJobs } from "@/lib/api";
+import { fetchJobCalendar, fetchJobs, fetchMyBookmarks, createMyBookmark, deleteMyBookmark, fetchCurrentUser } from "@/lib/api";
 import { calendarDaysToMap, jobsBetween } from "@/lib/calendar-data";
 import {
   endOfWeek,
@@ -446,6 +447,25 @@ function MultiCheckboxColumn({
   );
 }
 
+function RegionFilterColumn({
+  filters,
+  onChange,
+}: {
+  filters: JobFilterState;
+  onChange: (f: JobFilterState) => void;
+}) {
+  return (
+    <RegionFilterDialog
+      className="min-w-[170px]"
+      variant="compact"
+      selectedLocations={filters.selectedLocations}
+      onChange={(selectedLocations) =>
+        onChange({ ...filters, selectedLocations })
+      }
+    />
+  );
+}
+
 function DeadlineSoonColumn({
   filters,
   onChange,
@@ -528,6 +548,51 @@ export default function JobsPage() {
   const [calendarError, setCalendarError] = useState("");
   const [page, setPage] = useState(1);
   const { filters, setFilters, ready, queryString } = useJobFilterState();
+  const [bookmarkedJobIds, setBookmarkedJobIds] = useState<Set<string>>(new Set());
+  const [isJobSeeker, setIsJobSeeker] = useState(false);
+
+  // 북마크 목록 로드
+  useEffect(() => {
+    let ignore = false;
+    fetchCurrentUser()
+      .then((user) => {
+        if (ignore) return;
+        if (user?.role === "JOB_SEEKER") {
+          setIsJobSeeker(true);
+          return fetchMyBookmarks("JOB").then((data) => {
+            if (!ignore) {
+              setBookmarkedJobIds(new Set(data.items.map((bm) => bm.targetId)));
+            }
+          });
+        }
+      })
+      .catch(() => {});
+    return () => { ignore = true; };
+  }, []);
+
+  async function toggleBookmark(jobId: string) {
+    if (!isJobSeeker) return;
+    if (bookmarkedJobIds.has(jobId)) {
+      // 북마크 해제 — 해당 bookmark id를 찾아야 함
+      try {
+        const data = await fetchMyBookmarks("JOB");
+        const bm = data.items.find((item) => item.targetId === jobId);
+        if (bm) {
+          await deleteMyBookmark(bm.id);
+          setBookmarkedJobIds((prev) => {
+            const next = new Set(prev);
+            next.delete(jobId);
+            return next;
+          });
+        }
+      } catch {}
+    } else {
+      try {
+        await createMyBookmark("JOB", jobId);
+        setBookmarkedJobIds((prev) => new Set(prev).add(jobId));
+      } catch {}
+    }
+  }
 
   // 필터 변경 시 페이지를 1로 리셋
   const isFirstRender = useRef(true);
@@ -717,6 +782,7 @@ export default function JobsPage() {
                     filters={filters}
                     onChange={setFilters}
                   />
+                  <RegionFilterColumn filters={filters} onChange={setFilters} />
                   <CheckboxColumn
                     title="고용 형태"
                     field="employmentType"
@@ -873,7 +939,12 @@ export default function JobsPage() {
             ) : jobs.length ? (
               <div className="grid gap-6 sm:grid-cols-2">
                 {jobs.map((job) => (
-                  <JobGridCard key={job.id} job={job} />
+                  <JobGridCard
+                    key={job.id}
+                    job={job}
+                    bookmarked={bookmarkedJobIds.has(job.id)}
+                    onToggleBookmark={isJobSeeker ? toggleBookmark : undefined}
+                  />
                 ))}
               </div>
             ) : (

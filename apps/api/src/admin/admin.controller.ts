@@ -130,6 +130,37 @@ export class AdminController {
     return this.adminService.listMembers(query);
   }
 
+  @Get('cpa-verification-requests')
+  listPersonalVerificationRequests() {
+    return this.adminService.listPersonalVerificationRequests();
+  }
+
+  @Patch('cpa-verification-requests/:id/approve')
+  approvePersonalVerificationRequest(
+    @Param('id') id: string,
+    @Body() dto: ReviewSubmissionDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.adminService.approvePersonalVerificationRequest(
+      id,
+      req.user!.id,
+      dto.adminNote,
+    );
+  }
+
+  @Patch('cpa-verification-requests/:id/reject')
+  rejectPersonalVerificationRequest(
+    @Param('id') id: string,
+    @Body() dto: ReviewSubmissionDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.adminService.rejectPersonalVerificationRequest(
+      id,
+      req.user!.id,
+      dto.adminNote,
+    );
+  }
+
   @Get('job-submissions')
   listJobSubmissions() {
     return this.adminService.listJobSubmissions();

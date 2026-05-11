@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 import { SiteNav } from "@/components/site-nav";
 import { actionButtonClassName } from "@/components/ui/action-button";
 import { fetchCompanyDetail } from "@/lib/api";
@@ -126,12 +126,17 @@ export function CompanyDetailClient() {
 
 function CompanyDetail({ company }: { company: CompanyDetailItem }) {
   const initial = company.name.charAt(0);
+  const heroStyle: CSSProperties | undefined = company.backgroundUrl
+    ? {
+        backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.93), rgba(255,255,255,0.72), rgba(255,255,255,0.48)), url("${company.backgroundUrl}")`,
+      }
+    : undefined;
 
   return (
     <main className="min-h-screen bg-[var(--background)]">
       <SiteNav />
 
-      <div className={styles.hero}>
+      <div className={styles.hero} style={heroStyle}>
         <div className={styles.heroGlow} />
         <div className="mx-auto max-w-6xl px-5 py-8">
           <Link

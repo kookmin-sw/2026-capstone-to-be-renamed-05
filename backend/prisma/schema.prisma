@@ -1,0 +1,253 @@
+generator client {
+  // TypeScript/JavaScript 런타임에서 사용할 Prisma Client 생성기.
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // 프로토타입용 데이터베이스 제공자(로컬 파일 기반).
+  provider = "sqlite"
+  // 로컬 개발에서 사용하는 SQLite 파일 경로.
+  url      = "file:./dev.db"
+}
+
+model User {
+  // 내부 사용자 기본 키.
+  id            Int                 @id @default(autoincrement())
+  // OAuth 제공자(GitHub)에서 받은 사용자 식별자.
+  githubId      String              @unique
+  // GitHub 로그인 아이디(사용자명).
+  login         String
+  // GitHub 프로필 표시 이름(선택).
+  name          String?
+  // GitHub 프로필 이메일(선택).
+  email         String?
+  // 프로필 아바타 이미지 URL(선택).
+  avatarUrl     String?
+  // 레코드 생성 시각.
+  createdAt     DateTime            @default(now())
+  // 레코드 수정 시각(Prisma가 자동 관리). (필없)
+  updatedAt     DateTime            @updatedAt
+  // 이 사용자와 연결된 OAuth 계정 목록.
+  oauthAccounts OAuthAccount[]
+  // 이 사용자가 TidyX에 연결한 저장소 목록.
+  repositories  ConnectedRepository[]
+  // 이 사용자가 실행한 저장소 동기화 작업 목록.
+  syncJobs      SyncJob[]
+}
+
+model OAuthAccount {
+  // 내부 OAuth 계정 기본 키.
+  id          Int      @id @default(autoincrement())
+  // 소유 사용자 외래 키.
+  userId      Int
+  // OAuth 제공자 이름(현재 GitHub).
+  provider    String   @default("GITHUB")
+  // GitHub API 호출에 사용하는 OAuth 액세스 토큰.
+  accessToken String
+  // 부여된 OAuth 권한 범위(공백/쉼표 구분, 선택). (필없)
+  scope       String?
+  // 제공자가 반환한 토큰 타입(예: Bearer).
+  tokenType   String?
+  // 레코드 생성 시각. (필없)
+  createdAt   DateTime @default(now())
+  // 레코드 수정 시각(Prisma가 자동 관리). (필없)
+  updatedAt   DateTime @updatedAt
+
+  // 여기까지지------------------------------------------------------------------
+
+  // 소유 사용자와의 관계; 사용자가 삭제되면 함께 삭제.
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 사용자별 동일 제공자 계정 중복 방지.
+  @@unique([userId, provider])
+}
+
+model ConnectedRepository {
+  // 내부 연결 저장소 기본 키.
+  id            Int             @id @default(autoincrement())
+  // 소유 사용자 외래 키.
+  userId        Int
+  // GitHub 저장소 숫자 ID(유연성을 위해 문자열로 저장).
+  githubRepoId  String
+  // owner/name 형식의 저장소 전체 이름.
+  fullName      String
+  // 저장소 소유자 로그인/조직 이름.
+  owner         String
+  // 저장소 짧은 이름.
+  name          String
+  // 기본 브랜치 이름(선택).
+  defaultBranch String?
+  // 저장소 비공개 여부.
+  isPrivate     Boolean         @default(false)
+  // 마지막 성공 동기화 시각(선택).
+  lastSyncedAt  DateTime?
+  // 레코드 생성 시각.
+  createdAt     DateTime        @default(now())
+  // 레코드 수정 시각(Prisma가 자동 관리).
+  updatedAt     DateTime        @updatedAt
+
+  // 소유 사용자와의 관계; 사용자가 삭제되면 함께 삭제.
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // 이 저장소에서 수집한 작업 항목(Issue/PR) 목록.
+  workItems       WorkItem[]
+  // 이 저장소와 연관된 분석 결과 목록.
+  analysisResults AnalysisResult[]
+  // 이 저장소에서 탐지된 중복 그룹 목록.
+  duplicateGroups DuplicateGroup[]
+  // 이 저장소에서 실행된 동기화 작업 목록.
+  syncJobs        SyncJob[]
+
+  // 사용자별 동일 저장소 중복 연결 방지.
+  @@unique([userId, fullName])
+}
+
+model SyncJob {
+  // 내부 동기화 작업 기본 키.
+  id            Int                @id @default(autoincrement())
+  // 실행 사용자 외래 키.
+  userId        Int
+  // 대상 연결 저장소 외래 키.
+  repositoryId  Int
+  // 작업 상태(QUEUED/RUNNING/SUCCEEDED/FAILED).
+  status        String
+  // 전체 페이지 수(알 수 없는 경우 null).
+  totalPages    Int?
+  // 현재까지 처리한 페이지 수.
+  processedPages Int               @default(0)
+  // 현재까지 처리한 전체 item 수.
+  totalFetched  Int               @default(0)
+  // 현재까지 계산한 open item 수.
+  openCount     Int               @default(0)
+  // 현재까지 계산한 closed item 수.
+  closedCount   Int               @default(0)
+  // 실패 시 에러 메시지(선택).
+  errorMessage  String?
+  // 작업 시작 시각(선택).
+  startedAt     DateTime?
+  // 작업 종료 시각(선택).
+  finishedAt    DateTime?
+  // 레코드 생성 시각.
+  createdAt     DateTime          @default(now())
+  // 레코드 수정 시각(Prisma가 자동 관리).
+  updatedAt     DateTime          @updatedAt
+
+  // 실행 사용자와의 관계.
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // 대상 연결 저장소와의 관계.
+  repository    ConnectedRepository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  // 저장소 단위 최신 작업 조회를 위한 보조 인덱스.
+  @@index([repositoryId, createdAt])
+  // 사용자 단위 작업 조회를 위한 보조 인덱스.
+  @@index([userId, createdAt])
+}
+
+model WorkItem {
+  // 내부 작업 항목 기본 키.
+  id               Int           @id @default(autoincrement())
+  // 연결 저장소 외래 키.
+  repositoryId     Int
+  // GitHub Issue ID(Issue/PR이 GitHub API에서 공유).
+  githubIssueId    String
+  // GitHub GraphQL Node ID(선택).
+  githubNodeId     String?
+  // 저장소 내 Issue/PR 번호.
+  number           Int
+  // 작업 항목 유형(ISSUE 또는 PR).
+  type             String
+  // 제목 텍스트.
+  title            String
+  // 본문/설명 텍스트(선택).
+  body             String?
+  // GitHub 기준 현재 상태(예: open/closed).
+  state            String
+  // GitHub 웹 페이지 정규 URL.
+  url              String
+  // GitHub 라벨 스냅샷 직렬화 데이터(선택).
+  labels           String?
+  // Issue/PR 작성자 로그인 아이디(선택).
+  authorLogin      String?
+  // GitHub 원본 생성 시각(선택).
+  createdAtOnGitHub DateTime?
+  // GitHub 원본 수정 시각(선택).
+  updatedAtOnGitHub DateTime?
+  // 이 항목의 마지막 로컬 동기화 시각.
+  lastSyncedAt     DateTime      @default(now())
+  // 레코드 생성 시각.
+  createdAt        DateTime      @default(now())
+  // 레코드 수정 시각(Prisma가 자동 관리).
+  updatedAt        DateTime      @updatedAt
+
+  // 상위 연결 저장소와의 관계.
+  repository      ConnectedRepository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  // 이 작업 항목에 대한 1:1 분석 결과.
+  analysis        AnalysisResult?
+  // 중복 그룹 내 포함 관계 엔트리.
+  duplicateEntries DuplicateGroupItem[]
+
+  // 저장소별 Issue/PR 중복 저장 방지.
+  @@unique([repositoryId, type, number])
+}
+
+model AnalysisResult {
+  // 내부 분석 결과 기본 키.
+  id                  Int           @id @default(autoincrement())
+  // 연결 저장소 외래 키.
+  repositoryId        Int
+  // 대상 작업 항목 외래 키(항목당 결과 1개).
+  workItemId          Int           @unique
+  // 우선순위 분류값(LOW/MEDIUM/HIGH).
+  priority            String
+  // 모델이 생성한 우선순위 근거.
+  priorityReason      String
+  // 라벨 추천 후보 직렬화 데이터(선택).
+  labelRecommendations String?
+  // 분석 실행 시각.
+  analyzedAt          DateTime      @default(now())
+
+  // 상위 연결 저장소와의 관계.
+  repository ConnectedRepository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  // 분석 대상 작업 항목과의 관계.
+  workItem   WorkItem            @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  // 저장소 단위 우선순위 조회를 위한 보조 인덱스.
+  @@index([repositoryId, priority])
+}
+
+model DuplicateGroup {
+  // 내부 중복 그룹 기본 키.
+  id          Int      @id @default(autoincrement())
+  // 연결 저장소 외래 키.
+  repositoryId Int
+  // 클러스터링 결과로 생성한 안정적인 그룹 식별자.
+  groupKey    String
+  // 그룹 대표 유사도 점수(0..1).
+  similarity  Float
+  // 그룹 생성 시각.
+  createdAt   DateTime @default(now())
+
+  // 상위 연결 저장소와의 관계.
+  repository ConnectedRepository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  // 이 중복 그룹에 포함된 작업 항목 매핑 목록.
+  items      DuplicateGroupItem[]
+
+  // 저장소별 그룹 키 중복 방지.
+  @@unique([repositoryId, groupKey])
+}
+
+model DuplicateGroupItem {
+  // 내부 중복 그룹-항목 매핑 기본 키.
+  id         Int @id @default(autoincrement())
+  // 중복 그룹 외래 키.
+  groupId    Int
+  // 작업 항목 외래 키.
+  workItemId Int
+
+  // 중복 그룹과의 관계.
+  group    DuplicateGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  // 작업 항목과의 관계.
+  workItem WorkItem       @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+
+  // 동일 매핑 중복 생성 방지.
+  @@unique([groupId, workItemId])
+}

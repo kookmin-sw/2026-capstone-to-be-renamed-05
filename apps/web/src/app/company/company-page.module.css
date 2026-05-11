@@ -8,43 +8,49 @@
 .container {
   max-width: 80rem;
   margin: 0 auto;
-  padding: 2rem 1.25rem;
+  padding: 1.5rem 1.25rem;
   display: grid;
-  gap: 2rem;
+  gap: 1.5rem;
 }
 
 /* ─── Hero Header ─────────────────────────────────────────── */
 
+.heroWrap {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem 0;
+}
+
 .hero {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #fff0f5 0%, #ffd6e5 100%);
+  border-radius: 0.875rem;
+  border: 1px solid #cdd1d8;
+  background-color: #e8eaed;
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      transparent 0px,
+      transparent 38px,
+      rgba(0, 0, 0, 0.013) 38px,
+      rgba(0, 0, 0, 0.013) 39px
+    ),
+    linear-gradient(160deg, #d6dae2 0%, #e8eaed 55%, #dde1e8 100%);
   background-position: center;
   background-size: cover;
-  border-bottom: 1px solid var(--proto-brand-mid);
 }
 
 .heroGlow {
-  position: absolute;
-  top: -4rem;
-  right: -4rem;
-  width: 18rem;
-  height: 18rem;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(232, 69, 122, 0.2) 0%, transparent 70%);
-  opacity: 0.3;
-  pointer-events: none;
+  display: none;
 }
 
 .heroInner {
   position: relative;
-  max-width: 80rem;
-  margin: 0 auto;
-  padding: 2rem 1.25rem;
+  padding: 1.25rem 1.375rem;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 1.5rem;
+  gap: 1.25rem;
   flex-wrap: wrap;
 }
 
@@ -56,18 +62,19 @@
 
 .companyLogo {
   flex: none;
-  width: 4.5rem;
-  height: 4.5rem;
-  border-radius: 1rem;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.625rem;
   background: var(--brand);
   color: var(--brand-foreground);
-  font-size: 1.5rem;
+  font-size: 1.125rem;
   font-weight: 900;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+  border: 2px solid rgba(255, 255, 255, 0.9);
 }
 
 .companyLogo img {
@@ -77,25 +84,25 @@
 }
 
 .eyebrow {
-  color: var(--proto-brand);
-  font-size: 0.8125rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  color: var(--gray-500);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .title {
-  margin-top: 0.2rem;
+  margin-top: 0.125rem;
   color: var(--gray-900);
-  font-size: 1.875rem;
-  font-weight: 900;
+  font-size: 1.375rem;
+  font-weight: 800;
   letter-spacing: -0.01em;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .description {
-  margin-top: 0.375rem;
+  margin-top: 0.25rem;
   color: var(--app-muted);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
 }
 
 /* ─── Auth / Loading ──────────────────────────────────────── */
@@ -113,9 +120,8 @@
   margin: 6rem auto;
   border: 1px solid var(--app-line);
   background: var(--surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  padding: 2rem;
+  border-radius: 0.75rem;
+  padding: 1.75rem;
 }
 
 .authTitle {
@@ -149,18 +155,17 @@
 
 .metricGrid {
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .metric {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   border: 1px solid var(--app-line);
   background: var(--surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  padding: 1.25rem 1.5rem;
+  border-radius: 0.625rem;
+  padding: 0.875rem 1rem;
 }
 
 .metricIcon {
@@ -168,27 +173,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: var(--radius-md);
-  background: var(--proto-brand-light);
-  color: var(--proto-brand);
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  background: #f3f4f6;
+  color: var(--gray-500);
 }
 
 .metricLabel {
   color: var(--app-muted);
   font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-weight: 600;
 }
 
 .metricValue {
-  margin-top: 0.25rem;
+  margin-top: 0.125rem;
   color: var(--gray-900);
-  font-size: 2rem;
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: -0.02em;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.3;
 }
 
 /* ─── Section Stack & Item List ───────────────────────────── */
@@ -211,16 +214,15 @@
 .historyPanel {
   border: 1px solid var(--app-line);
   background: var(--surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  padding: 1.5rem;
+  border-radius: 0.625rem;
+  padding: 1.25rem;
 }
 
 /* ─── Management Grid ─────────────────────────────────────── */
 
 .managementGrid {
   display: grid;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 /* ─── Form ────────────────────────────────────────────────── */
@@ -331,10 +333,10 @@
 /* ─── Empty Panel ─────────────────────────────────────────── */
 
 .emptyPanel {
-  border: 1px solid var(--app-line);
+  border: 1px dashed var(--app-line);
   background: var(--surface);
-  border-radius: var(--radius-lg);
-  padding: 1.5rem;
+  border-radius: 0.625rem;
+  padding: 1.25rem;
   color: var(--app-muted);
   font-size: 0.875rem;
 }
@@ -349,12 +351,8 @@
 /* ─── Job Card ────────────────────────────────────────────── */
 
 .jobCard {
-  border-left-width: 4px;
-  transition: box-shadow 0.15s ease;
-}
-
-.jobCard:hover {
-  box-shadow: var(--shadow-md);
+  border-left-width: 3px;
+  transition: border-color 0.15s ease;
 }
 
 .jobCardOpen {
@@ -485,8 +483,8 @@
   align-items: center;
   gap: 0.5rem;
   color: var(--gray-900);
-  font-size: 1.0625rem;
-  font-weight: 900;
+  font-size: 0.9375rem;
+  font-weight: 700;
 }
 
 .sectionHeading svg {

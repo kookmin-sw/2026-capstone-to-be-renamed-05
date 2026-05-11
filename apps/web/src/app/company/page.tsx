@@ -343,34 +343,36 @@ export default function CompanyPage() {
     <>
       <SiteNav />
       <main className={styles.page}>
-        <div className={styles.hero} style={heroStyle}>
-          <div className={styles.heroGlow} />
-          <div className={styles.heroInner}>
-            <div className={styles.heroContent}>
-              <div className={styles.companyLogo}>
-                {company.logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={company.logoUrl} alt={`${company.name} 로고`} />
-                ) : (
-                  <span>{company.name.slice(0, 2)}</span>
-                )}
+        <div className={styles.heroWrap}>
+          <div className={styles.hero} style={heroStyle}>
+            <div className={styles.heroGlow} />
+            <div className={styles.heroInner}>
+              <div className={styles.heroContent}>
+                <div className={styles.companyLogo}>
+                  {company.logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={company.logoUrl} alt={`${company.name} 로고`} />
+                  ) : (
+                    <span>{company.name.slice(0, 2)}</span>
+                  )}
+                </div>
+                <div>
+                  <p className={styles.eyebrow}>기업 공고 관리</p>
+                  <h1 className={styles.title}>{company.name}</h1>
+                  <p className={styles.description}>
+                    {companyTypeLabels[company.type]} · 공개 {openJobs.length}건
+                    · 삭제 {closedJobs.length}건
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className={styles.eyebrow}>기업 공고 관리</p>
-                <h1 className={styles.title}>{company.name}</h1>
-                <p className={styles.description}>
-                  {companyTypeLabels[company.type]} · 공개 {openJobs.length}건 ·
-                  삭제 {closedJobs.length}건
-                </p>
-              </div>
+              <ActionLink
+                href={companyDetailHref(company.id)}
+                variant="subtle"
+                size="md"
+              >
+                공개 페이지
+              </ActionLink>
             </div>
-            <ActionLink
-              href={companyDetailHref(company.id)}
-              variant="subtle"
-              size="md"
-            >
-              공개 페이지
-            </ActionLink>
           </div>
         </div>
 

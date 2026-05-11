@@ -181,9 +181,9 @@ npm run dev
 `npm run prisma:seed`는 기본 데이터를 넣지 않습니다. 샘플 데이터를 넣으려면
 `npm run prisma:mock`을 실행합니다.
 
-### S3 회사 로고 업로드
+### S3 회사 이미지 및 이력서 업로드
 
-회사 로고는 브라우저에서 미리 서명된 `PUT` URL을 사용해 S3로 직접 업로드합니다.
+회사 로고/배경 이미지는 브라우저에서 미리 서명된 `PUT` URL을 사용해 S3로 직접 업로드합니다.
 API는 `Asset` 레코드를 생성하고, S3 `HeadObject`로 업로드된 객체를 확인한 뒤
 준비된 자산을 회사 프로필에 연결합니다.
 
@@ -194,8 +194,15 @@ API는 `Asset` 레코드를 생성하고, S3 `HeadObject`로 업로드된 객체
 - `S3_PUBLIC_BASE_URL`
 - `S3_PRESIGN_EXPIRES_SECONDS`: 생략 시 기본값 `300`
 - `NEXT_PUBLIC_S3_PUBLIC_BASE_URL`: Next.js 이미지 호스트 허용 목록에 사용
+- `S3_RESUME_BUCKET`: 이력서 비공개 저장 버킷
+- `S3_RESUME_KEY_PREFIX`: 생략 시 기본값 `resumes`
 
-S3 버킷은 `company-logos/*` 경로에 대한 공개 `GetObject` 권한을 허용해야 합니다.
+S3 버킷은 `company-logos/*`, `company-backgrounds/*` 및 정적 웹 파일에 대한 공개
+`GetObject` 권한을 허용해야 합니다. 이력서가 저장되는 `resumes/*` prefix는 공개하면
+안 됩니다. 하나의 버킷을 웹/이미지/이력서에 함께 쓰는 경우 `npm run deploy:web:s3`는
+기본적으로 `company-logos/`, `company-backgrounds/`, `resumes/`, `postgres/`,
+`backups/`, `out/` prefix를 삭제 대상에서 제외하고, mock 정적 회사 이미지는 별도
+동기화로 업로드합니다.
 CORS 설정에서는 웹 출처가 `Content-Type` 헤더와 함께 `PUT` 요청을 보낼 수
 있어야 합니다. 운영 환경이 AWS 위에서 실행된다면 장기 액세스 키 대신 EC2/ECS
 IAM 역할 사용을 권장합니다.

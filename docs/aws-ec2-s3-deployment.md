@@ -10,8 +10,12 @@ Caddy, and PostgreSQL on one EC2 instance with Docker Compose.
 - Security group: allow public inbound `80` and `443`; allow `22` only from your
   IP or use SSM; do not expose `3000`, `4000`, or `5432`.
 - S3 web bucket: enable static website hosting and public read for the exported
-  web files.
-- S3 asset bucket: allow public `GetObject` only for `company-logos/*`.
+  web files. The same bucket may also be used for assets and resumes if object
+  prefixes are kept separate.
+- S3 asset prefix: allow public `GetObject` for `company-logos/*` and
+  `company-backgrounds/*`.
+- S3 resume prefix: keep `resumes/*` private; only the API role should read or
+  delete these objects.
 - DNS: point the production domain to the EC2 Elastic IP.
 
 Use `ap-northeast-2` unless there is a reason to keep all resources in another
@@ -19,13 +23,13 @@ region.
 
 ## 2. S3 Settings
 
-Asset bucket CORS:
+Bucket CORS:
 
 ```json
 [
   {
     "AllowedHeaders": ["Content-Type"],
-    "AllowedMethods": ["PUT", "GET"],
+    "AllowedMethods": ["PUT", "GET", "HEAD"],
     "AllowedOrigins": ["https://accountit.example.com"],
     "ExposeHeaders": [],
     "MaxAgeSeconds": 3000
@@ -33,25 +37,30 @@ Asset bucket CORS:
 ]
 ```
 
-Asset bucket public read policy for uploaded logos:
+Single-bucket public read policy:
 
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "PublicReadCompanyLogos",
+      "Sid": "PublicReadExceptPrivateResumes",
       "Effect": "Allow",
       "Principal": "*",
       "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::accountit-assets/company-logos/*"
+      "NotResource": "arn:aws:s3:::accountit-web/resumes/*"
     }
   ]
 }
 ```
 
+Replace `accountit-web` with the shared bucket name.
+
 If the policy is rejected, check bucket-level and account-level S3 Block Public
-Access settings. For this MVP, public read is intentional only for logo objects.
+Access settings. For this MVP, public read is intentional for the static web
+export and company image objects, while `resumes/*` must remain private. If you
+use separate buckets, replace the policy with a narrower `Resource` list for the
+web and asset buckets.
 
 ## 3. EC2 Environment
 
@@ -100,6 +109,14 @@ uploads, and to store private resumes:
   ]
 }
 ```
+
+When one bucket is shared by all S3 features, set `S3_WEB_BUCKET`,
+`S3_ASSET_BUCKET`, and `S3_RESUME_BUCKET` to the same bucket name. The web deploy
+script preserves `company-logos/`, `company-backgrounds/`, `resumes/`,
+`postgres/`, `backups/`, and `out/` by default while using `--delete` for stale
+web files. It then uploads the static mock company image folders without
+`--delete`, so uploaded company images under the same prefixes are not removed.
+Override `S3_WEB_PROTECTED_PREFIXES` only if your bucket layout changes.
 
 ## 4. Deploy
 

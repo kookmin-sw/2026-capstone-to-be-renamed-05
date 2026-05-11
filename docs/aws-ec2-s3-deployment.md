@@ -1,7 +1,8 @@
 # AWS EC2 + S3 Deployment Runbook
 
-This runbook deploys the static Next.js web app to S3, and runs the NestJS API,
-Caddy, and PostgreSQL on one EC2 instance with Docker Compose.
+This runbook deploys the static Next.js web app to S3, and runs the NestJS API
+and PostgreSQL from one EC2 instance. The `develop` branch can be deployed by
+GitHub Actions calling the EC2 API once.
 
 ## 1. AWS Resources
 
@@ -16,7 +17,8 @@ Caddy, and PostgreSQL on one EC2 instance with Docker Compose.
   `company-backgrounds/*`.
 - S3 resume prefix: keep `resumes/*` private; only the API role should read or
   delete these objects.
-- DNS: point the production domain to the EC2 Elastic IP.
+- DNS: point the API domain to the EC2 Elastic IP. The web entry point may be
+  the S3 website endpoint directly for the MVP.
 
 Use `ap-northeast-2` unless there is a reason to keep all resources in another
 region.
@@ -30,7 +32,9 @@ Bucket CORS:
   {
     "AllowedHeaders": ["Content-Type"],
     "AllowedMethods": ["PUT", "GET", "HEAD"],
-    "AllowedOrigins": ["https://accountit.example.com"],
+    "AllowedOrigins": [
+      "http://accountit-web.s3-website.ap-northeast-2.amazonaws.com"
+    ],
     "ExposeHeaders": [],
     "MaxAgeSeconds": 3000
   }
@@ -75,9 +79,11 @@ NEXT_PUBLIC_APP_ENV=aws
 ASSET_STORAGE_DRIVER=s3
 RESUME_STORAGE_DRIVER=s3
 NODE_ENV=production
-NEXT_PUBLIC_API_BASE_URL=/api
-WEB_ORIGIN=https://accountit.example.com
+NEXT_PUBLIC_API_BASE_URL=https://api.accountit.example.com
+WEB_ORIGIN=http://accountit-web.s3-website.ap-northeast-2.amazonaws.com
 ENABLE_SWAGGER=false
+DEPLOY_BRANCH=develop
+DEPLOY_AUTO_UPDATE_EC2_HOST=true
 ```
 
 `DATABASE_URL` should point at the Compose Postgres hostname:
@@ -118,7 +124,58 @@ web files. It then uploads the static mock company image folders without
 `--delete`, so uploaded company images under the same prefixes are not removed.
 Override `S3_WEB_PROTECTED_PREFIXES` only if your bucket layout changes.
 
-## 4. Deploy
+## 4. GitHub Actions Deploy
+
+`develop` pushes trigger `.github/workflows/deploy-develop.yml`. The workflow
+does not need AWS credentials. It calls the EC2 API and EC2 uses its own IAM
+role and local AWS CLI to sync S3.
+
+Set these GitHub repository secrets:
+
+```bash
+DEPLOY_API_URL=https://api.accountit.example.com
+DEPLOY_API_TOKEN=<same value as EC2 DEPLOY_API_TOKEN>
+```
+
+The API endpoint is:
+
+```http
+POST /ops/deploy
+Authorization: Bearer $DEPLOY_API_TOKEN
+Content-Type: application/json
+
+{
+  "ref": "refs/heads/develop",
+  "sha": "<github.sha>",
+  "actor": "<github.actor>",
+  "runId": "<github.run_id>"
+}
+```
+
+EC2 runs `scripts/deploy-ec2.sh`, which uses `.run/deploy.lock` and
+`.run/deploy.log`, hard resets the deploy worktree to `origin/develop`, installs
+dependencies, deploys Prisma migrations, builds the API, builds and syncs the
+static web app to S3, then schedules the API restart. The existing EC2 `:3000`
+static web serve process is not restarted because S3 is the operating web host.
+
+The deploy worktree is treated as disposable. Do not keep uncommitted production
+edits in that checkout.
+
+Because this MVP uses the S3 website endpoint directly, the web origin is HTTP
+and not CloudFront HTTPS. Login and cookie behavior can vary by browser privacy
+settings when the API is on `https://api.<domain>` and the web app is on the S3
+website host. Use CloudFront and a first-party web domain when stable cookie
+auth is required.
+
+When `DEPLOY_AUTO_UPDATE_EC2_HOST=true`, the EC2 deploy calls
+`scripts/update-ec2-host-env.sh` during S3 deployment. It reads the current EC2
+public IPv4 from instance metadata, then rewrites `API_PUBLIC_BASE_URL` and
+`NEXT_PUBLIC_API_BASE_URL` before the static web build. Set `DEPLOY_API_PORT` if
+the public API port differs from `PORT`, or set `DEPLOY_PUBLIC_HOST`/
+`DEPLOY_API_BASE_URL` to override metadata detection. `DEPLOY_API_URL` remains a
+GitHub secret and is not changed by EC2.
+
+## 5. Manual Deploy
 
 Build and upload the static web app:
 
@@ -137,14 +194,21 @@ docker compose --env-file .env.production -f compose.prod.yml run --rm api npm r
 docker compose --env-file .env.production -f compose.prod.yml restart api
 ```
 
+For the current EC2 `nohup` process style, the same API restart command used by
+automation is available as:
+
+```bash
+ENV_FILE=.env NODE_VERSION=24 bash scripts/restart-api.sh
+```
+
 Check health:
 
 ```bash
-curl -fsS https://accountit.example.com/api/healthz
+curl -fsS https://api.accountit.example.com/healthz
 docker compose --env-file .env.production -f compose.prod.yml ps
 ```
 
-## 5. Backups
+## 6. Backups
 
 Because production PostgreSQL runs inside EC2 Docker, schedule at least one of
 these before launch:
@@ -159,14 +223,16 @@ Manual backup:
 ENV_FILE=.env.production npm run backup:postgres
 ```
 
-## 6. Smoke Test
+## 7. Smoke Test
 
-- `https://accountit.example.com` loads the S3-hosted static web app.
-- `https://accountit.example.com/api/healthz` returns `{ "ok": true }`.
-- Login and logout set and clear the HTTP-only cookie over HTTPS.
+- The S3 website endpoint loads the static web app.
+- `https://api.accountit.example.com/healthz` returns `{ "ok": true }`.
+- Login and logout reach the API over HTTPS; cookie persistence may vary while
+  the web app is served from the HTTP S3 website endpoint.
 - Job and company detail pages open as `/jobs/detail/?id=...` and
   `/companies/detail/?id=...`.
 - Company logo upload completes: presign request, browser S3 `PUT`, complete
   request, and logo preview.
 - `https://accountit.example.com/docs` is unavailable unless
   `ENABLE_SWAGGER=true`.
+- Direct S3 access to `resumes/*` still returns `403`.

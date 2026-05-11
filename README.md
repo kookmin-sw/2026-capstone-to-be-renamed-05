@@ -212,13 +212,16 @@ IAM 역할 사용을 권장합니다.
 운영 배포는 다음 구성을 기준으로 준비되어 있습니다.
 
 - S3 정적 웹 사이트 호스팅: Next.js 정적 내보내기 산출물
-- EC2 Docker Compose: NestJS API, Caddy, PostgreSQL
-- Caddy HTTPS 종료 및 `/api/*` 역방향 프록시
+- EC2: NestJS API, PostgreSQL, 선택적으로 Caddy/HTTPS 종료
+- GitHub Actions: `develop` push 시 EC2 `POST /ops/deploy` 호출
 - S3 미리 서명된 업로드: 회사 로고 자산 저장
 - S3 비공개 저장소: 이력서 업로드 및 인증 API 다운로드
 
 `deploy/production.env.example`을 `.env.production`으로 복사해 운영 값을 채운 뒤
-`docs/aws-ec2-s3-deployment.md`의 운영 가이드를 따릅니다.
+`docs/aws-ec2-s3-deployment.md`의 운영 가이드를 따릅니다. 자동 배포는 GitHub
+Secrets `DEPLOY_API_URL`, `DEPLOY_API_TOKEN`을 사용하며, EC2가 자체 IAM role로 S3
+동기화를 수행합니다. `DEPLOY_AUTO_UPDATE_EC2_HOST=true`이면 S3 정적 빌드 직전에
+현재 EC2 public IP로 `NEXT_PUBLIC_API_BASE_URL`을 갱신합니다.
 
 ```bash
 set -a

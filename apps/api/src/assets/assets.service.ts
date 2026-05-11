@@ -23,8 +23,11 @@ import {
   resolveWorkspaceRoot,
 } from '../config/runtime-environment';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateCompanyBackgroundUploadUrlDto } from './dto/create-company-background-upload-url.dto';
 import { CreateCompanyLogoUploadUrlDto } from './dto/create-company-logo-upload-url.dto';
 import {
+  COMPANY_BACKGROUND_EXTENSIONS,
+  COMPANY_BACKGROUND_MAX_BYTES,
   COMPANY_LOGO_EXTENSIONS,
   COMPANY_LOGO_MAX_BYTES,
 } from './logo-asset.constants';
@@ -70,30 +73,50 @@ export class AssetsService implements OnModuleInit {
     userId: string,
     dto: CreateCompanyLogoUploadUrlDto,
   ) {
+    return this.createCompanyImageUploadUrl(
+      userId,
+      dto,
+      AssetPurpose.COMPANY_LOGO,
+    );
+  }
+
+  async createCompanyBackgroundUploadUrl(
+    userId: string,
+    dto: CreateCompanyBackgroundUploadUrlDto,
+  ) {
+    return this.createCompanyImageUploadUrl(
+      userId,
+      dto,
+      AssetPurpose.COMPANY_BACKGROUND,
+    );
+  }
+
+  private async createCompanyImageUploadUrl(
+    userId: string,
+    dto: CreateCompanyLogoUploadUrlDto | CreateCompanyBackgroundUploadUrlDto,
+    purpose: AssetPurpose,
+  ) {
     const company = await this.getOwnedCompanyOrThrow(userId);
     const storageConfig = this.getAssetStorageConfig();
-    const extension = COMPANY_LOGO_EXTENSIONS.get(dto.contentType);
+    const config = this.getCompanyImagePurposeConfig(purpose);
+    const extension = config.extensions.get(dto.contentType);
 
     if (!extension) {
-      throw new BadRequestException(
-        '기업 이미지는 PNG, JPG, WEBP, GIF 파일만 업로드할 수 있습니다.',
-      );
+      throw new BadRequestException(config.invalidTypeMessage);
     }
-    if (dto.byteSize > COMPANY_LOGO_MAX_BYTES) {
-      throw new BadRequestException(
-        '기업 이미지는 2MB 이하로 업로드해 주세요.',
-      );
+    if (dto.byteSize > config.maxBytes) {
+      throw new BadRequestException(config.oversizeMessage);
     }
 
     const key = [
-      'company-logos',
+      config.keyPrefix,
       company.id,
       `${Date.now()}-${randomUUID()}.${extension}`,
     ].join('/');
     const publicUrl = this.buildPublicUrl(storageConfig.publicBaseUrl, key);
     const asset = await this.prisma.asset.create({
       data: {
-        purpose: AssetPurpose.COMPANY_LOGO,
+        purpose,
         status: AssetStatus.PENDING,
         bucket: storageConfig.bucket,
         region: storageConfig.region,
@@ -157,7 +180,9 @@ export class AssetsService implements OnModuleInit {
       where: {
         id: assetId,
         uploadedById: userId,
-        purpose: AssetPurpose.COMPANY_LOGO,
+        purpose: {
+          in: [AssetPurpose.COMPANY_LOGO, AssetPurpose.COMPANY_BACKGROUND],
+        },
         status: AssetStatus.PENDING,
       },
     });
@@ -174,7 +199,7 @@ export class AssetsService implements OnModuleInit {
     const contentType = this.parseContentTypeHeader(contentTypeHeader);
     if (contentType !== asset.contentType) {
       throw new BadRequestException(
-        'Uploaded company logo content type does not match the request.',
+        'Uploaded company image content type does not match the request.',
       );
     }
     this.assertLocalUploadBody(asset, body);
@@ -195,7 +220,9 @@ export class AssetsService implements OnModuleInit {
       where: {
         id: assetId,
         uploadedById: userId,
-        purpose: AssetPurpose.COMPANY_LOGO,
+        purpose: {
+          in: [AssetPurpose.COMPANY_LOGO, AssetPurpose.COMPANY_BACKGROUND],
+        },
       },
     });
 
@@ -257,18 +284,17 @@ export class AssetsService implements OnModuleInit {
   }
 
   private assertUploadedObjectMatches(
-    asset: { byteSize: number; contentType: string },
+    asset: { byteSize: number; contentType: string; purpose: AssetPurpose },
     head: Pick<HeadObjectCommandOutput, 'ContentLength' | 'ContentType'>,
   ) {
+    const config = this.getCompanyImagePurposeConfig(asset.purpose);
     if (!head.ContentLength || head.ContentLength <= 0) {
       throw new BadRequestException(
         '업로드된 기업 이미지 크기를 확인할 수 없습니다.',
       );
     }
-    if (head.ContentLength > COMPANY_LOGO_MAX_BYTES) {
-      throw new BadRequestException(
-        '기업 이미지는 2MB 이하로 업로드해 주세요.',
-      );
+    if (head.ContentLength > config.maxBytes) {
+      throw new BadRequestException(config.oversizeMessage);
     }
     if (head.ContentLength !== asset.byteSize) {
       throw new BadRequestException(
@@ -282,20 +308,50 @@ export class AssetsService implements OnModuleInit {
     }
   }
 
-  private assertLocalUploadBody(asset: Pick<Asset, 'byteSize'>, body: Buffer) {
+  private assertLocalUploadBody(
+    asset: Pick<Asset, 'byteSize' | 'purpose'>,
+    body: Buffer,
+  ) {
+    const config = this.getCompanyImagePurposeConfig(asset.purpose);
     if (body.length <= 0) {
-      throw new BadRequestException('Uploaded company logo file is empty.');
+      throw new BadRequestException('Uploaded company image file is empty.');
     }
-    if (body.length > COMPANY_LOGO_MAX_BYTES) {
-      throw new BadRequestException(
-        'Company logo uploads must be 2MB or less.',
-      );
+    if (body.length > config.maxBytes) {
+      throw new BadRequestException(config.oversizeMessage);
     }
     if (body.length !== asset.byteSize) {
       throw new BadRequestException(
-        'Uploaded company logo size does not match the request.',
+        'Uploaded company image size does not match the request.',
       );
     }
+  }
+
+  private getCompanyImagePurposeConfig(purpose: AssetPurpose): {
+    keyPrefix: string;
+    extensions: Map<string, string>;
+    maxBytes: number;
+    invalidTypeMessage: string;
+    oversizeMessage: string;
+  } {
+    if (purpose === AssetPurpose.COMPANY_BACKGROUND) {
+      return {
+        keyPrefix: 'company-backgrounds',
+        extensions: COMPANY_BACKGROUND_EXTENSIONS,
+        maxBytes: COMPANY_BACKGROUND_MAX_BYTES,
+        invalidTypeMessage:
+          '기업 배경 이미지는 PNG, JPG, WEBP 파일만 업로드할 수 있습니다.',
+        oversizeMessage: '기업 배경 이미지는 5MB 이하로 업로드해 주세요.',
+      };
+    }
+
+    return {
+      keyPrefix: 'company-logos',
+      extensions: COMPANY_LOGO_EXTENSIONS,
+      maxBytes: COMPANY_LOGO_MAX_BYTES,
+      invalidTypeMessage:
+        '기업 이미지는 PNG, JPG, WEBP, GIF 파일만 업로드할 수 있습니다.',
+      oversizeMessage: '기업 이미지는 2MB 이하로 업로드해 주세요.',
+    };
   }
 
   private async getOwnedCompanyOrThrow(userId: string) {

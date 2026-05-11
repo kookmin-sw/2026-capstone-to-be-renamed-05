@@ -133,6 +133,7 @@ export type JobListItem = {
   companyId: string;
   companyName: string;
   companyLogoUrl: string | null;
+  companyBackgroundUrl: string | null;
   companyType: CompanyType;
   jobFamily: JobFamily;
   employmentType: EmploymentType;
@@ -250,6 +251,7 @@ export type CompanyListItem = {
   type: CompanyType;
   websiteUrl: string | null;
   logoUrl: string | null;
+  backgroundUrl: string | null;
   description: string | null;
   tags: string[];
   employeeCount: number | null;

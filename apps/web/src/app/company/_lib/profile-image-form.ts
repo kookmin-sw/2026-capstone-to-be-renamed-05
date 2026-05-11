@@ -1,20 +1,29 @@
 import type { CompanyDashboardResponse } from "@cpa/shared";
 
 export type ProfileImageForm = {
-  logoAssetId: string;
-  logoUrl: string;
+  assetId: string;
+  imageUrl: string;
 };
 
 export const emptyProfileImageForm: ProfileImageForm = {
-  logoAssetId: "",
-  logoUrl: "",
+  assetId: "",
+  imageUrl: "",
 };
 
-export function toProfileImageForm(
+export function toLogoProfileImageForm(
   dashboard: CompanyDashboardResponse,
 ): ProfileImageForm {
   return {
-    logoAssetId: "",
-    logoUrl: dashboard.company.logoUrl ?? "",
+    assetId: "",
+    imageUrl: dashboard.company.logoUrl ?? "",
+  };
+}
+
+export function toBackgroundProfileImageForm(
+  dashboard: CompanyDashboardResponse,
+): ProfileImageForm {
+  return {
+    assetId: "",
+    imageUrl: dashboard.company.backgroundUrl ?? "",
   };
 }

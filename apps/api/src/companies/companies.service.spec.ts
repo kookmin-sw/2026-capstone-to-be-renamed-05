@@ -246,6 +246,41 @@ describe('CompaniesService submission ownership', () => {
     expect(result.logoUrl).toBe('https://assets.example.com/logo.png');
   });
 
+  it('updates a company background image with a ready owned asset', async () => {
+    prisma.company.findUnique.mockResolvedValue({ id: 'company-1' });
+    prisma.asset.findFirst.mockResolvedValue({ id: 'asset-bg-1' });
+    prisma.company.update.mockResolvedValue(
+      companyDetail({
+        backgroundAsset: {
+          publicUrl: 'https://assets.example.com/background.png',
+        },
+      }),
+    );
+
+    const result = await service.updateBackground('user-1', {
+      backgroundAssetId: ' asset-bg-1 ',
+    });
+
+    expect(prisma.asset.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'asset-bg-1',
+        companyId: 'company-1',
+        purpose: AssetPurpose.COMPANY_BACKGROUND,
+        status: AssetStatus.READY,
+      },
+      select: { id: true },
+    });
+    expect(prisma.company.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'company-1' },
+        data: { backgroundAsset: { connect: { id: 'asset-bg-1' } } },
+      }),
+    );
+    expect(result.backgroundUrl).toBe(
+      'https://assets.example.com/background.png',
+    );
+  });
+
   it('rejects blank immediate company image updates', async () => {
     prisma.company.findUnique.mockResolvedValue({ id: 'company-1' });
 

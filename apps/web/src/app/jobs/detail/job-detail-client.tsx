@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { SiteNav } from "@/components/site-nav";
 import { actionButtonClassName } from "@/components/ui/action-button";
 import { fetchJobDetail } from "@/lib/api";
@@ -137,6 +137,11 @@ function JobDetail({ job }: { job: JobDetailItem }) {
           : `D-${job.dDay}`;
 
   const isUrgent = job.dDay !== null && job.dDay >= 0 && job.dDay <= 7;
+  const heroStyle: CSSProperties | undefined = job.companyBackgroundUrl
+    ? {
+        backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.93), rgba(255,255,255,0.72), rgba(255,255,255,0.48)), url("${job.companyBackgroundUrl}")`,
+      }
+    : undefined;
 
   const experienceText = useMemo(() => {
     if (job.minExperienceYears === null && job.maxExperienceYears === null)
@@ -153,7 +158,7 @@ function JobDetail({ job }: { job: JobDetailItem }) {
     <main className="min-h-screen bg-[var(--background)]">
       <SiteNav />
 
-      <div className={styles.hero}>
+      <div className={styles.hero} style={heroStyle}>
         <div className={styles.heroGlow} />
         <div className="mx-auto max-w-6xl px-5 py-8">
           <Link

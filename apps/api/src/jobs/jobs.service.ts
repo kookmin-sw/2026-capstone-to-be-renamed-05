@@ -18,6 +18,7 @@ const jobInclude = {
   company: {
     include: {
       logoAsset: { select: { publicUrl: true } },
+      backgroundAsset: { select: { publicUrl: true } },
     },
   },
   source: true,
@@ -183,6 +184,7 @@ export class JobsService {
       companyId: job.companyId,
       companyName: job.company.name,
       companyLogoUrl: job.company.logoAsset?.publicUrl ?? null,
+      companyBackgroundUrl: job.company.backgroundAsset?.publicUrl ?? null,
       companyType: job.companyType,
       jobFamily: job.jobFamily,
       employmentType: job.employmentType,

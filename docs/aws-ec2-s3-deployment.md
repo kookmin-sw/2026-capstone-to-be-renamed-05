@@ -61,6 +61,9 @@ placeholder values.
 Important production defaults:
 
 ```bash
+APP_ENV=aws
+NEXT_PUBLIC_APP_ENV=aws
+ASSET_STORAGE_DRIVER=s3
 NODE_ENV=production
 NEXT_PUBLIC_API_BASE_URL=/api
 WEB_ORIGIN=https://accountit.example.com

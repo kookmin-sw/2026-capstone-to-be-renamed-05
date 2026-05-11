@@ -48,6 +48,7 @@ const adminJobInclude = {
 
 const adminCompanyInclude = {
   logoAsset: { select: { publicUrl: true } },
+  backgroundAsset: { select: { publicUrl: true } },
   _count: { select: { jobs: true } },
 } satisfies Prisma.CompanyInclude;
 
@@ -747,6 +748,7 @@ export class AdminService {
       type: company.type,
       websiteUrl: company.websiteUrl,
       logoUrl: company.logoAsset?.publicUrl ?? null,
+      backgroundUrl: company.backgroundAsset?.publicUrl ?? null,
       description: company.description,
       businessNumber: company.businessNumber,
       externalLinks: company.externalLinks,

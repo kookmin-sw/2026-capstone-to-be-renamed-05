@@ -1240,7 +1240,11 @@ mark { background: rgba(232,69,122,.12); color: var(--primary-dark); border-radi
 ═══════════════════════════════════════ -->
 <script>
 // ── CONFIG ────────────────────────────────────────────────────
-const API_BASE = 'http://localhost:4000';
+const API_BASE = window.ACCOUNTIT_API_BASE || (
+  ['localhost', '127.0.0.1', ''].includes(window.location.hostname)
+    ? 'http://localhost:4000'
+    : '/api'
+);
 const TODAY = new Date();
 
 // ── ENUM MAPS ─────────────────────────────────────────────────

@@ -133,6 +133,7 @@ export type JobListItem = {
   companyId: string;
   companyName: string;
   companyLogoUrl: string | null;
+  companyBackgroundUrl: string | null;
   companyType: CompanyType;
   jobFamily: JobFamily;
   employmentType: EmploymentType;
@@ -250,6 +251,7 @@ export type CompanyListItem = {
   type: CompanyType;
   websiteUrl: string | null;
   logoUrl: string | null;
+  backgroundUrl: string | null;
   description: string | null;
   tags: string[];
   employeeCount: number | null;
@@ -329,4 +331,48 @@ export type CompanyManagedJobItem = JobListItem & {
 export type CompanyDashboardResponse = {
   company: CompanyDetailItem;
   pendingProfileSubmission: CompanyProfileSubmissionItem | null;
+};
+
+// ─── Mypage ──────────────────────────────────────────────────
+
+export const BOOKMARK_TARGET_TYPES = ["JOB", "COMPANY"] as const;
+export type BookmarkTargetType = (typeof BOOKMARK_TARGET_TYPES)[number];
+
+export type BookmarkItem = {
+  id: string;
+  targetType: BookmarkTargetType;
+  targetId: string;
+  targetTitle: string;
+  targetSubtitle: string | null;
+  createdAt: string;
+};
+
+export type BookmarkListResponse = {
+  items: BookmarkItem[];
+};
+
+export type ResumeItem = {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  contentType: string;
+  byteSize: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ResumeListResponse = {
+  items: ResumeItem[];
+};
+
+export type MyProfileResponse = {
+  id: string;
+  username: string;
+  displayName: string | null;
+  role: string;
+  createdAt: string;
+};
+
+export type UpdateProfilePayload = {
+  displayName?: string;
 };

@@ -7,17 +7,23 @@ import { AssetsModule } from './assets/assets.module';
 import { AuthModule } from './auth/auth.module';
 import { CompaniesModule } from './companies/companies.module';
 import { JobsModule } from './jobs/jobs.module';
+import { MypageModule } from './mypage/mypage.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
+import { resolveEnvFilePaths } from './config/runtime-environment';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: resolveEnvFilePaths(),
+    }),
     PrismaModule,
     AssetsModule,
     AuthModule,
     CompaniesModule,
     JobsModule,
+    MypageModule,
     UsersModule,
     AdminModule,
   ],

@@ -47,6 +47,9 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
   }
 
   const roleItems = [
+    ...(user?.role === "JOB_SEEKER"
+      ? [{ href: "/mypage", label: "마이페이지", key: "mypage" }]
+      : []),
     ...(user?.role === "COMPANY"
       ? [{ href: "/company", label: "기업 관리", key: "company" }]
       : []),
@@ -62,7 +65,7 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
     try {
       await logoutRequest();
       setUser(null);
-      if (pathname.startsWith("/company")) {
+      if (pathname.startsWith("/company") || pathname.startsWith("/mypage")) {
         router.replace("/login");
       } else {
         router.refresh();

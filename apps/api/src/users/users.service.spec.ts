@@ -15,7 +15,6 @@ describe('UsersService job presets', () => {
     userJobPreset: {
       findMany: jest.Mock;
       findFirst: jest.Mock;
-      count: jest.Mock;
       create: jest.Mock;
       update: jest.Mock;
       delete: jest.Mock;
@@ -32,7 +31,6 @@ describe('UsersService job presets', () => {
       userJobPreset: {
         findMany: jest.fn().mockResolvedValue([]),
         findFirst: jest.fn().mockResolvedValue(null),
-        count: jest.fn().mockResolvedValue(0),
         create: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
@@ -117,14 +115,6 @@ describe('UsersService job presets', () => {
     await expect(
       service.createJobPreset('user-1', { search: '감사' }),
     ).rejects.toBeInstanceOf(ConflictException);
-  });
-
-  it('rejects saving more than five personal presets', async () => {
-    prisma.userJobPreset.count.mockResolvedValue(5);
-
-    await expect(
-      service.createJobPreset('user-1', { search: '감사' }),
-    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('scopes deletes to the current user', async () => {

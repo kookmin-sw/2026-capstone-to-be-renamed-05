@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 import { ChipGroup } from "./_components/chip-group";
 import {
   formatDeadlineDisplay,
@@ -22,7 +22,6 @@ import {
 } from "./_lib/job-detail-utils";
 import { SiteNav } from "@/components/site-nav";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { DetailHeroCard } from "@/components/ui/detail-hero-card";
 import { InfoItem } from "@/components/ui/info-item";
 import { actionButtonClassName } from "@/components/ui/action-button";
 import { fetchJobDetail } from "@/lib/api";
@@ -135,7 +134,15 @@ function JobDetail({ job }: { job: JobDetailItem }) {
           : `D-${job.dDay}`;
 
   const isUrgent = job.dDay !== null && job.dDay >= 0 && job.dDay <= 7;
-  const experienceText = formatExperience(job.minExperienceYears, job.maxExperienceYears);
+  const heroStyle: CSSProperties | undefined = job.companyBackgroundUrl
+    ? {
+        backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.93), rgba(255,255,255,0.72), rgba(255,255,255,0.48)), url("${job.companyBackgroundUrl}")`,
+      }
+    : undefined;
+  const experienceText = formatExperience(
+    job.minExperienceYears,
+    job.maxExperienceYears,
+  );
 
   return (
     <main className="min-h-screen bg-[var(--background)]">
@@ -145,60 +152,68 @@ function JobDetail({ job }: { job: JobDetailItem }) {
         current={job.title}
       />
 
-      <DetailHeroCard>
-        <Link
-          href="/jobs"
-          className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-gray-700 backdrop-blur-sm transition-colors hover:bg-white"
-        >
-          <ArrowLeft size={13} />
-          채용공고 목록
-        </Link>
-
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex items-end gap-3">
-            <div className={styles.logo}>
-              {job.companyLogoUrl ? (
-                <img src={job.companyLogoUrl} alt={job.companyName} />
-              ) : (
-                initial
-              )}
-            </div>
-            <div>
-              <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
-                <span className={cn(styles.dDay, isUrgent ? styles.dDayUrgent : styles.dDayMuted)}>
-                  {dDayLabel}
-                </span>
-                <span className="rounded-full bg-white/85 px-2.5 py-0.5 text-xs font-semibold text-gray-700 backdrop-blur-sm">
-                  {companyTypeLabels[job.companyType]}
-                </span>
-                <span className="rounded-full bg-white/85 px-2.5 py-0.5 text-xs font-semibold text-gray-700 backdrop-blur-sm">
-                  {jobFamilyLabels[job.jobFamily]}
-                </span>
-              </div>
-              <Link
-                href={companyDetailHref(job.companyId)}
-                className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[var(--brand)]"
-              >
-                <BriefcaseBusiness size={13} />
-                {job.companyName}
-              </Link>
-              <h1 className="mt-1 max-w-3xl text-xl font-bold leading-snug text-gray-900">
-                {job.title}
-              </h1>
-            </div>
-          </div>
-
-          <a
-            href={job.originalUrl}
-            target="_blank"
-            rel="noreferrer"
-            className={actionButtonClassName({ size: "md" })}
+      <div className={styles.hero} style={heroStyle}>
+        <div className={styles.heroGlow} />
+        <div className="mx-auto max-w-6xl px-5 py-8">
+          <Link
+            href="/jobs"
+            className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-gray-700 backdrop-blur-sm transition-colors hover:bg-white"
           >
-            원문에서 지원
-            <ExternalLink size={15} />
-          </a>
+            <ArrowLeft size={13} />
+            채용공고 목록
+          </Link>
+
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex items-end gap-3">
+              <div className={styles.logo}>
+                {job.companyLogoUrl ? (
+                  <img src={job.companyLogoUrl} alt={job.companyName} />
+                ) : (
+                  initial
+                )}
+              </div>
+              <div>
+                <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+                  <span
+                    className={cn(
+                      styles.dDay,
+                      isUrgent ? styles.dDayUrgent : styles.dDayMuted,
+                    )}
+                  >
+                    {dDayLabel}
+                  </span>
+                  <span className="rounded-full bg-white/85 px-2.5 py-0.5 text-xs font-semibold text-gray-700 backdrop-blur-sm">
+                    {companyTypeLabels[job.companyType]}
+                  </span>
+                  <span className="rounded-full bg-white/85 px-2.5 py-0.5 text-xs font-semibold text-gray-700 backdrop-blur-sm">
+                    {jobFamilyLabels[job.jobFamily]}
+                  </span>
+                </div>
+                <Link
+                  href={companyDetailHref(job.companyId)}
+                  className="flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[var(--brand)]"
+                >
+                  <BriefcaseBusiness size={13} />
+                  {job.companyName}
+                </Link>
+                <h1 className="mt-1 max-w-3xl text-xl font-bold leading-snug text-gray-900">
+                  {job.title}
+                </h1>
+              </div>
+            </div>
+
+            <a
+              href={job.originalUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={actionButtonClassName({ size: "md" })}
+            >
+              원문에서 지원
+              <ExternalLink size={15} />
+            </a>
+          </div>
         </div>
-      </DetailHeroCard>
+      </div>
 
       <section className={styles.body}>
         <div className="grid gap-4">

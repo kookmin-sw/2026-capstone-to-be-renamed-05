@@ -1,11 +1,15 @@
 import { ConflictException } from '@nestjs/common';
 import {
   CompanyType,
+  CpaVerificationStatus,
   DeadlineType,
   EmploymentType,
+  EmploymentHistoryStatus,
   JobFamily,
   JobStatus,
   KicpaCondition,
+  PersonalCareerStage,
+  PersonalVerificationRequestStatus,
   SubmissionStatus,
   SubmissionType,
   TraineeStatus,
@@ -34,6 +38,13 @@ describe('AdminService review flows', () => {
     companyProfileSubmission: {
       findUnique: jest.Mock;
       update: jest.Mock;
+    };
+    personalVerificationRequest: {
+      findUnique: jest.Mock;
+      update: jest.Mock;
+    };
+    personalProfile: {
+      upsert: jest.Mock;
     };
   };
   let prisma: {
@@ -66,6 +77,13 @@ describe('AdminService review flows', () => {
       companyProfileSubmission: {
         findUnique: jest.fn(),
         update: jest.fn(),
+      },
+      personalVerificationRequest: {
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      personalProfile: {
+        upsert: jest.fn(),
       },
     };
     prisma = {
@@ -300,4 +318,127 @@ describe('AdminService review flows', () => {
 
     expect(tx.company.update).not.toHaveBeenCalled();
   });
+
+  it('approves CPA verification requests and maps unplaced CPAs to no employment history', async () => {
+    const createdAt = new Date('2026-05-06T00:00:00.000Z');
+    const request = {
+      id: 'verification-1',
+      userId: 'user-1',
+      user: { username: 'jobseeker', displayName: 'CPA user' },
+      reviewedBy: null,
+      applicantName: 'Kim CPA',
+      birthDate: '1998-03-14',
+      registrationNumber: 'CPA-123456',
+      registrationNumberLast4: '3456',
+      requestedCareerStage: PersonalCareerStage.CPA_UNPLACED,
+      status: PersonalVerificationRequestStatus.PENDING,
+      adminNote: null,
+      reviewedAt: null,
+      createdAt,
+      updatedAt: createdAt,
+    };
+    tx.personalVerificationRequest.findUnique.mockResolvedValue(request);
+    tx.personalVerificationRequest.update.mockResolvedValue({
+      ...request,
+      birthDate: null,
+      registrationNumber: null,
+      status: PersonalVerificationRequestStatus.APPROVED,
+      reviewedBy: { username: 'admin' },
+      reviewedAt: createdAt,
+    });
+
+    const result = await service.approvePersonalVerificationRequest(
+      'verification-1',
+      'admin-1',
+      'ok',
+    );
+
+    const upsertArg = firstMockArg<{
+      where: { userId: string };
+      update: {
+        cpaVerificationStatus: CpaVerificationStatus;
+        careerStage: PersonalCareerStage;
+        employmentHistoryStatus: EmploymentHistoryStatus;
+      };
+      create: {
+        userId: string;
+        cpaVerificationStatus: CpaVerificationStatus;
+        careerStage: PersonalCareerStage;
+        employmentHistoryStatus: EmploymentHistoryStatus;
+      };
+    }>(tx.personalProfile.upsert);
+    expect(upsertArg.where.userId).toBe('user-1');
+    expect(upsertArg.update).toMatchObject({
+      cpaVerificationStatus: CpaVerificationStatus.CPA_VERIFIED,
+      careerStage: PersonalCareerStage.CPA_UNPLACED,
+      employmentHistoryStatus: EmploymentHistoryStatus.NONE,
+    });
+    expect(upsertArg.create).toMatchObject({
+      userId: 'user-1',
+      cpaVerificationStatus: CpaVerificationStatus.CPA_VERIFIED,
+      careerStage: PersonalCareerStage.CPA_UNPLACED,
+      employmentHistoryStatus: EmploymentHistoryStatus.NONE,
+    });
+
+    const updateArg = firstMockArg<{
+      where: { id: string };
+      data: {
+        status: PersonalVerificationRequestStatus;
+        birthDate: null;
+        registrationNumber: null;
+      };
+    }>(tx.personalVerificationRequest.update);
+    expect(updateArg.where.id).toBe('verification-1');
+    expect(updateArg.data).toMatchObject({
+      status: PersonalVerificationRequestStatus.APPROVED,
+      birthDate: null,
+      registrationNumber: null,
+    });
+    expect(result.registrationNumber).toBeNull();
+  });
+
+  it('maps trainee and licensed CPA verification approvals to employment history', async () => {
+    const createdAt = new Date('2026-05-06T00:00:00.000Z');
+    const request = {
+      id: 'verification-2',
+      userId: 'user-2',
+      user: { username: 'trainee', displayName: null },
+      reviewedBy: null,
+      applicantName: 'Lee CPA',
+      birthDate: '1997-01-01',
+      registrationNumber: 'T-1111',
+      registrationNumberLast4: '1111',
+      requestedCareerStage: PersonalCareerStage.TRAINEE,
+      status: PersonalVerificationRequestStatus.PENDING,
+      adminNote: null,
+      reviewedAt: null,
+      createdAt,
+      updatedAt: createdAt,
+    };
+    tx.personalVerificationRequest.findUnique.mockResolvedValue(request);
+    tx.personalVerificationRequest.update.mockResolvedValue({
+      ...request,
+      status: PersonalVerificationRequestStatus.APPROVED,
+      birthDate: null,
+      registrationNumber: null,
+      reviewedBy: { username: 'admin' },
+      reviewedAt: createdAt,
+    });
+
+    await service.approvePersonalVerificationRequest(
+      'verification-2',
+      'admin-1',
+    );
+
+    const upsertArg = firstMockArg<{
+      update: { employmentHistoryStatus: EmploymentHistoryStatus };
+    }>(tx.personalProfile.upsert);
+    expect(upsertArg.update.employmentHistoryStatus).toBe(
+      EmploymentHistoryStatus.HAS_EMPLOYMENT,
+    );
+  });
 });
+
+function firstMockArg<T>(mock: { mock: { calls: unknown[][] } }): T {
+  return mock.mock.calls[0][0] as T;
+}

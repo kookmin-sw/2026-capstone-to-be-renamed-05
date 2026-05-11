@@ -1,0 +1,14 @@
+.infoLabel {
+  margin-bottom: 0.2rem;
+  color: var(--app-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.infoValue {
+  color: var(--gray-800);
+  font-size: 0.875rem;
+  font-weight: 700;
+}

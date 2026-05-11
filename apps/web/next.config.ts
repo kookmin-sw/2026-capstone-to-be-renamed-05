@@ -1,25 +1,31 @@
 import type { NextConfig } from "next";
 
-function s3RemotePatterns(): NonNullable<
+function assetRemotePatterns(): NonNullable<
   NextConfig["images"]
 >["remotePatterns"] {
-  const publicBaseUrl =
-    process.env.NEXT_PUBLIC_S3_PUBLIC_BASE_URL ??
-    process.env.S3_PUBLIC_BASE_URL;
-  if (!publicBaseUrl) return [];
+  const publicBaseUrls = [
+    process.env.NEXT_PUBLIC_S3_PUBLIC_BASE_URL,
+    process.env.S3_PUBLIC_BASE_URL,
+    process.env.NEXT_PUBLIC_LOCAL_ASSET_PUBLIC_BASE_URL,
+    process.env.LOCAL_ASSET_PUBLIC_BASE_URL,
+    process.env.NODE_ENV === "production"
+      ? undefined
+      : "http://localhost:3000/uploads",
+  ].filter((value): value is string => Boolean(value));
 
-  try {
-    const url = new URL(publicBaseUrl);
-    return [
-      {
+  return Array.from(new Set(publicBaseUrls)).flatMap((publicBaseUrl) => {
+    try {
+      const url = new URL(publicBaseUrl);
+      return {
         protocol: url.protocol.replace(":", "") as "http" | "https",
         hostname: url.hostname,
+        port: url.port,
         pathname: `${url.pathname.replace(/\/$/, "")}/**`,
-      },
-    ];
-  } catch {
-    return [];
-  }
+      };
+    } catch {
+      return [];
+    }
+  });
 }
 
 function basePath() {
@@ -49,7 +55,7 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@cpa/shared"],
   images: {
     unoptimized: true,
-    remotePatterns: s3RemotePatterns(),
+    remotePatterns: assetRemotePatterns(),
   },
 };
 

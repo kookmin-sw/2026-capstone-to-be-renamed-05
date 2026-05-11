@@ -1,3 +1,24 @@
+.hero {
+  position: relative;
+  min-height: 12.5rem;
+  overflow: hidden;
+  background: linear-gradient(135deg, #fff0f5 0%, #ffd6e5 52%, #ffb3cc 100%);
+  background-position: center;
+  background-size: cover;
+}
+
+.heroGlow {
+  position: absolute;
+  top: -2.5rem;
+  right: -2.5rem;
+  width: 16rem;
+  height: 16rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(232, 69, 122, 0.18) 0%, transparent 70%);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 /* ─── Logo ────────────────────────────────────────────────── */
 
 .logo,

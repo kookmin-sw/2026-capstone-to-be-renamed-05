@@ -44,17 +44,24 @@ export class AuthController {
     @Query('state') state: string,
     @Res({ passthrough: true }) response: Response,
   ): Promise<AuthCallbackResponseDto> {
+    const configuredRedirectUrl = process.env.FRONTEND_OAUTH_SUCCESS_URL;
+    if (!configuredRedirectUrl && process.env.NODE_ENV === 'production') {
+      throw new Error('FRONTEND_OAUTH_SUCCESS_URL must be set in production.');
+    }
+    const redirectUrl =
+      configuredRedirectUrl ?? 'http://localhost:5173/console';
+
     const user = await this.authService.handleGitHubCallback(code, state);
 
     response.cookie(SESSION_COOKIE_NAME, String(user.id), {
       httpOnly: true,
       sameSite: 'lax',
-      secure: process.env.COOKIE_SECURE === 'true',
+      secure:
+        process.env.COOKIE_SECURE === 'true' ||
+        process.env.NODE_ENV === 'production',
       maxAge: 14 * 24 * 60 * 60 * 1000,
     });
 
-    const redirectUrl =
-      process.env.FRONTEND_OAUTH_SUCCESS_URL ?? 'http://localhost:5173/console';
     if (redirectUrl) {
       response.redirect(redirectUrl);
       return {
@@ -106,7 +113,9 @@ export class AuthController {
     response.clearCookie(SESSION_COOKIE_NAME, {
       httpOnly: true,
       sameSite: 'lax',
-      secure: process.env.COOKIE_SECURE === 'true',
+      secure:
+        process.env.COOKIE_SECURE === 'true' ||
+        process.env.NODE_ENV === 'production',
     });
   }
 }

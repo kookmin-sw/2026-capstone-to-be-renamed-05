@@ -18,10 +18,13 @@ function flattenValidationErrors(validationErrors: ValidationError[]) {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const corsOrigin = process.env.CORS_ORIGIN ?? 'http://localhost:5173';
+  const corsOrigin = process.env.CORS_ORIGIN;
+  if (!corsOrigin && process.env.NODE_ENV === 'production') {
+    throw new Error('CORS_ORIGIN must be set in production.');
+  }
 
   app.enableCors({
-    origin: corsOrigin,
+    origin: corsOrigin ?? 'http://localhost:5173',
     credentials: true,
   });
 

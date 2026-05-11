@@ -1,11 +1,18 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ??
+  (import.meta.env.PROD ? '/api' : 'http://localhost:3000');
 
 export class ApiError extends Error {
   statusCode: number;
   errorCode?: string;
   details?: unknown;
 
-  constructor(message: string, statusCode: number, errorCode?: string, details?: unknown) {
+  constructor(
+    message: string,
+    statusCode: number,
+    errorCode?: string,
+    details?: unknown,
+  ) {
     super(message);
     this.name = 'ApiError';
     this.statusCode = statusCode;
@@ -18,7 +25,10 @@ type RequestOptions = Omit<RequestInit, 'body'> & {
   body?: unknown;
 };
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function request<T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<T> {
   const headers = new Headers(options.headers ?? {});
   const hasBody = options.body !== undefined && options.body !== null;
 
@@ -39,18 +49,26 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   if (!response.ok) {
     const message =
-      (payload && typeof payload === 'object' && 'message' in payload && payload.message) ||
+      (payload &&
+        typeof payload === 'object' &&
+        'message' in payload &&
+        payload.message) ||
       response.statusText ||
       'Request failed';
     const statusCode =
-      (payload && typeof payload === 'object' && 'statusCode' in payload && payload.statusCode) ||
+      (payload &&
+        typeof payload === 'object' &&
+        'statusCode' in payload &&
+        payload.statusCode) ||
       response.status;
     const errorCode =
       payload && typeof payload === 'object' && 'errorCode' in payload
         ? String(payload.errorCode)
         : undefined;
     const details =
-      payload && typeof payload === 'object' && 'details' in payload ? payload.details : payload;
+      payload && typeof payload === 'object' && 'details' in payload
+        ? payload.details
+        : payload;
 
     throw new ApiError(String(message), Number(statusCode), errorCode, details);
   }
@@ -225,11 +243,14 @@ export const api = {
     request<{ status: string; service: string; timestamp: string }>('/health', {
       method: 'GET',
     }),
-  getGitHubLoginUrl: () => request<GitHubLoginResponse>('/auth/github/login', { method: 'GET' }),
+  getGitHubLoginUrl: () =>
+    request<GitHubLoginResponse>('/auth/github/login', { method: 'GET' }),
   getMe: () => request<AuthMe>('/auth/me', { method: 'GET' }),
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
-  listGitHubRepos: () => request<GitHubRepoListResponse>('/github/repos', { method: 'GET' }),
-  listConnectedRepos: () => request<ConnectedRepoListResponse>('/repos', { method: 'GET' }),
+  listGitHubRepos: () =>
+    request<GitHubRepoListResponse>('/github/repos', { method: 'GET' }),
+  listConnectedRepos: () =>
+    request<ConnectedRepoListResponse>('/repos', { method: 'GET' }),
   connectRepo: (fullName: string) =>
     request<ConnectedRepo>('/repos', {
       method: 'POST',
@@ -267,8 +288,10 @@ export const api = {
     const params = new URLSearchParams();
     if (filters.type) params.set('type', filters.type);
     if (filters.state) params.set('state', filters.state);
-    if (typeof filters.limit === 'number') params.set('limit', String(filters.limit));
-    if (typeof filters.offset === 'number') params.set('offset', String(filters.offset));
+    if (typeof filters.limit === 'number')
+      params.set('limit', String(filters.limit));
+    if (typeof filters.offset === 'number')
+      params.set('offset', String(filters.offset));
     const query = params.toString();
     return request<RepositoryItemsResponse>(
       `/repos/${id}/items${query ? `?${query}` : ''}`,
@@ -286,11 +309,16 @@ export const api = {
       method: 'POST',
     }),
   getDuplicates: (id: number) =>
-    request<DuplicateGroupsResponse>(`/repos/${id}/duplicates`, { method: 'GET' }),
+    request<DuplicateGroupsResponse>(`/repos/${id}/duplicates`, {
+      method: 'GET',
+    }),
   getPriorities: (id: number) =>
     request<PrioritiesResponse>(`/repos/${id}/priorities`, { method: 'GET' }),
   getLabelRecommendations: (id: number) =>
-    request<LabelRecommendationsResponse>(`/repos/${id}/label-recommendations`, {
-      method: 'GET',
-    }),
+    request<LabelRecommendationsResponse>(
+      `/repos/${id}/label-recommendations`,
+      {
+        method: 'GET',
+      },
+    ),
 };

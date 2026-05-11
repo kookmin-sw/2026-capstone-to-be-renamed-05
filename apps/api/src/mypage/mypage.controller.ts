@@ -22,7 +22,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { BookmarkTargetType, UserRole } from '@prisma/client';
-import { createReadStream } from 'node:fs';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -118,7 +117,7 @@ export class MypageController {
       req.user!.id,
       id,
     );
-    return new StreamableFile(createReadStream(download.filePath), {
+    return new StreamableFile(download.stream, {
       type: download.item.contentType,
       length: download.byteSize,
       disposition: buildContentDisposition(download.item.fileName),

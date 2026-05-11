@@ -30,6 +30,10 @@ export function resolveRuntimeEnvironment(
   return 'local';
 }
 
+export function isServerRuntime(env: Env = process.env) {
+  return resolveRuntimeEnvironment(env) === 'aws';
+}
+
 export function resolveDatabaseUrl(env: Env = process.env) {
   return resolvePrismaPostgresConfig(env).connectionString;
 }

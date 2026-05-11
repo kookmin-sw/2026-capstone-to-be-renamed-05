@@ -208,6 +208,7 @@ IAM 역할 사용을 권장합니다.
 - EC2 Docker Compose: NestJS API, Caddy, PostgreSQL
 - Caddy HTTPS 종료 및 `/api/*` 역방향 프록시
 - S3 미리 서명된 업로드: 회사 로고 자산 저장
+- S3 비공개 저장소: 이력서 업로드 및 인증 API 다운로드
 
 `deploy/production.env.example`을 `.env.production`으로 복사해 운영 값을 채운 뒤
 `docs/aws-ec2-s3-deployment.md`의 운영 가이드를 따릅니다.

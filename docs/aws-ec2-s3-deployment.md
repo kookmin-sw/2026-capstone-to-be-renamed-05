@@ -64,6 +64,7 @@ Important production defaults:
 APP_ENV=aws
 NEXT_PUBLIC_APP_ENV=aws
 ASSET_STORAGE_DRIVER=s3
+RESUME_STORAGE_DRIVER=s3
 NODE_ENV=production
 NEXT_PUBLIC_API_BASE_URL=/api
 WEB_ORIGIN=https://accountit.example.com
@@ -76,7 +77,8 @@ ENABLE_SWAGGER=false
 DATABASE_URL=postgresql://cpa:<password>@postgres:5432/cpa_jobs?schema=public
 ```
 
-The EC2 IAM role should allow the API to presign and verify logo uploads:
+The EC2 IAM role should allow the API to presign and verify company image
+uploads, and to store private resumes:
 
 ```json
 {
@@ -85,7 +87,15 @@ The EC2 IAM role should allow the API to presign and verify logo uploads:
     {
       "Effect": "Allow",
       "Action": ["s3:PutObject", "s3:HeadObject"],
-      "Resource": "arn:aws:s3:::accountit-assets/company-logos/*"
+      "Resource": [
+        "arn:aws:s3:::accountit-assets/company-logos/*",
+        "arn:aws:s3:::accountit-assets/company-backgrounds/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::accountit-resumes/resumes/*"
     }
   ]
 }

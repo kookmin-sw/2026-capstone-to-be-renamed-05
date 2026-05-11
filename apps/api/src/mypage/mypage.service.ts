@@ -2,10 +2,19 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BookmarkTargetType } from '@prisma/client';
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+  type GetObjectCommandOutput,
+} from '@aws-sdk/client-s3';
 import type {
   BookmarkItem,
   BookmarkListResponse,
@@ -14,6 +23,7 @@ import type {
   ResumeListResponse,
 } from '@cpa/shared';
 import { randomUUID } from 'node:crypto';
+import { createReadStream } from 'node:fs';
 import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
 import {
   basename,
@@ -24,11 +34,49 @@ import {
   resolve,
   sep,
 } from 'node:path';
-import { resolveWorkspaceRoot } from '../config/runtime-environment';
+import { Readable } from 'node:stream';
+import {
+  isServerRuntime,
+  resolveWorkspaceRoot,
+} from '../config/runtime-environment';
 import { PrismaService } from '../prisma/prisma.service';
 
 const RESUME_LIMIT = 5;
 export const RESUME_MAX_BYTES = 10 * 1024 * 1024;
+const DEFAULT_S3_RESUME_KEY_PREFIX = 'resumes';
+
+type ResumeStorageConfig =
+  | {
+      driver: 'local';
+      rootDir: string;
+    }
+  | {
+      driver: 's3';
+      bucket: string;
+      region: string;
+      keyPrefix: string;
+    };
+
+type ResumeObjectTarget =
+  | {
+      driver: 'local';
+      filePath: string;
+    }
+  | {
+      driver: 's3';
+      key: string;
+    };
+
+type ResumeRecord = {
+  id: string;
+  userId: string;
+  fileName: string;
+  fileUrl: string;
+  contentType: string;
+  byteSize: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 const RESUME_CONTENT_TYPES_BY_EXTENSION = new Map<string, Set<string>>([
   ['.pdf', new Set(['application/pdf'])],
@@ -55,11 +103,19 @@ const RESUME_CONTENT_TYPES_BY_EXTENSION = new Map<string, Set<string>>([
 const FALLBACK_RESUME_CONTENT_TYPE = 'application/octet-stream';
 
 @Injectable()
-export class MypageService {
+export class MypageService implements OnModuleInit {
+  private readonly s3Clients = new Map<string, S3Client>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
   ) {}
+
+  onModuleInit() {
+    if (this.getResumeStorageDriver() === 's3') {
+      this.getS3ResumeConfig();
+    }
+  }
 
   async getProfile(userId: string): Promise<MyProfileResponse> {
     const user = await this.prisma.user.findUnique({
@@ -256,13 +312,19 @@ export class MypageService {
     }
 
     const id = randomUUID();
-    const targetPath = this.resolveStoredResumePath(
+    const storageConfig = this.getResumeStorageConfig();
+    const target = this.resolveResumeObjectTarget(
+      storageConfig,
       userId,
       id,
       upload.fileName,
     );
-    await mkdir(dirname(targetPath), { recursive: true });
-    await writeFile(targetPath, data.body, { flag: 'wx' });
+    await this.writeResumeObject(
+      storageConfig,
+      target,
+      upload.contentType,
+      data.body,
+    );
 
     try {
       const resume = await this.prisma.resume.create({
@@ -278,7 +340,9 @@ export class MypageService {
 
       return this.toResumeItem(resume);
     } catch (error) {
-      await rm(targetPath, { force: true });
+      await this.deleteResumeObject(storageConfig, target).catch(
+        () => undefined,
+      );
       throw error;
     }
   }
@@ -291,23 +355,25 @@ export class MypageService {
       throw new NotFoundException('이력서를 찾을 수 없습니다.');
     }
 
-    const filePath = this.resolveStoredResumePath(
+    const storageConfig = this.getResumeStorageConfig();
+    const target = this.resolveResumeObjectTarget(
+      storageConfig,
       resume.userId,
       resume.id,
       resume.fileName,
     );
 
-    try {
-      const file = await stat(filePath);
-      if (!file.isFile()) throw new Error('Stored resume is not a file.');
-      return {
-        item: this.toResumeItem(resume),
-        filePath,
-        byteSize: file.size,
-      };
-    } catch {
-      throw new NotFoundException('이력서 파일을 찾을 수 없습니다.');
+    if (storageConfig.driver === 's3' && target.driver === 's3') {
+      return this.getS3ResumeDownload(storageConfig, target, resume);
     }
+
+    if (target.driver === 'local') {
+      return this.getLocalResumeDownload(target.filePath, resume);
+    }
+
+    throw new InternalServerErrorException(
+      '이력서 저장소 설정이 올바르지 않습니다.',
+    );
   }
 
   async deleteResume(userId: string, id: string): Promise<{ ok: boolean }> {
@@ -318,12 +384,14 @@ export class MypageService {
       throw new NotFoundException('이력서를 찾을 수 없습니다.');
     }
     await this.prisma.resume.delete({ where: { id } });
-    const filePath = this.resolveStoredResumePath(
+    const storageConfig = this.getResumeStorageConfig();
+    const target = this.resolveResumeObjectTarget(
+      storageConfig,
       resume.userId,
       resume.id,
       resume.fileName,
     );
-    await rm(filePath, { force: true }).catch(() => undefined);
+    await this.deleteResumeObject(storageConfig, target).catch(() => undefined);
     return { ok: true };
   }
 
@@ -394,13 +462,147 @@ export class MypageService {
     return `/mypage/resumes/${encodeURIComponent(id)}/download`;
   }
 
-  private resolveStoredResumePath(
+  private resolveResumeObjectTarget(
+    config: ResumeStorageConfig,
+    userId: string,
+    resumeId: string,
+    fileName: string,
+  ): ResumeObjectTarget {
+    if (config.driver === 's3') {
+      return {
+        driver: 's3',
+        key: this.buildS3ResumeKey(config, userId, resumeId, fileName),
+      };
+    }
+
+    return {
+      driver: 'local',
+      filePath: this.resolveLocalResumePath(
+        config.rootDir,
+        userId,
+        resumeId,
+        fileName,
+      ),
+    };
+  }
+
+  private async writeResumeObject(
+    config: ResumeStorageConfig,
+    target: ResumeObjectTarget,
+    contentType: string,
+    body: Buffer,
+  ) {
+    if (config.driver === 's3' && target.driver === 's3') {
+      await this.getS3Client(config.region).send(
+        new PutObjectCommand({
+          Bucket: config.bucket,
+          Key: target.key,
+          Body: body,
+          ContentLength: body.length,
+          ContentType: contentType,
+        }),
+      );
+      return;
+    }
+
+    if (config.driver === 'local' && target.driver === 'local') {
+      await mkdir(dirname(target.filePath), { recursive: true });
+      await writeFile(target.filePath, body, { flag: 'wx' });
+      return;
+    }
+
+    throw new InternalServerErrorException(
+      '이력서 저장소 설정이 올바르지 않습니다.',
+    );
+  }
+
+  private async getLocalResumeDownload(filePath: string, resume: ResumeRecord) {
+    try {
+      const file = await stat(filePath);
+      if (!file.isFile()) throw new Error('Stored resume is not a file.');
+      return {
+        item: this.toResumeItem(resume),
+        stream: createReadStream(filePath),
+        byteSize: file.size,
+      };
+    } catch {
+      throw new NotFoundException('이력서 파일을 찾을 수 없습니다.');
+    }
+  }
+
+  private async getS3ResumeDownload(
+    config: Extract<ResumeStorageConfig, { driver: 's3' }>,
+    target: Extract<ResumeObjectTarget, { driver: 's3' }>,
+    resume: ResumeRecord,
+  ) {
+    let output: GetObjectCommandOutput;
+    try {
+      output = await this.getS3Client(config.region).send(
+        new GetObjectCommand({
+          Bucket: config.bucket,
+          Key: target.key,
+        }),
+      );
+    } catch {
+      throw new NotFoundException('이력서 파일을 찾을 수 없습니다.');
+    }
+
+    return {
+      item: this.toResumeItem(resume),
+      stream: await this.toReadableStream(output.Body),
+      byteSize: output.ContentLength ?? resume.byteSize,
+    };
+  }
+
+  private async deleteResumeObject(
+    config: ResumeStorageConfig,
+    target: ResumeObjectTarget,
+  ) {
+    if (config.driver === 's3' && target.driver === 's3') {
+      await this.getS3Client(config.region).send(
+        new DeleteObjectCommand({
+          Bucket: config.bucket,
+          Key: target.key,
+        }),
+      );
+      return;
+    }
+
+    if (config.driver === 'local' && target.driver === 'local') {
+      await rm(target.filePath, { force: true });
+      return;
+    }
+
+    throw new InternalServerErrorException(
+      '이력서 저장소 설정이 올바르지 않습니다.',
+    );
+  }
+
+  private async toReadableStream(body: unknown) {
+    if (body instanceof Readable) return body;
+
+    const transformableBody = body as
+      | { transformToByteArray?: () => Promise<Uint8Array> }
+      | undefined;
+    if (transformableBody?.transformToByteArray) {
+      return Readable.from(
+        Buffer.from(await transformableBody.transformToByteArray()),
+      );
+    }
+
+    throw new InternalServerErrorException(
+      'S3 이력서 파일 응답을 읽을 수 없습니다.',
+    );
+  }
+
+  private resolveLocalResumePath(
+    rootDir: string,
     userId: string,
     resumeId: string,
     fileName: string,
   ) {
     const extension = extname(fileName).toLowerCase();
-    const rootPath = resolve(this.getResumeRootDir());
+    const rootPath = resolve(rootDir);
     const targetPath = resolve(rootPath, userId, `${resumeId}${extension}`);
     if (
       targetPath !== rootPath &&
@@ -411,15 +613,83 @@ export class MypageService {
     return targetPath;
   }
 
-  private getResumeRootDir() {
+  private buildS3ResumeKey(
+    config: Extract<ResumeStorageConfig, { driver: 's3' }>,
+    userId: string,
+    resumeId: string,
+    fileName: string,
+  ) {
+    const extension = extname(fileName).toLowerCase();
+    return [
+      config.keyPrefix,
+      encodeURIComponent(userId),
+      `${encodeURIComponent(resumeId)}${extension}`,
+    ].join('/');
+  }
+
+  private getResumeStorageConfig(): ResumeStorageConfig {
+    return this.getResumeStorageDriver() === 's3'
+      ? this.getS3ResumeConfig()
+      : this.getLocalResumeConfig();
+  }
+
+  private getResumeStorageDriver() {
+    const configured = this.config
+      .get<string>('RESUME_STORAGE_DRIVER')
+      ?.trim()
+      .toLowerCase();
+
+    if (configured === 's3' || configured === 'local') return configured;
+    if (configured) {
+      throw new InternalServerErrorException(
+        'RESUME_STORAGE_DRIVER must be set to local or s3.',
+      );
+    }
+
+    return isServerRuntime() ? 's3' : 'local';
+  }
+
+  private getLocalResumeConfig(): Extract<
+    ResumeStorageConfig,
+    { driver: 'local' }
+  > {
     const workspaceRoot = resolveWorkspaceRoot();
     const configuredPath = this.config.get<string>('LOCAL_RESUME_DIR')?.trim();
-    if (!configuredPath) {
-      return join(workspaceRoot, 'var', 'uploads', 'resumes');
+    return {
+      driver: 'local' as const,
+      rootDir: !configuredPath
+        ? join(workspaceRoot, 'var', 'uploads', 'resumes')
+        : isAbsolute(configuredPath)
+          ? configuredPath
+          : join(workspaceRoot, configuredPath),
+    };
+  }
+
+  private getS3ResumeConfig(): Extract<ResumeStorageConfig, { driver: 's3' }> {
+    const region = this.config.get<string>('AWS_REGION')?.trim();
+    const bucket = this.config.get<string>('S3_RESUME_BUCKET')?.trim();
+    const keyPrefix =
+      this.config
+        .get<string>('S3_RESUME_KEY_PREFIX')
+        ?.trim()
+        .replace(/^\/+|\/+$/g, '') || DEFAULT_S3_RESUME_KEY_PREFIX;
+
+    if (!region || !bucket) {
+      throw new InternalServerErrorException(
+        'S3 이력서 저장 환경 변수가 설정되지 않았습니다.',
+      );
     }
-    return isAbsolute(configuredPath)
-      ? configuredPath
-      : join(workspaceRoot, configuredPath);
+
+    return { driver: 's3' as const, region, bucket, keyPrefix };
+  }
+
+  private getS3Client(region: string) {
+    const existing = this.s3Clients.get(region);
+    if (existing) return existing;
+
+    const client = new S3Client({ region });
+    this.s3Clients.set(region, client);
+    return client;
   }
 
   private toResumeItem(resume: {

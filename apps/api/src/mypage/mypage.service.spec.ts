@@ -10,8 +10,26 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Readable } from 'node:stream';
+import { text } from 'node:stream/consumers';
 import { PrismaService } from '../prisma/prisma.service';
 import { MypageService, RESUME_MAX_BYTES } from './mypage.service';
+
+const mockS3Send = jest.fn((command: unknown): Promise<unknown> => {
+  void command;
+  return Promise.resolve(undefined);
+});
+
+jest.mock('@aws-sdk/client-s3', () => {
+  const actual =
+    jest.requireActual<typeof import('@aws-sdk/client-s3')>(
+      '@aws-sdk/client-s3',
+    );
+  return {
+    ...actual,
+    S3Client: jest.fn().mockImplementation(() => ({ send: mockS3Send })),
+  };
+});
 
 const createdAt = new Date('2026-05-10T00:00:00.000Z');
 
@@ -29,6 +47,7 @@ describe('MypageService resumes', () => {
   let service: MypageService;
 
   beforeEach(async () => {
+    mockS3Send.mockReset();
     tempDir = await mkdtemp(join(tmpdir(), 'accountit-resumes-'));
     prisma = {
       resume: {
@@ -110,7 +129,75 @@ describe('MypageService resumes', () => {
     });
     expect(result.item.id).toBe('resume-1');
     expect(result.byteSize).toBe(3);
-    expect(result.filePath).toBe(join(tempDir, 'user-1', 'resume-1.pdf'));
+    await expect(text(result.stream)).resolves.toBe('pdf');
+  });
+
+  it('stores uploaded resume files in S3 when configured', async () => {
+    mockS3Send.mockResolvedValueOnce({});
+    prisma.resume.create.mockImplementation(
+      ({ data }: { data: Record<string, unknown> }) =>
+        Promise.resolve({
+          ...data,
+          createdAt,
+          updatedAt: createdAt,
+        }),
+    );
+    service = new MypageService(
+      prisma as unknown as PrismaService,
+      createConfig({
+        RESUME_STORAGE_DRIVER: 's3',
+        AWS_REGION: 'ap-northeast-2',
+        S3_RESUME_BUCKET: 'private-resumes',
+      }),
+    );
+
+    const result = await service.createResume('user-1', {
+      fileName: 'resume.pdf',
+      contentType: 'application/pdf',
+      body: Buffer.from('%PDF'),
+    });
+
+    expect(result.fileUrl).toBe(`/mypage/resumes/${result.id}/download`);
+    expect(mockS3Send).toHaveBeenCalledTimes(1);
+    const command = readS3Command();
+    expect(command.constructor.name).toBe('PutObjectCommand');
+    expect(command.input).toMatchObject({
+      Bucket: 'private-resumes',
+      ContentLength: 4,
+      ContentType: 'application/pdf',
+    });
+    expect(command.input.Key).toEqual(
+      expect.stringMatching(/^resumes\/user-1\/.+\.pdf$/),
+    );
+  });
+
+  it('streams resume downloads from S3 when configured', async () => {
+    const resume = resumeRecord({ id: 'resume-1', userId: 'user-1' });
+    prisma.resume.findFirst.mockResolvedValue(resume);
+    mockS3Send.mockResolvedValueOnce({
+      Body: Readable.from(Buffer.from('pdf')),
+      ContentLength: 3,
+    });
+    service = new MypageService(
+      prisma as unknown as PrismaService,
+      createConfig({
+        RESUME_STORAGE_DRIVER: 's3',
+        AWS_REGION: 'ap-northeast-2',
+        S3_RESUME_BUCKET: 'private-resumes',
+      }),
+    );
+
+    const result = await service.getResumeDownload('user-1', 'resume-1');
+
+    expect(result.item.id).toBe('resume-1');
+    expect(result.byteSize).toBe(3);
+    await expect(text(result.stream)).resolves.toBe('pdf');
+    const command = readS3Command();
+    expect(command.constructor.name).toBe('GetObjectCommand');
+    expect(command.input).toMatchObject({
+      Bucket: 'private-resumes',
+      Key: 'resumes/user-1/resume-1.pdf',
+    });
   });
 
   it('removes stored resume files when deleting metadata', async () => {
@@ -155,4 +242,15 @@ function createConfig(values: Record<string, string | undefined>) {
   return {
     get: jest.fn((key: string) => values[key]),
   } as unknown as ConfigService;
+}
+
+function readS3Command(index = 0) {
+  const command = mockS3Send.mock.calls[index]?.[0];
+  if (!command || typeof command !== 'object') {
+    throw new Error(`Missing S3 command at index ${index}.`);
+  }
+  return command as {
+    constructor: { name: string };
+    input: Record<string, unknown>;
+  };
 }

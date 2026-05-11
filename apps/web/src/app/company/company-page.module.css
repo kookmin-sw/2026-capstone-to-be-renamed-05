@@ -19,6 +19,8 @@
   position: relative;
   overflow: hidden;
   background: linear-gradient(135deg, #fff0f5 0%, #ffd6e5 100%);
+  background-position: center;
+  background-size: cover;
   border-bottom: 1px solid var(--proto-brand-mid);
 }
 
@@ -307,6 +309,17 @@
   width: 100%;
   max-height: 8rem;
   object-fit: contain;
+}
+
+.backgroundPreviewFrame {
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+}
+
+.backgroundPreviewFrame img {
+  height: 100%;
+  max-height: none;
+  object-fit: cover;
 }
 
 .uploadHint {

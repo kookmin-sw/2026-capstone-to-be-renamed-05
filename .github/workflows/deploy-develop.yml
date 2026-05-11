@@ -1,0 +1,66 @@
+name: Deploy develop
+
+on:
+  push:
+    branches:
+      - develop
+
+concurrency:
+  group: develop-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Trigger EC2 deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger deploy API
+        env:
+          DEPLOY_API_TOKEN: ${{ secrets.DEPLOY_API_TOKEN }}
+          DEPLOY_API_URL: ${{ secrets.DEPLOY_API_URL }}
+          GITHUB_ACTOR_NAME: ${{ github.actor }}
+          GITHUB_RUN_ID_VALUE: ${{ github.run_id }}
+          GITHUB_SHA_VALUE: ${{ github.sha }}
+          GITHUB_REF_VALUE: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+
+          : "${DEPLOY_API_URL:?Set DEPLOY_API_URL secret, for example https://api.example.com}"
+          : "${DEPLOY_API_TOKEN:?Set DEPLOY_API_TOKEN secret}"
+
+          payload="$(node -e 'process.stdout.write(JSON.stringify({ref: process.env.GITHUB_REF_VALUE, sha: process.env.GITHUB_SHA_VALUE, actor: process.env.GITHUB_ACTOR_NAME, runId: process.env.GITHUB_RUN_ID_VALUE}))')"
+          response_file="$(mktemp)"
+
+          status="$(
+            curl --silent --show-error --location \
+              --max-time 1200 \
+              --output "${response_file}" \
+              --write-out "%{http_code}" \
+              --request POST \
+              --header "Authorization: Bearer ${DEPLOY_API_TOKEN}" \
+              --header "Content-Type: application/json" \
+              --data "${payload}" \
+              "${DEPLOY_API_URL%/}/ops/deploy"
+          )"
+
+          cat "${response_file}"
+          if [[ "${status}" -lt 200 || "${status}" -ge 300 ]]; then
+            exit 1
+          fi
+
+      - name: Wait for API health
+        env:
+          DEPLOY_API_URL: ${{ secrets.DEPLOY_API_URL }}
+        run: |
+          set -euo pipefail
+
+          sleep 5
+          for attempt in {1..60}; do
+            if curl --fail --silent --show-error "${DEPLOY_API_URL%/}/healthz"; then
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "API health check did not recover in time." >&2
+          exit 1

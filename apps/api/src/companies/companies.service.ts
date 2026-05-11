@@ -24,10 +24,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateCompanyJobSubmissionDto } from './dto/create-company-job-submission.dto';
 import { CreateCompanyProfileSubmissionDto } from './dto/create-company-profile-submission.dto';
 import { ListCompaniesDto } from './dto/list-companies.dto';
+import { UpdateCompanyBackgroundDto } from './dto/update-company-background.dto';
 import { UpdateCompanyLogoDto } from './dto/update-company-logo.dto';
 
 const companyListInclude = {
   logoAsset: { select: { publicUrl: true } },
+  backgroundAsset: { select: { publicUrl: true } },
   jobs: {
     where: { status: JobStatus.OPEN },
     select: { id: true },
@@ -38,6 +40,7 @@ const jobInclude = {
   company: {
     include: {
       logoAsset: { select: { publicUrl: true } },
+      backgroundAsset: { select: { publicUrl: true } },
     },
   },
   source: true,
@@ -50,6 +53,7 @@ const jobInclude = {
 
 const companyDetailInclude = {
   logoAsset: { select: { publicUrl: true } },
+  backgroundAsset: { select: { publicUrl: true } },
   jobs: {
     where: { status: JobStatus.OPEN },
     include: jobInclude,
@@ -250,6 +254,37 @@ export class CompaniesService {
     const updated = await this.prisma.company.update({
       where: { id: company.id },
       data: { logoAsset: { connect: { id: asset.id } } },
+      include: companyDetailInclude,
+    });
+
+    return this.toDetailItem(updated);
+  }
+
+  async updateBackground(userId: string, dto: UpdateCompanyBackgroundDto) {
+    const company = await this.getOwnedCompanyOrThrow(userId);
+    const backgroundAssetId = this.optionalTrimmed(dto.backgroundAssetId);
+
+    if (!backgroundAssetId) {
+      throw new BadRequestException('기업 배경 이미지 파일을 업로드해 주세요.');
+    }
+    const asset = await this.prisma.asset.findFirst({
+      where: {
+        id: backgroundAssetId,
+        companyId: company.id,
+        purpose: AssetPurpose.COMPANY_BACKGROUND,
+        status: AssetStatus.READY,
+      },
+      select: { id: true },
+    });
+    if (!asset) {
+      throw new BadRequestException(
+        '사용 가능한 기업 배경 이미지 업로드를 찾을 수 없습니다.',
+      );
+    }
+
+    const updated = await this.prisma.company.update({
+      where: { id: company.id },
+      data: { backgroundAsset: { connect: { id: asset.id } } },
       include: companyDetailInclude,
     });
 
@@ -482,6 +517,7 @@ export class CompaniesService {
       type: company.type,
       websiteUrl: company.websiteUrl,
       logoUrl: this.logoUrl(company),
+      backgroundUrl: this.backgroundUrl(company),
       description: company.description,
       tags: company.tags,
       employeeCount: company.employeeCount,
@@ -606,6 +642,7 @@ export class CompaniesService {
       companyId: job.companyId,
       companyName: job.company.name,
       companyLogoUrl: this.logoUrl(job.company),
+      companyBackgroundUrl: this.backgroundUrl(job.company),
       companyType: job.companyType,
       jobFamily: job.jobFamily,
       employmentType: job.employmentType,
@@ -814,6 +851,12 @@ export class CompaniesService {
 
   private logoUrl(company: { logoAsset?: { publicUrl: string } | null }) {
     return company.logoAsset?.publicUrl ?? null;
+  }
+
+  private backgroundUrl(company: {
+    backgroundAsset?: { publicUrl: string } | null;
+  }) {
+    return company.backgroundAsset?.publicUrl ?? null;
   }
 
   private normalizeStringArray(values: string[], max: number) {

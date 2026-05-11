@@ -2,6 +2,7 @@
 
 import type { CompanyListItem } from "@cpa/shared";
 import {
+  Bookmark,
   Building2,
   CircleDollarSign,
   RefreshCw,
@@ -16,7 +17,13 @@ import { SiteNav } from "@/components/site-nav";
 import { ActionButton } from "@/components/ui/action-button";
 import { FilterInput, FilterSelect } from "@/components/ui/filter-select";
 import { Pagination } from "@/components/ui/pagination";
-import { fetchCompanies } from "@/lib/api";
+import {
+  createMyBookmark,
+  deleteMyBookmark,
+  fetchCompanies,
+  fetchCurrentUser,
+  fetchMyBookmarks,
+} from "@/lib/api";
 import { companyTypeLabels } from "@/lib/labels";
 import { companyDetailHref } from "@/lib/routes";
 import styles from "./companies-page.module.css";
@@ -51,6 +58,55 @@ export default function CompaniesPage() {
   const [companyNoJobTotal, setCompanyNoJobTotal] = useState(0);
   const [filterOpen, setFilterOpen] = useState(true);
   const [companyPage, setCompanyPage] = useState(1);
+  const [bookmarkedCompanyIds, setBookmarkedCompanyIds] = useState<
+    Set<string>
+  >(new Set());
+  const [isJobSeeker, setIsJobSeeker] = useState(false);
+
+  useEffect(() => {
+    let ignore = false;
+    fetchCurrentUser()
+      .then((user) => {
+        if (ignore) return;
+        if (user?.role === "JOB_SEEKER") {
+          setIsJobSeeker(true);
+          return fetchMyBookmarks("COMPANY").then((data) => {
+            if (!ignore) {
+              setBookmarkedCompanyIds(
+                new Set(data.items.map((bookmark) => bookmark.targetId)),
+              );
+            }
+          });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  async function toggleCompanyBookmark(companyId: string) {
+    if (!isJobSeeker) return;
+    if (bookmarkedCompanyIds.has(companyId)) {
+      try {
+        const data = await fetchMyBookmarks("COMPANY");
+        const bm = data.items.find((item) => item.targetId === companyId);
+        if (bm) {
+          await deleteMyBookmark(bm.id);
+          setBookmarkedCompanyIds((prev) => {
+            const next = new Set(prev);
+            next.delete(companyId);
+            return next;
+          });
+        }
+      } catch {}
+    } else {
+      try {
+        await createMyBookmark("COMPANY", companyId);
+        setBookmarkedCompanyIds((prev) => new Set(prev).add(companyId));
+      } catch {}
+    }
+  }
 
   const companyParams = useMemo(() => {
     const next = new URLSearchParams({ sort: companySort });
@@ -421,7 +477,14 @@ export default function CompaniesPage() {
         ) : pagedCompanies.length ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {pagedCompanies.map((company) => (
-              <CompanyCard key={company.id} company={company} />
+              <CompanyCard
+                key={company.id}
+                company={company}
+                bookmarked={bookmarkedCompanyIds.has(company.id)}
+                onToggleBookmark={
+                  isJobSeeker ? toggleCompanyBookmark : undefined
+                }
+              />
             ))}
           </div>
         ) : (
@@ -441,13 +504,32 @@ export default function CompaniesPage() {
   );
 }
 
-function CompanyCard({ company }: { company: CompanyListItem }) {
+function CompanyCard({
+  company,
+  bookmarked,
+  onToggleBookmark,
+}: {
+  company: CompanyListItem;
+  bookmarked?: boolean;
+  onToggleBookmark?: (companyId: string) => void;
+}) {
   const initial = company.name.charAt(0);
   const hasJobs = company.openJobCount > 0;
 
   return (
     <Link href={companyDetailHref(company.id)} className={styles.companyCard}>
       <div className={styles.banner}>
+        {company.backgroundUrl ? (
+          <>
+            <img
+              src={company.backgroundUrl}
+              alt=""
+              aria-hidden="true"
+              className={styles.bannerImage}
+            />
+            <div className={styles.bannerOverlay} />
+          </>
+        ) : null}
         {hasJobs && (
           <span className={styles.openBadge}>
             채용 중 {company.openJobCount}
@@ -503,6 +585,27 @@ function CompanyCard({ company }: { company: CompanyListItem }) {
             ))}
           </div>
         )}
+
+        <div className={styles.cardActions}>
+          {onToggleBookmark && (
+            <button
+              type="button"
+              className={styles.bookmarkBtn}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onToggleBookmark(company.id);
+              }}
+              aria-label={bookmarked ? "북마크 해제" : "북마크 추가"}
+            >
+              <Bookmark
+                size={16}
+                fill={bookmarked ? "#facc15" : "none"}
+                stroke={bookmarked ? "#facc15" : "currentColor"}
+              />
+            </button>
+          )}
+        </div>
       </div>
     </Link>
   );

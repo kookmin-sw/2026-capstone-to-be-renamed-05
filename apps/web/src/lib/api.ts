@@ -1,10 +1,21 @@
 import type {
+  BookmarkItem,
+  BookmarkListResponse,
+  BookmarkTargetType,
   CompanyDashboardResponse,
   CompanyDetailItem,
   CompanyListItem,
   CompanyManagedJobItem,
   CompanyProfileSubmissionItem,
   CompanyType,
+  CommunityAnswerItem,
+  CommunityBoardType,
+  CommunityPostDetailResponse,
+  CommunityPostItem,
+  CommunityPostListResponse,
+  CreateCommunityAnswerPayload,
+  CreateCommunityPostPayload,
+  CreatePersonalVerificationRequestPayload,
   DeadlineType,
   EmploymentType,
   JobFamily,
@@ -15,14 +26,19 @@ import type {
   JobListItem,
   JobSubmissionItem,
   KicpaCondition,
+  MyProfileResponse,
+  PersonalVerificationRequestItem,
+  PersonalVerificationRequestListResponse,
+  ReviewPersonalVerificationRequestPayload,
+  ResumeItem,
+  ResumeListResponse,
   TraineeStatus,
   UserJobPresetItem,
   UserJobPresetListResponse,
 } from "@cpa/shared";
+import { getApiBaseUrl } from "./runtime-config";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  (process.env.NODE_ENV === "production" ? "/api" : "http://localhost:4000");
+const API_BASE_URL = getApiBaseUrl();
 
 export type JobListResponse = {
   items: JobListItem[];
@@ -63,6 +79,7 @@ type CompanyLogoUploadUrlResponse = {
   headers: Record<string, string>;
   publicUrl: string;
   expiresIn: number;
+  requiresCredentials?: boolean;
 };
 
 type CompanyLogoAssetResponse = {
@@ -71,6 +88,9 @@ type CompanyLogoAssetResponse = {
     publicUrl: string;
   };
 };
+
+type CompanyBackgroundUploadUrlResponse = CompanyLogoUploadUrlResponse;
+type CompanyBackgroundAssetResponse = CompanyLogoAssetResponse;
 
 export type CompanyJobSubmissionPayload = {
   title: string;
@@ -202,10 +222,11 @@ export async function uploadCompanyLogo(file: File) {
   const s3Response = await fetch(uploadUrlData.uploadUrl, {
     method: uploadUrlData.method,
     headers: uploadUrlData.headers,
+    credentials: uploadUrlData.requiresCredentials ? "include" : "omit",
     body: file,
   });
   if (!s3Response.ok) {
-    throw new Error("S3에 기업 이미지를 업로드하지 못했습니다.");
+    throw new Error("기업 이미지를 업로드하지 못했습니다.");
   }
 
   const completeResponse = await fetch(
@@ -234,6 +255,72 @@ export async function uploadCompanyLogo(file: File) {
   };
 }
 
+export async function uploadCompanyBackground(file: File) {
+  const uploadUrlResponse = await fetch(
+    `${API_BASE_URL}/assets/company-background/upload-url`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type,
+        byteSize: file.size,
+      }),
+    },
+  );
+  const uploadUrlData =
+    (await uploadUrlResponse.json()) as CompanyBackgroundUploadUrlResponse & {
+      message?: string | string[];
+    };
+  if (!uploadUrlResponse.ok || !uploadUrlData.uploadUrl) {
+    throw new Error(
+      readMessage(
+        uploadUrlData.message,
+        "기업 배경 이미지 업로드 URL 생성에 실패했습니다.",
+      ),
+    );
+  }
+
+  const uploadResponse = await fetch(uploadUrlData.uploadUrl, {
+    method: uploadUrlData.method,
+    headers: uploadUrlData.headers,
+    credentials: uploadUrlData.requiresCredentials ? "include" : "omit",
+    body: file,
+  });
+  if (!uploadResponse.ok) {
+    throw new Error("기업 배경 이미지를 업로드하지 못했습니다.");
+  }
+
+  const completeResponse = await fetch(
+    `${API_BASE_URL}/assets/${uploadUrlData.assetId}/complete`,
+    {
+      method: "POST",
+      credentials: "include",
+    },
+  );
+  const completeData = (await completeResponse.json()) as
+    | CompanyBackgroundAssetResponse
+    | { message?: string | string[] };
+  if (!completeResponse.ok) {
+    const errorData = completeData as { message?: string | string[] };
+    throw new Error(
+      readMessage(
+        errorData.message,
+        "기업 배경 이미지 업로드 확인에 실패했습니다.",
+      ),
+    );
+  }
+  if (!("asset" in completeData)) {
+    throw new Error("기업 배경 이미지 업로드 확인에 실패했습니다.");
+  }
+
+  return {
+    assetId: completeData.asset.id,
+    publicUrl: completeData.asset.publicUrl,
+  };
+}
+
 export async function updateCompanyLogo(logoAssetId: string) {
   const response = await fetch(`${API_BASE_URL}/companies/me/logo`, {
     method: "PATCH",
@@ -244,6 +331,21 @@ export async function updateCompanyLogo(logoAssetId: string) {
   if (!response.ok) {
     throw new Error(
       await readApiError(response, "기업 이미지 변경에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as CompanyDetailItem;
+}
+
+export async function updateCompanyBackground(backgroundAssetId: string) {
+  const response = await fetch(`${API_BASE_URL}/companies/me/background`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ backgroundAssetId }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "기업 배경 이미지 변경에 실패했습니다."),
     );
   }
   return (await response.json()) as CompanyDetailItem;
@@ -260,6 +362,129 @@ export async function fetchCurrentUser() {
     throw new Error(data.message ?? "현재 사용자를 불러오지 못했습니다.");
   }
   return data.user ?? null;
+}
+
+export async function fetchCommunityPosts(options: {
+  board?: CommunityBoardType;
+  search?: string;
+  sort?: "latest" | "popular";
+} = {}) {
+  const params = new URLSearchParams();
+  if (options.board) params.set("board", options.board);
+  if (options.search?.trim()) params.set("search", options.search.trim());
+  if (options.sort) params.set("sort", options.sort);
+  const query = params.toString();
+  const response = await fetch(
+    `${API_BASE_URL}/community/posts${query ? `?${query}` : ""}`,
+    {
+      credentials: "include",
+      cache: "no-store",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "커뮤니티 게시글을 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as CommunityPostListResponse;
+}
+
+export async function fetchCommunityPost(id: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/community/posts/${encodeURIComponent(id)}`,
+    {
+      credentials: "include",
+      cache: "no-store",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "커뮤니티 게시글을 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as CommunityPostDetailResponse;
+}
+
+export async function createCommunityPost(
+  payload: CreateCommunityPostPayload,
+) {
+  const response = await fetch(`${API_BASE_URL}/community/posts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "커뮤니티 게시글을 등록하지 못했습니다."),
+    );
+  }
+  return (await response.json()) as CommunityPostItem;
+}
+
+export async function createCommunityAnswer(
+  postId: string,
+  payload: CreateCommunityAnswerPayload,
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/community/posts/${encodeURIComponent(postId)}/answers`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "답변을 등록하지 못했습니다."),
+    );
+  }
+  return (await response.json()) as CommunityAnswerItem;
+}
+
+export async function likeCommunityPost(id: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/community/posts/${encodeURIComponent(id)}/like`,
+    {
+      method: "POST",
+      credentials: "include",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await readApiError(response, "좋아요 처리에 실패했습니다."));
+  }
+  return (await response.json()) as CommunityPostItem;
+}
+
+export async function likeCommunityAnswer(id: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/community/answers/${encodeURIComponent(id)}/like`,
+    {
+      method: "POST",
+      credentials: "include",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await readApiError(response, "좋아요 처리에 실패했습니다."));
+  }
+  return (await response.json()) as CommunityAnswerItem;
+}
+
+export async function resolveCommunityPost(id: string, answerId: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/community/posts/${encodeURIComponent(id)}/resolve`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ answerId }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(await readApiError(response, "답변 채택에 실패했습니다."));
+  }
+  return (await response.json()) as CommunityPostDetailResponse;
 }
 
 export async function fetchCompanyDashboard() {
@@ -582,6 +807,44 @@ export async function reviewAdminProfileSubmission(
   return (await response.json()) as CompanyProfileSubmissionItem;
 }
 
+export async function fetchAdminCpaVerificationRequests() {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/cpa-verification-requests`,
+    {
+      credentials: "include",
+      cache: "no-store",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "CPA 검증 요청을 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as PersonalVerificationRequestListResponse;
+}
+
+export async function reviewAdminCpaVerificationRequest(
+  id: string,
+  action: "approve" | "reject",
+  payload: ReviewPersonalVerificationRequestPayload = {},
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/admin/cpa-verification-requests/${id}/${action}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "CPA 검증 요청 처리에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as PersonalVerificationRequestItem;
+}
+
 export type AdminAiSuggestion = {
   id: string;
   jobId: string;
@@ -651,4 +914,147 @@ async function readApiError(response: Response, fallback: string) {
 function readMessage(message: string | string[] | undefined, fallback: string) {
   if (Array.isArray(message)) return message.join(" ");
   return message ?? fallback;
+}
+
+// ─── Mypage ──────────────────────────────────────────────────
+
+export async function fetchMyProfile() {
+  const response = await fetch(`${API_BASE_URL}/mypage/profile`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "프로필을 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as MyProfileResponse;
+}
+
+export async function updateMyProfile(data: { displayName?: string }) {
+  const response = await fetch(`${API_BASE_URL}/mypage/profile`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "프로필 수정에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as MyProfileResponse;
+}
+
+export async function submitMyCpaVerificationRequest(
+  payload: CreatePersonalVerificationRequestPayload,
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/mypage/cpa-verification-requests`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "CPA 검증 요청을 제출하지 못했습니다."),
+    );
+  }
+  return (await response.json()) as PersonalVerificationRequestItem;
+}
+
+export async function fetchMyBookmarks(type?: BookmarkTargetType) {
+  const params = type ? `?type=${type}` : "";
+  const response = await fetch(`${API_BASE_URL}/mypage/bookmarks${params}`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "북마크를 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as BookmarkListResponse;
+}
+
+export async function createMyBookmark(
+  targetType: BookmarkTargetType,
+  targetId: string,
+) {
+  const response = await fetch(`${API_BASE_URL}/mypage/bookmarks`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ targetType, targetId }),
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "북마크 추가에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as BookmarkItem;
+}
+
+export async function deleteMyBookmark(id: string) {
+  const response = await fetch(`${API_BASE_URL}/mypage/bookmarks/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "북마크 삭제에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as { ok: boolean };
+}
+
+export async function fetchMyResumes() {
+  const response = await fetch(`${API_BASE_URL}/mypage/resumes`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "이력서를 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as ResumeListResponse;
+}
+
+export async function uploadMyResume(file: File) {
+  const response = await fetch(`${API_BASE_URL}/mypage/resumes`, {
+    method: "POST",
+    headers: {
+      "Content-Type": file.type || "application/octet-stream",
+      "X-File-Name": encodeURIComponent(file.name),
+    },
+    credentials: "include",
+    body: file,
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "이력서 업로드에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as ResumeItem;
+}
+
+export function getMyResumeDownloadUrl(id: string) {
+  return `${API_BASE_URL}/mypage/resumes/${encodeURIComponent(id)}/download`;
+}
+
+export async function deleteMyResume(id: string) {
+  const response = await fetch(`${API_BASE_URL}/mypage/resumes/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "이력서 삭제에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as { ok: boolean };
 }

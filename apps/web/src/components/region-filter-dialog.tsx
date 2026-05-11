@@ -1,23 +1,26 @@
-"use client";
+'use client';
 
-import { Check, ChevronDown, X } from "lucide-react";
-import { useMemo, useState } from "react";
-import { koreaRegions } from "@/lib/regions";
+import { Check, ChevronDown, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { koreaRegions } from '@/lib/regions';
+import { cn } from '@/lib/utils';
 
 export function RegionFilterDialog({
   selectedLocations,
   onChange,
+  variant = 'default',
+  className,
 }: {
   selectedLocations: string[];
   onChange: (locations: string[]) => void;
+  variant?: 'default' | 'compact';
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [activeProvince, setActiveProvince] = useState("전국");
+  const [activeProvince, setActiveProvince] = useState('전국');
   const [draftLocations, setDraftLocations] = useState<string[]>([]);
 
-  const activeGroup = koreaRegions.find(
-    (region) => region.province === activeProvince,
-  );
+  const activeGroup = koreaRegions.find((region) => region.province === activeProvince);
   const summary = summarizeLocations(selectedLocations);
 
   const selectedCounts = useMemo(() => {
@@ -26,16 +29,14 @@ export function RegionFilterDialog({
       const districtCount = region.districts.filter((district) =>
         draftLocations.includes(`${region.province} ${district}`),
       ).length;
-      acc[region.province] = provinceSelected
-        ? region.districts.length
-        : districtCount;
+      acc[region.province] = provinceSelected ? region.districts.length : districtCount;
       return acc;
     }, {});
   }, [draftLocations]);
 
   const openDialog = () => {
     setDraftLocations(selectedLocations);
-    setActiveProvince(selectedLocations[0]?.split(" ")[0] ?? "전국");
+    setActiveProvince(selectedLocations[0]?.split(' ')[0] ?? '전국');
     setOpen(true);
   };
 
@@ -53,10 +54,7 @@ export function RegionFilterDialog({
       if (current.includes(province)) {
         return current.filter((location) => location !== province);
       }
-      return [
-        ...current.filter((location) => !location.startsWith(`${province} `)),
-        province,
-      ];
+      return [...current.filter((location) => !location.startsWith(`${province} `)), province];
     });
   };
 
@@ -72,38 +70,40 @@ export function RegionFilterDialog({
   };
 
   const removeDraftLocation = (location: string) => {
-    setDraftLocations((current) =>
-      current.filter((selected) => selected !== location),
-    );
+    setDraftLocations((current) => current.filter((selected) => selected !== location));
   };
+  const compact = variant === 'compact';
 
   return (
-    <div>
-      <p className="text-sm font-medium text-[var(--app-muted)]">지역</p>
+    <div className={className}>
+      <p className={compact ? 'mb-2 text-xs font-bold text-gray-800' : 'text-sm font-medium text-[var(--app-muted)]'}>
+        지역
+      </p>
       <button
         type="button"
         onClick={openDialog}
-        className="mt-2 flex w-full items-center justify-between border border-[var(--app-line)] bg-white px-3 py-2 text-left text-[var(--foreground)]"
+        className={cn(
+          'flex w-full items-center justify-between border border-[var(--app-line)] bg-white text-left text-[var(--foreground)] outline-none focus:border-[var(--brand)]',
+          compact ? 'rounded-lg px-2 py-1.5 text-xs' : 'mt-2 px-3 py-2 text-sm',
+        )}
       >
-        <span className={selectedLocations.length ? "" : "text-[var(--app-muted)]"}>
-          {summary}
-        </span>
+        <span className={cn('truncate', selectedLocations.length ? '' : 'text-[var(--app-muted)]')}>{summary}</span>
         <ChevronDown size={16} />
       </button>
 
       {selectedLocations.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {selectedLocations.slice(0, 3).map((location) => (
+        <div className={compact ? 'mt-2 flex flex-wrap gap-1.5' : 'mt-2 flex flex-wrap gap-2'}>
+          {selectedLocations.slice(0, compact ? 2 : 3).map((location) => (
             <span
               key={location}
-              className="rounded border border-[var(--app-line)] bg-[#fbfbf8] px-2 py-1 text-xs text-[var(--app-muted)]"
+              className="max-w-full truncate rounded border border-[var(--app-line)] bg-[#fbfbf8] px-2 py-1 text-xs text-[var(--app-muted)]"
             >
               {displayLocation(location)}
             </span>
           ))}
-          {selectedLocations.length > 3 && (
+          {selectedLocations.length > (compact ? 2 : 3) && (
             <span className="rounded border border-[var(--app-line)] bg-[#fbfbf8] px-2 py-1 text-xs text-[var(--app-muted)]">
-              +{selectedLocations.length - 3}
+              +{selectedLocations.length - (compact ? 2 : 3)}
             </span>
           )}
         </div>
@@ -130,22 +130,16 @@ export function RegionFilterDialog({
             </div>
 
             <div className="grid gap-4 overflow-y-auto px-6 pb-5">
-              <label className="text-sm font-medium text-[var(--app-muted)]">
-                국가
-                <div className="mt-2 flex items-center justify-between rounded-md border border-[var(--app-line)] px-4 py-3 text-base font-semibold text-[var(--foreground)]">
-                  한국
-                  <ChevronDown size={18} />
-                </div>
-              </label>
+              <label className="text-sm font-medium text-[var(--app-muted)]">대한민국</label>
 
               <div className="grid min-h-[360px] overflow-hidden rounded-lg border border-[var(--app-line)] md:grid-cols-[1fr_1.05fr]">
                 <div className="border-r border-[var(--app-line)] p-2">
                   <RegionNavButton
-                    active={activeProvince === "전국"}
+                    active={activeProvince === '전국'}
                     label="전국"
                     count={draftLocations.length}
                     onClick={() => {
-                      setActiveProvince("전국");
+                      setActiveProvince('전국');
                       reset();
                     }}
                   />
@@ -172,12 +166,8 @@ export function RegionFilterDialog({
                         <RegionCheckRow
                           key={district}
                           label={district}
-                          checked={draftLocations.includes(
-                            `${activeGroup.province} ${district}`,
-                          )}
-                          onChange={() =>
-                            toggleDistrict(activeGroup.province, district)
-                          }
+                          checked={draftLocations.includes(`${activeGroup.province} ${district}`)}
+                          onChange={() => toggleDistrict(activeGroup.province, district)}
                         />
                       ))}
                     </>
@@ -244,8 +234,8 @@ function RegionNavButton({
       onClick={onClick}
       className={
         active
-          ? "flex w-full items-center justify-between rounded-md bg-neutral-100 px-4 py-3 text-left text-base font-semibold"
-          : "flex w-full items-center justify-between rounded-md px-4 py-3 text-left text-base font-semibold hover:bg-neutral-50"
+          ? 'flex w-full items-center justify-between rounded-md bg-neutral-100 px-4 py-3 text-left text-base font-semibold'
+          : 'flex w-full items-center justify-between rounded-md px-4 py-3 text-left text-base font-semibold hover:bg-neutral-50'
       }
     >
       <span>{label}</span>
@@ -254,15 +244,7 @@ function RegionNavButton({
   );
 }
 
-function RegionCheckRow({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: () => void;
-}) {
+function RegionCheckRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
   return (
     <button
       type="button"
@@ -276,8 +258,8 @@ function RegionCheckRow({
         aria-hidden="true"
         className={
           checked
-            ? "flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 text-white"
-            : "h-7 w-7 rounded-md border-2 border-neutral-300 bg-white"
+            ? 'flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 text-white'
+            : 'h-7 w-7 rounded-md border-2 border-neutral-300 bg-white'
         }
       >
         {checked && <Check size={19} strokeWidth={3} />}
@@ -287,12 +269,12 @@ function RegionCheckRow({
 }
 
 function summarizeLocations(locations: string[]) {
-  if (!locations.length) return "전체";
+  if (!locations.length) return '전체';
   if (locations.length === 1) return displayLocation(locations[0]);
   const first = displayLocation(locations[0]);
   return `${first} 외 ${locations.length - 1}`;
 }
 
 function displayLocation(location: string) {
-  return location.includes(" ") ? location : `${location} 전체`;
+  return location.includes(' ') ? location : `${location} 전체`;
 }

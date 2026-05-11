@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 import { CompanyJobCard } from "./_components/company-job-card";
 import { IconInfo } from "./_components/icon-info";
 import { EmployeeTrendChart } from "./_components/employee-trend-chart";
@@ -25,7 +25,6 @@ import {
 } from "./_lib/company-detail-utils";
 import { SiteNav } from "@/components/site-nav";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { DetailHeroCard } from "@/components/ui/detail-hero-card";
 import { InfoItem } from "@/components/ui/info-item";
 import { actionButtonClassName } from "@/components/ui/action-button";
 import { fetchCompanyDetail } from "@/lib/api";
@@ -118,6 +117,11 @@ export function CompanyDetailClient() {
 
 function CompanyDetail({ company }: { company: CompanyDetailItem }) {
   const initial = company.name.charAt(0);
+  const heroStyle: CSSProperties | undefined = company.backgroundUrl
+    ? {
+        backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.93), rgba(255,255,255,0.72), rgba(255,255,255,0.48)), url("${company.backgroundUrl}")`,
+      }
+    : undefined;
 
   return (
     <main className="min-h-screen bg-[var(--background)]">
@@ -127,51 +131,60 @@ function CompanyDetail({ company }: { company: CompanyDetailItem }) {
         current={company.name}
       />
 
-      <DetailHeroCard>
-        <Link
-          href="/companies"
-          className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-gray-700 backdrop-blur-sm transition-colors hover:bg-white"
-        >
-          <ArrowLeft size={13} />
-          회사 목록
-        </Link>
+      <div className={styles.hero} style={heroStyle}>
+        <div className={styles.heroGlow} />
+        <div className="mx-auto max-w-6xl px-5 py-8">
+          <Link
+            href="/companies"
+            className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-gray-700 backdrop-blur-sm transition-colors hover:bg-white"
+          >
+            <ArrowLeft size={13} />
+            회사 목록
+          </Link>
 
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex items-end gap-3">
-            <div className={styles.logo}>
-              {company.logoUrl ? (
-                <img src={company.logoUrl} alt={company.name} />
-              ) : (
-                initial
-              )}
-            </div>
-            <div>
-              <div className="mb-1.5 flex flex-wrap gap-1.5">
-                <span className={styles.typeBadge}>{companyTypeLabels[company.type]}</span>
-                <span className="rounded-full bg-white/85 px-2.5 py-0.5 text-xs font-semibold text-gray-700 backdrop-blur-sm">
-                  {company.openJobCount > 0 ? `채용 중 ${company.openJobCount}건` : "현재 공고 없음"}
-                </span>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="flex items-end gap-3">
+              <div className={styles.logo}>
+                {company.logoUrl ? (
+                  <img src={company.logoUrl} alt={company.name} />
+                ) : (
+                  initial
+                )}
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">{company.name}</h1>
-              <p className="mt-0.5 max-w-2xl text-sm text-gray-600">
-                {company.description ?? "회사 소개가 준비 중입니다."}
-              </p>
+              <div>
+                <div className="mb-1.5 flex flex-wrap gap-1.5">
+                  <span className={styles.typeBadge}>
+                    {companyTypeLabels[company.type]}
+                  </span>
+                  <span className="rounded-full bg-white/85 px-2.5 py-0.5 text-xs font-semibold text-gray-700 backdrop-blur-sm">
+                    {company.openJobCount > 0
+                      ? `채용 중 ${company.openJobCount}건`
+                      : "현재 공고 없음"}
+                  </span>
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {company.name}
+                </h1>
+                <p className="mt-0.5 max-w-2xl text-sm text-gray-600">
+                  {company.description ?? "회사 소개가 준비 중입니다."}
+                </p>
+              </div>
             </div>
-          </div>
 
-          {company.websiteUrl && (
-            <a
-              href={company.websiteUrl}
-              target="_blank"
-              rel="noreferrer"
-              className={actionButtonClassName({ size: "md" })}
-            >
-              홈페이지
-              <ExternalLink size={15} />
-            </a>
-          )}
+            {company.websiteUrl && (
+              <a
+                href={company.websiteUrl}
+                target="_blank"
+                rel="noreferrer"
+                className={actionButtonClassName({ size: "md" })}
+              >
+                홈페이지
+                <ExternalLink size={15} />
+              </a>
+            )}
+          </div>
         </div>
-      </DetailHeroCard>
+      </div>
 
       <section className={styles.body}>
         <div className="grid gap-4">

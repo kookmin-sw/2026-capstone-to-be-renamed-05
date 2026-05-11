@@ -18,3 +18,12 @@ export function adminJobEditHref(id: string) {
 export function adminCompanyEditHref(id: string) {
   return withId("/admin/companies/edit/", id);
 }
+
+export function communityDetailHref(id: string) {
+  return withId("/community/detail/", id);
+}
+
+export function communityWriteHref(board?: string) {
+  if (!board) return "/community/write/";
+  return `/community/write/?board=${board}`;
+}

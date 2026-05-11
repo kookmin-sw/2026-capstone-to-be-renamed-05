@@ -1,0 +1,12 @@
+node_modules
+dist
+coverage
+.env
+.env.local
+.DS_Store
+prisma/dev.db
+prisma/dev.db-journal
+
+# 로컬 SQLite 파일
+dev.db
+dev.db-journal

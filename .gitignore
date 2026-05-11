@@ -6,11 +6,13 @@ coverage/
 .playwright-cli/
 .codex/run-logs/
 .claude/worktrees/
+.run/
 .next/
 apps/web/.next/
 apps/api/dist/
 packages/shared/dist/
 apps/web/public/uploads/
+var/uploads/
 
 .env
 .env.*

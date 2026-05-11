@@ -14,6 +14,7 @@ const navItems = [
   { href: "/jobs", label: "채용공고", key: "jobs" },
   { href: "/companies", label: "회사소개", key: "companies" },
   { href: "/calendar", label: "마감일 캘린더", key: "calendar" },
+  { href: "/community", label: "커뮤니티", key: "community" },
 ] as const;
 
 type SiteNavProps = {
@@ -24,6 +25,7 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
@@ -34,6 +36,9 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
       })
       .catch(() => {
         if (!ignore) setUser(null);
+      })
+      .finally(() => {
+        if (!ignore) setAuthReady(true);
       });
     return () => {
       ignore = true;
@@ -47,6 +52,9 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
   }
 
   const roleItems = [
+    ...(user?.role === "JOB_SEEKER"
+      ? [{ href: "/mypage", label: "마이페이지", key: "mypage" }]
+      : []),
     ...(user?.role === "COMPANY"
       ? [{ href: "/company", label: "기업 관리", key: "company" }]
       : []),
@@ -55,6 +63,11 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
       : []),
   ];
 
+  const loginHref =
+    pathname.startsWith("/mypage") || pathname.startsWith("/company")
+      ? `/login?next=${encodeURIComponent(pathname)}`
+      : "/login";
+
   async function logout() {
     if (loggingOut) return;
 
@@ -62,7 +75,7 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
     try {
       await logoutRequest();
       setUser(null);
-      if (pathname.startsWith("/company")) {
+      if (pathname.startsWith("/company") || pathname.startsWith("/mypage")) {
         router.replace("/login");
       } else {
         router.refresh();
@@ -100,7 +113,7 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
           })}
         </div>
         <div className={styles.spacer}>
-          {user ? (
+          {!authReady ? null : user ? (
             <div className={styles.userActions}>
               <span className={styles.userName}>
                 {user.displayName ?? user.username}
@@ -118,7 +131,7 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
             </div>
           ) : isLanding ? (
             <div className={styles.landingActions}>
-              <Link href="/login" className={styles.loginLink}>
+              <Link href={loginHref} className={styles.loginLink}>
                 로그인
               </Link>
               <ActionLink href="/login?mode=register" size="sm">
@@ -126,7 +139,7 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
               </ActionLink>
             </div>
           ) : (
-            <ActionLink href="/login" size="sm">
+            <ActionLink href={loginHref} size="sm">
               로그인 / 회원가입
             </ActionLink>
           )}

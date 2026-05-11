@@ -1,6 +1,7 @@
-import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import {
+  AssetPurpose,
+  AssetStatus,
   Company,
   CompanyType,
   DeadlineType,
@@ -14,6 +15,17 @@ import {
   UserRole,
 } from "@prisma/client";
 import argon2 from "argon2";
+import { config as loadDotenv } from "dotenv";
+import {
+  resolveEnvFilePaths,
+  resolvePrismaPostgresConfig,
+} from "../apps/api/src/config/runtime-environment";
+import { statSync } from "node:fs";
+import { join } from "node:path";
+
+for (const envFilePath of resolveEnvFilePaths()) {
+  loadDotenv({ path: envFilePath, override: false });
+}
 
 const TARGET_COMPANY_COUNT = 75;
 const TARGET_JOB_COUNT = 300;
@@ -36,14 +48,10 @@ const legacyMockUsers = [
   { username: "company", displayName: "기업 담당자", role: UserRole.COMPANY },
 ];
 
-const connectionString = process.env.DATABASE_URL;
+const { connectionString, schema } = resolvePrismaPostgresConfig();
 
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({
-    connectionString:
-      connectionString ??
-      "postgresql://cpa:cpa@localhost:5432/cpa_jobs?schema=public",
-  }),
+  adapter: new PrismaPg({ connectionString }, schema ? { schema } : undefined),
 });
 
 type EmployeeTrendPoint = {
@@ -119,6 +127,104 @@ const companyTypeTags: Record<CompanyType, string[]> = {
   [CompanyType.GENERAL_COMPANY]: ["인하우스", "내부회계", "상장사"],
   [CompanyType.PUBLIC_INSTITUTION]: ["공공기관", "예산", "정산"],
 };
+
+const companyBackgroundByType: Record<
+  CompanyType,
+  { fileName: string; originalName: string }
+> = {
+  [CompanyType.BIG4]: {
+    fileName: "big4.png",
+    originalName: "Big4 accounting office background",
+  },
+  [CompanyType.LOCAL_ACCOUNTING_FIRM]: {
+    fileName: "local-accounting-firm.png",
+    originalName: "Local accounting firm background",
+  },
+  [CompanyType.MID_SMALL_ACCOUNTING_FIRM]: {
+    fileName: "mid-small-accounting-firm.png",
+    originalName: "Small tax accounting office background",
+  },
+  [CompanyType.FINANCIAL_COMPANY]: {
+    fileName: "financial-company.png",
+    originalName: "Financial company background",
+  },
+  [CompanyType.GENERAL_COMPANY]: {
+    fileName: "general-company.png",
+    originalName: "Corporate finance team background",
+  },
+  [CompanyType.PUBLIC_INSTITUTION]: {
+    fileName: "public-institution.png",
+    originalName: "Public institution finance office background",
+  },
+};
+
+const companyLogoByName = new Map<
+  string,
+  { fileName: string; originalName: string }
+>([
+  [
+    "한빛회계법인",
+    {
+      fileName: "hanbit-accounting.png",
+      originalName: "Hanbit accounting logo",
+    },
+  ],
+  [
+    "두나무",
+    {
+      fileName: "dunamu.png",
+      originalName: "Dunamu logo",
+    },
+  ],
+  [
+    "삼일회계법인",
+    {
+      fileName: "samil-accounting.png",
+      originalName: "Samil accounting logo",
+    },
+  ],
+  [
+    "서율세무회계",
+    {
+      fileName: "seoyul-tax-accounting.png",
+      originalName: "Seoyul tax accounting logo",
+    },
+  ],
+  [
+    "그린인사이트",
+    {
+      fileName: "green-insight.png",
+      originalName: "Green Insight logo",
+    },
+  ],
+]);
+
+function buildMockPublicAssetUrl(path: string) {
+  const publicBaseUrl =
+    process.env.NEXT_PUBLIC_S3_PUBLIC_BASE_URL?.trim() ||
+    process.env.S3_PUBLIC_BASE_URL?.trim() ||
+    process.env.NEXT_PUBLIC_LOCAL_ASSET_PUBLIC_BASE_URL?.trim() ||
+    process.env.LOCAL_ASSET_PUBLIC_BASE_URL?.trim();
+
+  if (!publicBaseUrl) return `/${path}`;
+  return `${publicBaseUrl.replace(/\/+$/, "")}/${path}`;
+}
+
+function getMockStorageBucket() {
+  return process.env.S3_ASSET_BUCKET?.trim() || "static-public";
+}
+
+function getMockStorageRegion() {
+  return process.env.AWS_REGION?.trim() || "local";
+}
+
+function getStaticAssetByteSize(path: string) {
+  try {
+    return statSync(join(process.cwd(), "apps", "web", "public", path)).size;
+  } catch {
+    return 1;
+  }
+}
 
 function calculateRecentAttritionRate(trend: EmployeeTrendPoint[]) {
   const recent = trend.slice(-3);
@@ -545,21 +651,107 @@ async function upsertJob(jobData: SeedJob, lastCheckedAt = new Date()) {
 function buildCareerVerificationMetadata(company: Company) {
   if (company.type === CompanyType.BIG4) {
     return {
-      careerVerificationSignals: ['BIG4', 'MAJOR_ACCOUNTING_FIRM'],
-      careerVerificationNote: 'Mock seed: Big4 company type',
-      careerVerificationSource: 'mock-company-type',
+      careerVerificationSignals: ["BIG4", "MAJOR_ACCOUNTING_FIRM"],
+      careerVerificationNote: "Mock seed: Big4 company type",
+      careerVerificationSource: "mock-company-type",
     };
   }
 
   if (company.type === CompanyType.PUBLIC_INSTITUTION) {
     return {
-      careerVerificationSignals: ['PUBLIC_INSTITUTION', 'PUBLIC_EQUIVALENT'],
-      careerVerificationNote: 'Mock seed: public institution company type',
-      careerVerificationSource: 'mock-company-type',
+      careerVerificationSignals: ["PUBLIC_INSTITUTION", "PUBLIC_EQUIVALENT"],
+      careerVerificationNote: "Mock seed: public institution company type",
+      careerVerificationSource: "mock-company-type",
     };
   }
 
   return null;
+}
+
+async function upsertCompanyBackgroundAsset(company: Company, ownerUserId: string) {
+  const background = companyBackgroundByType[company.type];
+  const assetPath = `company-backgrounds/${background.fileName}`;
+  const publicUrl = buildMockPublicAssetUrl(assetPath);
+  const key = `mock-company-backgrounds/${company.id}/${background.fileName}`;
+  const asset = await prisma.asset.upsert({
+    where: { key },
+    update: {
+      purpose: AssetPurpose.COMPANY_BACKGROUND,
+      status: AssetStatus.READY,
+      bucket: getMockStorageBucket(),
+      region: getMockStorageRegion(),
+      publicUrl,
+      contentType: "image/png",
+      byteSize: getStaticAssetByteSize(assetPath),
+      originalName: background.originalName,
+      uploadedById: ownerUserId,
+      companyId: company.id,
+      completedAt: new Date("2026-05-10T00:00:00.000Z"),
+    },
+    create: {
+      purpose: AssetPurpose.COMPANY_BACKGROUND,
+      status: AssetStatus.READY,
+      bucket: getMockStorageBucket(),
+      region: getMockStorageRegion(),
+      key,
+      publicUrl,
+      contentType: "image/png",
+      byteSize: getStaticAssetByteSize(assetPath),
+      originalName: background.originalName,
+      uploadedById: ownerUserId,
+      companyId: company.id,
+      completedAt: new Date("2026-05-10T00:00:00.000Z"),
+    },
+  });
+
+  await prisma.company.update({
+    where: { id: company.id },
+    data: { backgroundAsset: { connect: { id: asset.id } } },
+  });
+}
+
+async function upsertCompanyLogoAsset(company: Company, ownerUserId: string) {
+  const logo = companyLogoByName.get(company.name);
+  if (!logo) return;
+
+  const assetPath = `company-logos/${logo.fileName}`;
+  const publicUrl = buildMockPublicAssetUrl(assetPath);
+  const key = `mock-company-logos/${company.id}/${logo.fileName}`;
+  const asset = await prisma.asset.upsert({
+    where: { key },
+    update: {
+      purpose: AssetPurpose.COMPANY_LOGO,
+      status: AssetStatus.READY,
+      bucket: getMockStorageBucket(),
+      region: getMockStorageRegion(),
+      publicUrl,
+      contentType: "image/png",
+      byteSize: getStaticAssetByteSize(assetPath),
+      originalName: logo.originalName,
+      uploadedById: ownerUserId,
+      companyId: company.id,
+      completedAt: new Date("2026-05-10T00:00:00.000Z"),
+    },
+    create: {
+      purpose: AssetPurpose.COMPANY_LOGO,
+      status: AssetStatus.READY,
+      bucket: getMockStorageBucket(),
+      region: getMockStorageRegion(),
+      key,
+      publicUrl,
+      contentType: "image/png",
+      byteSize: getStaticAssetByteSize(assetPath),
+      originalName: logo.originalName,
+      uploadedById: ownerUserId,
+      companyId: company.id,
+      completedAt: new Date("2026-05-10T00:00:00.000Z"),
+    },
+  });
+
+  await prisma.company.update({
+    where: { id: company.id },
+    data: { logoAsset: { connect: { id: asset.id } } },
+  });
 }
 
 async function main() {
@@ -800,6 +992,17 @@ async function main() {
           ownerUserId: companyOwners[index].id,
         },
       }),
+    ),
+  );
+
+  await Promise.all(
+    companies.map((company, index) =>
+      upsertCompanyBackgroundAsset(company, companyOwners[index].id),
+    ),
+  );
+  await Promise.all(
+    companies.map((company, index) =>
+      upsertCompanyLogoAsset(company, companyOwners[index].id),
     ),
   );
 

@@ -81,11 +81,51 @@ enum AiSuggestionStatus {
 
 enum AssetPurpose {
   COMPANY_LOGO
+  COMPANY_BACKGROUND
 }
 
 enum AssetStatus {
   PENDING
   READY
+}
+
+enum CpaVerificationStatus {
+  UNVERIFIED
+  PENDING
+  CPA_VERIFIED
+  REJECTED
+}
+
+enum PersonalCareerStage {
+  CPA_UNPLACED
+  TRAINEE
+  LICENSED_CPA
+}
+
+enum EmploymentHistoryStatus {
+  UNKNOWN
+  NONE
+  HAS_EMPLOYMENT
+}
+
+enum PersonalVerificationRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CommunityBoardType {
+  CPA_PREP
+  TRAINEE
+  SENIOR
+  FREE
+}
+
+enum CommunityPostStatus {
+  QUESTION
+  ANSWERED
+  FREE
+  INFO
 }
 
 model User {
@@ -105,6 +145,50 @@ model User {
   companyProfileSubmissions         CompanyProfileSubmission[] @relation("CompanyProfileSubmissionSubmitter")
   reviewedCompanyProfileSubmissions CompanyProfileSubmission[] @relation("CompanyProfileSubmissionReviewer")
   uploadedAssets                    Asset[]                    @relation("AssetUploader")
+  bookmarks                         Bookmark[]
+  resumes                           Resume[]
+  personalProfile                    PersonalProfile?
+  personalVerificationRequests       PersonalVerificationRequest[] @relation("PersonalVerificationRequestSubmitter")
+  reviewedPersonalVerificationRequests PersonalVerificationRequest[] @relation("PersonalVerificationRequestReviewer")
+  communityPosts                     CommunityPost[] @relation("CommunityPostAuthor")
+  communityAnswers                   CommunityAnswer[] @relation("CommunityAnswerAuthor")
+}
+
+model PersonalProfile {
+  userId                  String                    @id
+  cpaVerificationStatus   CpaVerificationStatus     @default(UNVERIFIED)
+  careerStage             PersonalCareerStage?
+  employmentHistoryStatus EmploymentHistoryStatus   @default(UNKNOWN)
+  verifiedAt              DateTime?
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([cpaVerificationStatus])
+  @@index([careerStage])
+}
+
+model PersonalVerificationRequest {
+  id                      String                            @id @default(uuid())
+  userId                  String
+  applicantName           String
+  birthDate               String?
+  registrationNumber      String?
+  registrationNumberLast4 String?
+  requestedCareerStage    PersonalCareerStage
+  status                  PersonalVerificationRequestStatus @default(PENDING)
+  adminNote               String?
+  reviewedById            String?
+  reviewedAt              DateTime?
+  createdAt               DateTime                          @default(now())
+  updatedAt               DateTime                          @updatedAt
+
+  user       User  @relation("PersonalVerificationRequestSubmitter", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("PersonalVerificationRequestReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([status, createdAt])
 }
 
 model Company {
@@ -113,6 +197,7 @@ model Company {
   type                CompanyType
   websiteUrl          String?
   logoAssetId         String?     @unique
+  backgroundAssetId   String?     @unique
   description         String?
   businessNumber      String?
   employeeTrend       Json?
@@ -128,6 +213,7 @@ model Company {
 
   owner              User                       @relation("CompanyOwner", fields: [ownerUserId], references: [id])
   logoAsset          Asset?                     @relation("CompanyLogoAsset", fields: [logoAssetId], references: [id], onDelete: SetNull)
+  backgroundAsset    Asset?                     @relation("CompanyBackgroundAsset", fields: [backgroundAssetId], references: [id], onDelete: SetNull)
   assets             Asset[]                    @relation("CompanyAssets")
   metadata           CompanyMetadata?
   jobs               Job[]
@@ -155,6 +241,7 @@ model Asset {
   uploadedBy     User     @relation("AssetUploader", fields: [uploadedById], references: [id])
   company        Company  @relation("CompanyAssets", fields: [companyId], references: [id], onDelete: Cascade)
   logoForCompany Company? @relation("CompanyLogoAsset")
+  backgroundForCompany Company? @relation("CompanyBackgroundAsset")
 
   @@index([companyId, purpose, status])
   @@index([uploadedById, status])
@@ -334,4 +421,77 @@ model ImportRun {
   errorRows    Int      @default(0)
   notes        String?
   createdAt    DateTime @default(now())
+}
+
+enum BookmarkTargetType {
+  JOB
+  COMPANY
+}
+
+model Bookmark {
+  id         String             @id @default(uuid())
+  userId     String
+  targetType BookmarkTargetType
+  targetId   String
+  createdAt  DateTime           @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetType, targetId])
+  @@index([userId, targetType, createdAt])
+}
+
+model Resume {
+  id           String   @id @default(uuid())
+  userId       String
+  fileName     String
+  fileUrl      String
+  contentType  String
+  byteSize     Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model CommunityPost {
+  id               String              @id @default(uuid())
+  boardType        CommunityBoardType
+  title            String
+  content          String
+  status           CommunityPostStatus @default(QUESTION)
+  tags             String[]            @default([])
+  authorId         String
+  isAnonymous      Boolean             @default(true)
+  viewCount        Int                 @default(0)
+  likeCount        Int                 @default(0)
+  acceptedAnswerId String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  author  User              @relation("CommunityPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  answers CommunityAnswer[]
+
+  @@index([boardType, createdAt])
+  @@index([authorId, createdAt])
+}
+
+model CommunityAnswer {
+  id          String   @id @default(uuid())
+  postId      String
+  authorId    String
+  content     String
+  isAnonymous Boolean  @default(true)
+  likeCount   Int      @default(0)
+  isAccepted  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  post   CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User          @relation("CommunityAnswerAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@index([authorId, createdAt])
 }

@@ -1,6 +1,10 @@
 "use client";
 
-import { jobPresetConfigs, type UserJobPresetItem } from "@cpa/shared";
+import {
+  jobPresetConfigs,
+  type JobFilterPreference,
+  type UserJobPresetItem,
+} from "@cpa/shared";
 import { Plus, X } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import type { SetJobFiltersOptions } from "@/hooks/use-job-filter-state";
@@ -18,6 +22,14 @@ import {
   userPresetState,
   type JobFilterState,
 } from "@/lib/job-filters";
+import {
+  companyTypeLabels,
+  deadlineTypeLabels,
+  employmentLabels,
+  jobFamilyLabels,
+  kicpaLabels,
+  traineeLabels,
+} from "@/lib/labels";
 import { cn } from "@/lib/utils";
 import styles from "./job-preset-bar.module.css";
 
@@ -27,7 +39,71 @@ type JobPresetBarProps = {
   className?: string;
 };
 
-const personalPresetLimit = 5;
+const careerLevelLabels: Record<string, string> = {
+  entry: "신입",
+  junior: "주니어",
+  experienced: "경력",
+};
+
+function createPresetDraftName(filter: JobFilterPreference) {
+  const parts: string[] = [];
+  const location = createLocationLabel(filter.selectedLocations);
+  if (location) parts.push(location);
+  pushMappedLabel(parts, filter.jobFamily, jobFamilyLabels);
+  pushMappedLabel(parts, filter.companyType, companyTypeLabels);
+  pushCareerLabel(parts, filter.careerLevel);
+  if (filter.practicalTrainingInstitution === "true") parts.push("실무수습");
+  pushMappedLabel(parts, filter.traineeStatus, traineeLabels);
+  pushMappedLabel(parts, filter.kicpaCondition, kicpaLabels);
+  pushMappedLabel(parts, filter.employmentType, employmentLabels);
+  pushDeadlineLabel(parts, filter);
+  if (filter.search) parts.push(filter.search);
+
+  if (!parts.length) return "내 필터 조합";
+  const visible = parts.slice(0, 3);
+  const hiddenCount = parts.length - visible.length;
+  return hiddenCount > 0
+    ? `${visible.join("·")} 외 ${hiddenCount}`
+    : visible.join("·");
+}
+
+function createLocationLabel(locations: string[] | undefined) {
+  if (!locations?.length) return "";
+  const [first, ...rest] = locations;
+  const trimmed = first.trim();
+  if (!trimmed) return "";
+  return rest.length ? `${trimmed} 외 ${rest.length}지역` : trimmed;
+}
+
+function pushMappedLabel(
+  parts: string[],
+  value: string | undefined,
+  labels: Record<string, string>,
+) {
+  if (!value) return;
+  parts.push(labels[value] ?? value);
+}
+
+function pushCareerLabel(parts: string[], value: string | undefined) {
+  if (!value) return;
+  const labels = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => careerLevelLabels[item] ?? item);
+  if (labels.length) parts.push(labels.join("/"));
+}
+
+function pushDeadlineLabel(
+  parts: string[],
+  filter: Pick<JobFilterPreference, "deadlineType" | "deadlineWithinDays">,
+) {
+  if (filter.deadlineWithinDays) {
+    parts.push(`${filter.deadlineWithinDays}일 이내 마감`);
+    return;
+  }
+  pushMappedLabel(parts, filter.deadlineType, deadlineTypeLabels);
+}
 
 export function JobPresetBar({
   filters,
@@ -98,21 +174,16 @@ export function JobPresetBar({
   const isDuplicate = personalPresets.some(
     (preset) => preset.filterSignature === signature,
   );
-  const isAtLimit = personalPresets.length >= personalPresetLimit;
   const saveDisabled =
-    authMode !== "job-seeker" || !canSave || isDuplicate || isAtLimit || saving;
-  const confirmDisabled = saveDisabled || !draftName.trim();
+    authMode !== "job-seeker" || !canSave || isDuplicate || saving;
+  const confirmDisabled = saveDisabled;
 
   const saveTitle = !canSave
     ? "저장할 필터 조합이 없습니다."
     : isDuplicate
       ? "이미 저장된 조합입니다."
-      : isAtLimit
-        ? `개인 프리셋은 최대 ${personalPresetLimit}개까지 저장할 수 있습니다.`
-        : "현재 필터 조합 저장";
-  const confirmTitle = !draftName.trim()
-    ? "프리셋 이름을 입력해 주세요."
-    : saveTitle;
+      : "현재 필터 조합 저장";
+  const confirmTitle = saveTitle;
 
   const applyBasePreset = (id: JobFilterState["preset"]) => {
     onChange({
@@ -137,6 +208,9 @@ export function JobPresetBar({
 
   const handleStartSave = () => {
     if (saveDisabled) return;
+    setDraftName(
+      createPresetDraftName(jobFiltersToPresetSnapshot(filters)).slice(0, 30),
+    );
     setNaming(true);
     setError("");
   };
@@ -152,7 +226,10 @@ export function JobPresetBar({
     if (confirmDisabled) return;
     setSaving(true);
     setError("");
-    createUserJobPreset(jobFiltersToPresetSnapshot(filters), draftName.trim())
+    createUserJobPreset(
+      jobFiltersToPresetSnapshot(filters),
+      draftName.trim() || undefined,
+    )
       .then((created) => {
         setPersonalPresets((current) => [...current, created]);
         setNaming(false);

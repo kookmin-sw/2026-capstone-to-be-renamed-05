@@ -1,5 +1,6 @@
 import type { JobListItem } from "@cpa/shared";
 import {
+  Bookmark,
   BriefcaseBusiness,
   CalendarDays,
   CalendarRange,
@@ -98,7 +99,7 @@ export function JobCard({ job }: { job: JobListItem }) {
   );
 }
 
-export function JobGridCard({ job }: { job: JobListItem }) {
+export function JobGridCard({ job, bookmarked, onToggleBookmark }: { job: JobListItem; bookmarked?: boolean; onToggleBookmark?: (jobId: string) => void }) {
   const initial = job.companyName.charAt(0);
   const dDay = job.dDay;
   const dDayLabel =
@@ -114,6 +115,17 @@ export function JobGridCard({ job }: { job: JobListItem }) {
   return (
     <article className={styles.gridCard}>
       <div className={styles.banner}>
+        {job.companyBackgroundUrl ? (
+          <>
+            <img
+              src={job.companyBackgroundUrl}
+              alt=""
+              aria-hidden="true"
+              className={styles.bannerImage}
+            />
+            <div className={styles.bannerOverlay} />
+          </>
+        ) : null}
         {dDayLabel && (
           <span
             className={cn(styles.dDay, isUrgent && styles.urgent)}
@@ -157,15 +169,23 @@ export function JobGridCard({ job }: { job: JobListItem }) {
           >
             상세 보기
           </ActionLink>
-          <a
-            href={job.originalUrl}
-            target="_blank"
-            rel="noreferrer"
-            className={actionButtonClassName({ variant: "outline", size: "icon" })}
-            aria-label={`${job.title} 원문 보기`}
-          >
-            <ExternalLink size={13} />
-          </a>
+          {onToggleBookmark && (
+            <button
+              type="button"
+              className={styles.bookmarkBtn}
+              onClick={(e) => {
+                e.preventDefault();
+                onToggleBookmark(job.id);
+              }}
+              aria-label={bookmarked ? "북마크 해제" : "북마크 추가"}
+            >
+              <Bookmark
+                size={16}
+                fill={bookmarked ? "#facc15" : "none"}
+                stroke={bookmarked ? "#facc15" : "currentColor"}
+              />
+            </button>
+          )}
         </div>
       </div>
     </article>

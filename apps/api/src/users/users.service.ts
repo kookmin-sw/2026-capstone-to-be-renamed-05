@@ -8,8 +8,6 @@ import { Prisma } from '@prisma/client';
 import type { JobFilterPreference, UserJobPresetItem } from '@cpa/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
-const userJobPresetLimit = 5;
-
 const stringFilterKeys = [
   'search',
   'jobFamily',
@@ -151,13 +149,6 @@ export class UsersService {
     });
     if (existing) {
       throw new ConflictException('이미 저장된 필터 조합입니다.');
-    }
-
-    const count = await this.prisma.userJobPreset.count({ where: { userId } });
-    if (count >= userJobPresetLimit) {
-      throw new BadRequestException(
-        `개인 프리셋은 최대 ${userJobPresetLimit}개까지 저장할 수 있습니다.`,
-      );
     }
 
     const preset = await this.prisma.userJobPreset.create({

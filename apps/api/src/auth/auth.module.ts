@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { OptionalJwtAuthGuard } from './optional-jwt-auth.guard';
 import { RolesGuard } from './roles.guard';
+import { isServerRuntime } from '../config/runtime-environment';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { RolesGuard } from './roles.guard';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
         const secret = config.get<string>('JWT_SECRET')?.trim();
-        if (!secret && config.get<string>('NODE_ENV') === 'production') {
+        if (!secret && isServerRuntime()) {
           throw new Error('JWT_SECRET must be set in production.');
         }
 

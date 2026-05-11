@@ -9,23 +9,20 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { ConfigService } from '@nestjs/config';
 import type { CookieOptions, Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import type { RequestWithUser } from './auth.types';
+import { isServerRuntime } from '../config/runtime-environment';
 
 const ACCESS_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly config: ConfigService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Post('register')
   async register(
@@ -66,7 +63,7 @@ export class AuthController {
     return {
       httpOnly: true,
       sameSite: 'lax',
-      secure: this.config.get<string>('NODE_ENV') === 'production',
+      secure: isServerRuntime(),
       path: '/',
       maxAge: ACCESS_TOKEN_MAX_AGE_MS,
     };

@@ -3,6 +3,8 @@
   min-height: 11.25rem;
   overflow: hidden;
   background: linear-gradient(135deg, #fff0f5 0%, #ffd6e5 100%);
+  background-position: center;
+  background-size: cover;
 }
 
 .heroGlow {

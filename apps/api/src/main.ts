@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { isServerRuntime } from './config/runtime-environment';
 
 type TrustProxyApplication = {
   set(name: 'trust proxy', value: number): void;
@@ -18,8 +19,13 @@ async function bootstrap() {
 
   app.use(helmet());
   app.use(cookieParser());
+  const webOrigin = process.env.WEB_ORIGIN?.trim();
+  if (!webOrigin && isServerRuntime()) {
+    throw new Error('WEB_ORIGIN must be set when APP_ENV=aws.');
+  }
+
   app.enableCors({
-    origin: (process.env.WEB_ORIGIN ?? 'http://localhost:3000')
+    origin: (webOrigin ?? 'http://localhost:3000')
       .split(',')
       .map((origin) => origin.trim())
       .filter(Boolean),

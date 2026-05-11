@@ -6,20 +6,30 @@ import { AppService } from './app.service';
 import { AssetsModule } from './assets/assets.module';
 import { AuthModule } from './auth/auth.module';
 import { CompaniesModule } from './companies/companies.module';
+import { CommunityModule } from './community/community.module';
 import { JobsModule } from './jobs/jobs.module';
+import { MypageModule } from './mypage/mypage.module';
+import { OpsDeployModule } from './ops/ops-deploy.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
+import { resolveEnvFilePaths } from './config/runtime-environment';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: resolveEnvFilePaths(),
+    }),
     PrismaModule,
     AssetsModule,
     AuthModule,
     CompaniesModule,
+    CommunityModule,
     JobsModule,
+    MypageModule,
     UsersModule,
     AdminModule,
+    OpsDeployModule,
   ],
   controllers: [AppController],
   providers: [AppService],

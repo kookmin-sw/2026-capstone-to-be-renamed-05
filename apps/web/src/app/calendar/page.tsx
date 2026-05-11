@@ -9,6 +9,7 @@ import { RefreshCw, Search, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { FullDeadlineCalendar } from "@/components/deadline-calendar";
 import { JobPresetBar } from "@/components/job-preset-bar";
+import { RegionFilterDialog } from "@/components/region-filter-dialog";
 import { SiteNav } from "@/components/site-nav";
 import { ActionButton } from "@/components/ui/action-button";
 import { useJobFilterState } from "@/hooks/use-job-filter-state";
@@ -109,6 +110,25 @@ function CheckboxColumn({
         ))}
       </div>
     </div>
+  );
+}
+
+function RegionFilterColumn({
+  filters,
+  onChange,
+}: {
+  filters: JobFilterState;
+  onChange: (f: JobFilterState) => void;
+}) {
+  return (
+    <RegionFilterDialog
+      className="min-w-[170px]"
+      variant="compact"
+      selectedLocations={filters.selectedLocations}
+      onChange={(selectedLocations) =>
+        onChange({ ...filters, selectedLocations })
+      }
+    />
   );
 }
 
@@ -248,6 +268,7 @@ export default function CalendarPage() {
                     filters={filters}
                     onChange={setFilters}
                   />
+                  <RegionFilterColumn filters={filters} onChange={setFilters} />
                   <CheckboxColumn
                     title="고용 형태"
                     field="employmentType"

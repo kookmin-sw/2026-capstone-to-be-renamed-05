@@ -133,6 +133,7 @@ model User {
   username            String   @unique
   passwordHash        String
   displayName         String?
+  profileImageUrl     String?
   role                UserRole
   jobFilterPreference Json?
   createdAt           DateTime @default(now())

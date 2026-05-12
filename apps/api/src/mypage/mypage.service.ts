@@ -24,11 +24,13 @@ import {
 import type {
   BookmarkItem,
   BookmarkListResponse,
+  MyCommunityActivityListResponse,
   MyProfileResponse,
   PersonalVerificationRequestItem,
   ResumeItem,
   ResumeListResponse,
 } from '@cpa/shared';
+import argon2 from 'argon2';
 import { randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
@@ -159,11 +161,14 @@ export class MypageService implements OnModuleInit {
 
   async updateProfile(
     userId: string,
-    data: { displayName?: string },
+    data: { displayName?: string; profileImageUrl?: string | null },
   ): Promise<MyProfileResponse> {
     const updateData: Record<string, unknown> = {};
     if (data.displayName !== undefined) {
       updateData.displayName = data.displayName.trim() || null;
+    }
+    if (data.profileImageUrl !== undefined) {
+      updateData.profileImageUrl = data.profileImageUrl?.trim() || null;
     }
 
     await this.prisma.user.update({
@@ -172,6 +177,69 @@ export class MypageService implements OnModuleInit {
     });
 
     return this.getProfile(userId);
+  }
+
+  async updatePassword(
+    userId: string,
+    data: { currentPassword: string; newPassword: string },
+  ): Promise<{ ok: boolean }> {
+    if (data.currentPassword === data.newPassword) {
+      throw new BadRequestException(
+        '새 비밀번호는 현재 비밀번호와 다르게 입력해 주세요.',
+      );
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, passwordHash: true },
+    });
+    if (!user) throw new NotFoundException('User not found.');
+
+    const matches = await argon2.verify(
+      user.passwordHash,
+      data.currentPassword,
+    );
+    if (!matches) {
+      throw new BadRequestException('현재 비밀번호가 올바르지 않습니다.');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: await argon2.hash(data.newPassword) },
+    });
+
+    return { ok: true };
+  }
+
+  async listCommunityActivity(
+    userId: string,
+    take = 20,
+  ): Promise<MyCommunityActivityListResponse> {
+    const limit = Math.min(Math.max(Math.floor(take) || 20, 1), 50);
+    const posts = await this.prisma.communityPost.findMany({
+      where: { authorId: userId },
+      select: {
+        id: true,
+        boardType: true,
+        title: true,
+        likeCount: true,
+        createdAt: true,
+        _count: { select: { answers: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+
+    return {
+      items: posts.map((post) => ({
+        id: post.id,
+        boardType: post.boardType,
+        title: post.title,
+        commentCount: post._count.answers,
+        likeCount: post.likeCount,
+        createdAt: post.createdAt.toISOString(),
+      })),
+    };
   }
 
   async createPersonalVerificationRequest(
@@ -759,6 +827,7 @@ export class MypageService implements OnModuleInit {
       id: user.id,
       username: user.username,
       displayName: user.displayName,
+      profileImageUrl: user.profileImageUrl,
       role: user.role,
       createdAt: user.createdAt.toISOString(),
       cpaVerificationStatus,

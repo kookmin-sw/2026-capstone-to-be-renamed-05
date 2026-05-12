@@ -203,14 +203,13 @@ function CommunityDetailContent() {
           <div className={styles.main}>
             <PostCard post={post} liked={liked} onLike={handleLikePost} />
 
-            {showQA && (
-              <AnswerList
-                answers={answers}
-                isResolved={post.isResolved}
-                onLike={handleLikeAnswer}
-                onAccept={handleAccept}
-              />
-            )}
+            <AnswerList
+              answers={answers}
+              isQA={showQA}
+              isResolved={post.isResolved}
+              onLike={handleLikeAnswer}
+              onAccept={handleAccept}
+            />
 
             <ReplyForm
               isQA={showQA}

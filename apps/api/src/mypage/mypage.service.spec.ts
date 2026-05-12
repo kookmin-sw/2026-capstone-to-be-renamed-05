@@ -6,10 +6,12 @@ import {
 import { ConfigService } from '@nestjs/config';
 import {
   CpaVerificationStatus,
+  CommunityBoardType,
   EmploymentHistoryStatus,
   PersonalCareerStage,
   PersonalVerificationRequestStatus,
 } from '@prisma/client';
+import argon2 from 'argon2';
 import {
   mkdir,
   mkdtemp,
@@ -325,6 +327,113 @@ describe('MypageService CPA verification requests', () => {
       }),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(tx.personalVerificationRequest.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('MypageService account settings', () => {
+  let prisma: {
+    user: {
+      findUnique: jest.Mock;
+      update: jest.Mock;
+    };
+    communityPost: {
+      findMany: jest.Mock;
+    };
+  };
+  let service: MypageService;
+
+  beforeEach(() => {
+    prisma = {
+      user: {
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
+      communityPost: {
+        findMany: jest.fn(),
+      },
+    };
+    service = new MypageService(
+      prisma as unknown as PrismaService,
+      createConfig({}),
+    );
+  });
+
+  it('changes passwords only after checking the current password', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      passwordHash: await argon2.hash('password123'),
+    });
+    prisma.user.update.mockResolvedValue({ id: 'user-1' });
+
+    await expect(
+      service.updatePassword('user-1', {
+        currentPassword: 'password123',
+        newPassword: 'newpassword123',
+      }),
+    ).resolves.toEqual({ ok: true });
+
+    const updateArg = firstMockArg<{
+      where: { id: string };
+      data: { passwordHash: string };
+    }>(prisma.user.update);
+    expect(updateArg.where).toEqual({ id: 'user-1' });
+    await expect(
+      argon2.verify(updateArg.data.passwordHash, 'newpassword123'),
+    ).resolves.toBe(true);
+  });
+
+  it('rejects password changes with a wrong current password', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      passwordHash: await argon2.hash('password123'),
+    });
+
+    await expect(
+      service.updatePassword('user-1', {
+        currentPassword: 'wrongpass123',
+        newPassword: 'newpassword123',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('lists the current users community posts in latest order', async () => {
+    prisma.communityPost.findMany.mockResolvedValue([
+      {
+        id: 'post-1',
+        boardType: CommunityBoardType.FREE,
+        title: '회계법인 면접 후기 공유합니다',
+        likeCount: 8,
+        createdAt,
+        _count: { answers: 12 },
+      },
+    ]);
+
+    const result = await service.listCommunityActivity('user-1', 5);
+
+    expect(prisma.communityPost.findMany).toHaveBeenCalledWith({
+      where: { authorId: 'user-1' },
+      select: {
+        id: true,
+        boardType: true,
+        title: true,
+        likeCount: true,
+        createdAt: true,
+        _count: { select: { answers: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    });
+    expect(result.items).toEqual([
+      {
+        id: 'post-1',
+        boardType: CommunityBoardType.FREE,
+        title: '회계법인 면접 후기 공유합니다',
+        commentCount: 12,
+        likeCount: 8,
+        createdAt: createdAt.toISOString(),
+      },
+    ]);
   });
 });
 

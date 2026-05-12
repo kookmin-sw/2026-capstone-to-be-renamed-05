@@ -5,6 +5,7 @@ import styles from "../community-detail.module.css";
 
 interface AnswerListProps {
   answers: CommunityAnswer[];
+  isQA: boolean;
   isResolved: boolean;
   onLike: (answerId: string) => void;
   onAccept: (answerId: string) => void;
@@ -12,19 +13,22 @@ interface AnswerListProps {
 
 export function AnswerList({
   answers,
+  isQA,
   isResolved,
   onLike,
   onAccept,
 }: AnswerListProps) {
+  const noun = isQA ? "답변" : "댓글";
+
   return (
     <div className={styles.answersSection}>
       <div className={styles.answersHeader}>
-        답변 <span className={styles.answersCount}>{answers.length}</span>
+        {noun} <span className={styles.answersCount}>{answers.length}</span>
       </div>
 
       {answers.length === 0 ? (
         <div className={styles.emptyAnswers}>
-          아직 답변이 없습니다. 첫 번째 답변을 남겨주세요.
+          아직 {noun}이 없습니다. 첫 번째 {noun}을 남겨주세요.
         </div>
       ) : (
         answers.map((answer) => (
@@ -50,7 +54,7 @@ export function AnswerList({
                 <ThumbsUp size={13} />
                 도움돼요 {answer.likeCount}
               </button>
-              {!isResolved && (
+              {isQA && !isResolved && (
                 <button
                   type="button"
                   className={styles.answerAcceptButton}

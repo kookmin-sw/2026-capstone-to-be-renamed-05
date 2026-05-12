@@ -28,8 +28,8 @@
   border: 1px solid var(--app-line);
   border-radius: 0.5rem;
   min-height: 2.25rem;
-  padding: 0 0.625rem;
-  font-size: 0.75rem;
+  padding: var(--filter-select-button-padding, 0 0.625rem);
+  font-size: var(--filter-select-button-font-size, 0.75rem);
   line-height: 1;
   outline: none;
   background: var(--surface, #fff);
@@ -43,8 +43,8 @@
 .selectButton {
   display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+  justify-content: var(--filter-select-button-justify, space-between);
+  gap: var(--filter-select-button-gap, 0.5rem);
   text-align: left;
   cursor: pointer;
 }
@@ -64,6 +64,8 @@
 
 .chevron {
   flex: none;
+  width: var(--filter-select-chevron-size, 0.875rem);
+  height: var(--filter-select-chevron-size, 0.875rem);
   color: var(--gray-400, #9ca3af);
   transition: transform 0.15s ease;
 }

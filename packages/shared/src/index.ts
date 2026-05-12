@@ -7,8 +7,7 @@ export const CPA_VERIFICATION_STATUSES = [
   "CPA_VERIFIED",
   "REJECTED",
 ] as const;
-export type CpaVerificationStatus =
-  (typeof CPA_VERIFICATION_STATUSES)[number];
+export type CpaVerificationStatus = (typeof CPA_VERIFICATION_STATUSES)[number];
 
 export const PERSONAL_CAREER_STAGES = [
   "CPA_UNPLACED",
@@ -417,6 +416,7 @@ export type MyProfileResponse = {
   id: string;
   username: string;
   displayName: string | null;
+  profileImageUrl: string | null;
   role: string;
   createdAt: string;
   cpaVerificationStatus: CpaVerificationStatus;
@@ -429,6 +429,25 @@ export type MyProfileResponse = {
 
 export type UpdateProfilePayload = {
   displayName?: string;
+  profileImageUrl?: string | null;
+};
+
+export type UpdatePasswordPayload = {
+  currentPassword: string;
+  newPassword: string;
+};
+
+export type MyCommunityActivityItem = {
+  id: string;
+  boardType: CommunityBoardType;
+  title: string;
+  commentCount: number;
+  likeCount: number;
+  createdAt: string;
+};
+
+export type MyCommunityActivityListResponse = {
+  items: MyCommunityActivityItem[];
 };
 
 export type PersonalVerificationRequestItem = {

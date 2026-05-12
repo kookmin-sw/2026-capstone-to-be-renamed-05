@@ -27,6 +27,7 @@ import type {
   JobSubmissionItem,
   KicpaCondition,
   MyProfileResponse,
+  MyCommunityActivityListResponse,
   PersonalVerificationRequestItem,
   PersonalVerificationRequestListResponse,
   ReviewPersonalVerificationRequestPayload,
@@ -364,11 +365,13 @@ export async function fetchCurrentUser() {
   return data.user ?? null;
 }
 
-export async function fetchCommunityPosts(options: {
-  board?: CommunityBoardType;
-  search?: string;
-  sort?: "latest" | "popular";
-} = {}) {
+export async function fetchCommunityPosts(
+  options: {
+    board?: CommunityBoardType;
+    search?: string;
+    sort?: "latest" | "popular";
+  } = {},
+) {
   const params = new URLSearchParams();
   if (options.board) params.set("board", options.board);
   if (options.search?.trim()) params.set("search", options.search.trim());
@@ -405,9 +408,7 @@ export async function fetchCommunityPost(id: string) {
   return (await response.json()) as CommunityPostDetailResponse;
 }
 
-export async function createCommunityPost(
-  payload: CreateCommunityPostPayload,
-) {
+export async function createCommunityPost(payload: CreateCommunityPostPayload) {
   const response = await fetch(`${API_BASE_URL}/community/posts`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -452,7 +453,9 @@ export async function likeCommunityPost(id: string) {
     },
   );
   if (!response.ok) {
-    throw new Error(await readApiError(response, "좋아요 처리에 실패했습니다."));
+    throw new Error(
+      await readApiError(response, "좋아요 처리에 실패했습니다."),
+    );
   }
   return (await response.json()) as CommunityPostItem;
 }
@@ -466,7 +469,9 @@ export async function likeCommunityAnswer(id: string) {
     },
   );
   if (!response.ok) {
-    throw new Error(await readApiError(response, "좋아요 처리에 실패했습니다."));
+    throw new Error(
+      await readApiError(response, "좋아요 처리에 실패했습니다."),
+    );
   }
   return (await response.json()) as CommunityAnswerItem;
 }
@@ -931,7 +936,10 @@ export async function fetchMyProfile() {
   return (await response.json()) as MyProfileResponse;
 }
 
-export async function updateMyProfile(data: { displayName?: string }) {
+export async function updateMyProfile(data: {
+  displayName?: string;
+  profileImageUrl?: string | null;
+}) {
   const response = await fetch(`${API_BASE_URL}/mypage/profile`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -944,6 +952,41 @@ export async function updateMyProfile(data: { displayName?: string }) {
     );
   }
   return (await response.json()) as MyProfileResponse;
+}
+
+export async function updateMyPassword(data: {
+  currentPassword: string;
+  newPassword: string;
+}) {
+  const response = await fetch(`${API_BASE_URL}/mypage/password`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "비밀번호 변경에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as { ok: boolean };
+}
+
+export async function fetchMyCommunityActivity(take = 20) {
+  const params = new URLSearchParams({ take: String(take) });
+  const response = await fetch(
+    `${API_BASE_URL}/mypage/community-activity?${params.toString()}`,
+    {
+      credentials: "include",
+      cache: "no-store",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "커뮤니티 활동을 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as MyCommunityActivityListResponse;
 }
 
 export async function submitMyCpaVerificationRequest(

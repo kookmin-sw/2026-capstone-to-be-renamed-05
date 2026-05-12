@@ -220,6 +220,8 @@ model Company {
   jobs               Job[]
   jobSubmissions     JobSubmission[]
   profileSubmissions CompanyProfileSubmission[]
+
+  @@index([averageSalary])
 }
 
 model Asset {
@@ -314,6 +316,7 @@ model Job {
   @@index([jobFamily])
   @@index([companyType])
   @@index([traineeStatus])
+  @@index([companyId])
 }
 
 model JobLabel {

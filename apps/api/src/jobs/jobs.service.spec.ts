@@ -11,6 +11,11 @@ describe('JobsService', () => {
       count: jest.Mock;
       groupBy: jest.Mock;
     };
+    company: {
+      aggregate: jest.Mock;
+      count: jest.Mock;
+      findMany: jest.Mock;
+    };
     companyMetadata: {
       findMany: jest.Mock;
     };
@@ -22,9 +27,16 @@ describe('JobsService', () => {
     prisma = {
       job: {
         findFirst: jest.fn(),
-        findMany: jest.fn(),
-        count: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
         groupBy: jest.fn().mockResolvedValue([]),
+      },
+      company: {
+        aggregate: jest.fn().mockResolvedValue({
+          _avg: { averageSalary: null },
+        }),
+        count: jest.fn().mockResolvedValue(0),
+        findMany: jest.fn().mockResolvedValue([]),
       },
       companyMetadata: {
         findMany: jest.fn().mockResolvedValue([]),
@@ -91,6 +103,82 @@ describe('JobsService', () => {
     const where = getLastJobFindManyWhere(prisma);
     expect(getAndItems(where)).toContainEqual({
       companyId: { in: ['company-big4', 'company-public'] },
+    });
+  });
+
+  it('filters salaryLevel ABOVE_AVERAGE by companies at or above the known average salary', async () => {
+    prisma.company.aggregate.mockResolvedValue({
+      _avg: { averageSalary: 7000 },
+    });
+
+    await service.list({ salaryLevel: ['ABOVE_AVERAGE'], sort: 'latest' });
+
+    expect(prisma.company.aggregate).toHaveBeenCalledWith({
+      where: { averageSalary: { not: null } },
+      _avg: { averageSalary: true },
+    });
+    const where = getLastJobFindManyWhere(prisma);
+    expect(getAndItems(where)).toContainEqual({
+      company: { averageSalary: { gte: 7000 } },
+    });
+  });
+
+  it.each([
+    ['TOP_1', 0, 1],
+    ['TOP_2_5', 1, 4],
+    ['TOP_6_10', 5, 5],
+    ['TOP_11_20', 10, 10],
+  ] as const)(
+    'filters salaryLevel %s by deterministic salary rank slice',
+    async (salaryLevel, skip, take) => {
+      prisma.company.count.mockResolvedValue(100);
+      prisma.company.findMany.mockResolvedValue([{ id: `${salaryLevel}-id` }]);
+
+      await service.list({ salaryLevel: [salaryLevel], sort: 'latest' });
+
+      expect(prisma.company.count).toHaveBeenCalledWith({
+        where: { averageSalary: { not: null } },
+      });
+      expect(prisma.company.findMany).toHaveBeenCalledWith({
+        where: { averageSalary: { not: null } },
+        select: { id: true },
+        orderBy: [{ averageSalary: 'desc' }, { id: 'asc' }],
+        skip,
+        take,
+      });
+      const where = getLastJobFindManyWhere(prisma);
+      expect(getAndItems(where)).toContainEqual({
+        company: { id: { in: [`${salaryLevel}-id`] } },
+      });
+    },
+  );
+
+  it('returns an empty company id filter when salary ranks have no known salary data', async () => {
+    prisma.company.count.mockResolvedValue(0);
+
+    await service.list({ salaryLevel: ['TOP_1'], sort: 'latest' });
+
+    expect(prisma.company.findMany).not.toHaveBeenCalled();
+    const where = getLastJobFindManyWhere(prisma);
+    expect(getAndItems(where)).toContainEqual({
+      company: { id: { in: [] } },
+    });
+  });
+
+  it('applies salaryLevel filters to calendar queries', async () => {
+    prisma.company.count.mockResolvedValue(100);
+    prisma.company.findMany.mockResolvedValue([{ id: 'top-company' }]);
+    prisma.job.findMany.mockResolvedValue([]);
+
+    await service.calendar({
+      from: '2026-05-01',
+      to: '2026-05-31',
+      salaryLevel: ['TOP_1'],
+    });
+
+    const where = getLastJobFindManyWhere(prisma);
+    expect(getAndItems(where)).toContainEqual({
+      company: { id: { in: ['top-company'] } },
     });
   });
 });

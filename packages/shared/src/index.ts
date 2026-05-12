@@ -101,6 +101,15 @@ export type DeadlineType = (typeof DEADLINE_TYPES)[number];
 export const JOB_STATUSES = ["OPEN", "CLOSED", "DRAFT"] as const;
 export type JobStatus = (typeof JOB_STATUSES)[number];
 
+export const SALARY_LEVELS = [
+  "ABOVE_AVERAGE",
+  "TOP_1",
+  "TOP_2_5",
+  "TOP_6_10",
+  "TOP_11_20",
+] as const;
+export type SalaryLevel = (typeof SALARY_LEVELS)[number];
+
 export const JOB_PRESET_IDS = ["active-hiring", "career-verified"] as const;
 export type JobPresetId = (typeof JOB_PRESET_IDS)[number];
 
@@ -179,6 +188,7 @@ export type JobListItem = {
   title: string;
   companyId: string;
   companyName: string;
+  companyAverageSalary: number | null;
   companyLogoUrl: string | null;
   companyBackgroundUrl: string | null;
   companyType: CompanyType;
@@ -262,6 +272,7 @@ export type JobFilterPreference = {
   minCompanyAgeYears?: string;
   maxCompanyAgeYears?: string;
   maxAttritionRate?: string;
+  salaryLevel?: string;
   sort?: string;
 };
 

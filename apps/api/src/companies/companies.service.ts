@@ -641,6 +641,7 @@ export class CompaniesService {
       title: job.title,
       companyId: job.companyId,
       companyName: job.company.name,
+      companyAverageSalary: job.company.averageSalary,
       companyLogoUrl: this.logoUrl(job.company),
       companyBackgroundUrl: this.backgroundUrl(job.company),
       companyType: job.companyType,

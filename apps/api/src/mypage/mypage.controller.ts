@@ -59,14 +59,19 @@ export class MypageController {
 
   @Get('community-activity')
   @ApiQuery({ name: 'take', required: false, example: 20 })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'pageSize', required: false, example: 10 })
   listCommunityActivity(
     @Req() req: RequestWithUser,
     @Query('take') take?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
   ) {
-    return this.mypageService.listCommunityActivity(
-      req.user!.id,
-      take ? Number(take) : undefined,
-    );
+    return this.mypageService.listCommunityActivity(req.user!.id, {
+      take: take ? Number(take) : undefined,
+      page: page ? Number(page) : undefined,
+      pageSize: pageSize ? Number(pageSize) : undefined,
+    });
   }
 
   @Post('cpa-verification-requests')

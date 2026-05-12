@@ -31,6 +31,13 @@ describe('CommunityService trainee room access', () => {
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
+  it('requires login to filter posts by the current author', async () => {
+    await expect(service.listPosts({ mine: true })).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    expect(prisma.communityPost.findMany).not.toHaveBeenCalled();
+  });
+
   it('rejects unverified job seekers from the trainee board', async () => {
     prisma.personalProfile.findUnique.mockResolvedValue({
       cpaVerificationStatus: CpaVerificationStatus.UNVERIFIED,
@@ -85,5 +92,57 @@ describe('CommunityService trainee room access', () => {
 
     expect(result.items).toHaveLength(1);
     expect(result.items[0].boardType).toBe(CommunityBoardType.TRAINEE);
+  });
+
+  it('filters current users posts with existing board search and sort filters', async () => {
+    prisma.communityPost.findMany.mockResolvedValue([
+      {
+        id: 'post-1',
+        boardType: CommunityBoardType.FREE,
+        title: 'Interview memo',
+        content: 'Big4 interview',
+        status: CommunityPostStatus.FREE,
+        tags: ['Big4'],
+        authorId: 'user-1',
+        author: { username: 'jobseeker', displayName: null },
+        isAnonymous: false,
+        viewCount: 3,
+        likeCount: 7,
+        acceptedAnswerId: null,
+        createdAt,
+        updatedAt: createdAt,
+        _count: { answers: 2 },
+      },
+    ]);
+
+    await service.listPosts(
+      {
+        board: CommunityBoardType.FREE,
+        search: 'Big4',
+        sort: 'popular',
+        mine: true,
+      },
+      {
+        id: 'user-1',
+        username: 'jobseeker',
+        role: UserRole.JOB_SEEKER,
+        companyId: null,
+      },
+    );
+
+    expect(prisma.communityPost.findMany).toHaveBeenCalledWith({
+      where: {
+        boardType: CommunityBoardType.FREE,
+        authorId: 'user-1',
+        OR: [
+          { title: { contains: 'Big4', mode: 'insensitive' } },
+          { content: { contains: 'Big4', mode: 'insensitive' } },
+          { tags: { has: 'Big4' } },
+        ],
+      },
+      include: expect.any(Object),
+      orderBy: [{ likeCount: 'desc' }, { createdAt: 'desc' }],
+      take: 100,
+    });
   });
 });

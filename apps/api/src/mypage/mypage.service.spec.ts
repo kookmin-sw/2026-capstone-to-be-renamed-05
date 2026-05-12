@@ -337,6 +337,7 @@ describe('MypageService account settings', () => {
       update: jest.Mock;
     };
     communityPost: {
+      count: jest.Mock;
       findMany: jest.Mock;
     };
   };
@@ -349,6 +350,7 @@ describe('MypageService account settings', () => {
         update: jest.fn(),
       },
       communityPost: {
+        count: jest.fn().mockResolvedValue(0),
         findMany: jest.fn(),
       },
     };
@@ -398,6 +400,7 @@ describe('MypageService account settings', () => {
   });
 
   it('lists the current users community posts in latest order', async () => {
+    prisma.communityPost.count.mockResolvedValue(12);
     prisma.communityPost.findMany.mockResolvedValue([
       {
         id: 'post-1',
@@ -422,18 +425,52 @@ describe('MypageService account settings', () => {
         _count: { select: { answers: true } },
       },
       orderBy: { createdAt: 'desc' },
+      skip: 0,
       take: 5,
     });
-    expect(result.items).toEqual([
-      {
-        id: 'post-1',
-        boardType: CommunityBoardType.FREE,
-        title: '회계법인 면접 후기 공유합니다',
-        commentCount: 12,
-        likeCount: 8,
-        createdAt: createdAt.toISOString(),
-      },
-    ]);
+    expect(result).toEqual({
+      items: [
+        {
+          id: 'post-1',
+          boardType: CommunityBoardType.FREE,
+          title: '회계법인 면접 후기 공유합니다',
+          commentCount: 12,
+          likeCount: 8,
+          createdAt: createdAt.toISOString(),
+        },
+      ],
+      page: 1,
+      pageSize: 5,
+      total: 12,
+    });
+  });
+
+  it('paginates current users community activity', async () => {
+    prisma.communityPost.count.mockResolvedValue(12);
+    prisma.communityPost.findMany.mockResolvedValue([]);
+
+    const result = await service.listCommunityActivity('user-1', {
+      page: 2,
+      pageSize: 10,
+    });
+
+    expect(prisma.communityPost.count).toHaveBeenCalledWith({
+      where: { authorId: 'user-1' },
+    });
+    expect(prisma.communityPost.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { authorId: 'user-1' },
+        orderBy: { createdAt: 'desc' },
+        skip: 10,
+        take: 10,
+      }),
+    );
+    expect(result).toMatchObject({
+      items: [],
+      page: 2,
+      pageSize: 10,
+      total: 12,
+    });
   });
 });
 

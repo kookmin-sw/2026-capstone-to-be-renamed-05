@@ -98,6 +98,7 @@ export default function MyPage() {
   const [communityActivity, setCommunityActivity] = useState<
     MyCommunityActivityItem[]
   >([]);
+  const [communityActivityTotal, setCommunityActivityTotal] = useState(0);
   const [bookmarkFilter, setBookmarkFilter] = useState<
     BookmarkTargetType | "ALL"
   >("ALL");
@@ -109,7 +110,6 @@ export default function MyPage() {
   const [updatingProfileImage, setUpdatingProfileImage] = useState(false);
   const [displayNameInput, setDisplayNameInput] = useState("");
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
-  const [communityExpanded, setCommunityExpanded] = useState(false);
   const [likelihoodResult, setLikelihoodResult] = useState("");
 
   const resumeFileInputRef = useRef<HTMLInputElement>(null);
@@ -138,7 +138,7 @@ export default function MyPage() {
             fetchMyProfile(),
             fetchMyBookmarks(),
             fetchMyResumes(),
-            fetchMyCommunityActivity(20),
+            fetchMyCommunityActivity(5),
           ]);
 
         if (ignore) return;
@@ -167,6 +167,9 @@ export default function MyPage() {
           activityResult.status === "fulfilled"
             ? activityResult.value.items
             : [],
+        );
+        setCommunityActivityTotal(
+          activityResult.status === "fulfilled" ? activityResult.value.total : 0,
         );
 
         const sideLoadErrors = [
@@ -217,10 +220,6 @@ export default function MyPage() {
     bookmarkFilter === "ALL"
       ? bookmarks
       : bookmarks.filter((bm) => bm.targetType === bookmarkFilter);
-
-  const visibleCommunityActivity = communityExpanded
-    ? communityActivity
-    : communityActivity.slice(0, 5);
 
   const match = useMemo(() => {
     if (!profile) return null;
@@ -516,7 +515,7 @@ export default function MyPage() {
                 />
                 <StatItem
                   label="활동"
-                  value={`${communityActivity.length}개`}
+                  value={`${communityActivityTotal}개`}
                 />
               </div>
             </section>
@@ -743,19 +742,15 @@ export default function MyPage() {
               <h2>
                 <MessageCircle size={17} />내 커뮤니티 활동
               </h2>
-              {communityActivity.length > 5 && (
-                <button
-                  type="button"
-                  className={styles.textButton}
-                  onClick={() => setCommunityExpanded((prev) => !prev)}
-                >
-                  {communityExpanded ? "접기" : "전체 보기"}
-                </button>
+              {communityActivityTotal > 5 && (
+                <Link href="/mypage/activities" className={styles.textButton}>
+                  전체 보기
+                </Link>
               )}
             </div>
-            {visibleCommunityActivity.length ? (
+            {communityActivity.length ? (
               <div className={styles.activityList}>
-                {visibleCommunityActivity.map((activity) => (
+                {communityActivity.map((activity) => (
                   <Link
                     key={activity.id}
                     href={communityDetailHref(activity.id)}

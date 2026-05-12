@@ -370,12 +370,14 @@ export async function fetchCommunityPosts(
     board?: CommunityBoardType;
     search?: string;
     sort?: "latest" | "popular";
+    mine?: boolean;
   } = {},
 ) {
   const params = new URLSearchParams();
   if (options.board) params.set("board", options.board);
   if (options.search?.trim()) params.set("search", options.search.trim());
   if (options.sort) params.set("sort", options.sort);
+  if (options.mine) params.set("mine", "true");
   const query = params.toString();
   const response = await fetch(
     `${API_BASE_URL}/community/posts${query ? `?${query}` : ""}`,
@@ -972,8 +974,27 @@ export async function updateMyPassword(data: {
   return (await response.json()) as { ok: boolean };
 }
 
-export async function fetchMyCommunityActivity(take = 20) {
-  const params = new URLSearchParams({ take: String(take) });
+type MyCommunityActivityOptions =
+  | number
+  | {
+      take?: number;
+      page?: number;
+      pageSize?: number;
+    };
+
+export async function fetchMyCommunityActivity(
+  options: MyCommunityActivityOptions = 20,
+) {
+  const params = new URLSearchParams();
+  if (typeof options === "number") {
+    params.set("take", String(options));
+  } else {
+    if (options.take !== undefined) params.set("take", String(options.take));
+    if (options.page !== undefined) params.set("page", String(options.page));
+    if (options.pageSize !== undefined) {
+      params.set("pageSize", String(options.pageSize));
+    }
+  }
   const response = await fetch(
     `${API_BASE_URL}/mypage/community-activity?${params.toString()}`,
     {

@@ -135,6 +135,12 @@ type VerificationRequestRecord = Prisma.PersonalVerificationRequestGetPayload<{
   include: typeof verificationRequestInclude;
 }>;
 
+type ListCommunityActivityOptions = {
+  take?: number;
+  page?: number;
+  pageSize?: number;
+};
+
 @Injectable()
 export class MypageService implements OnModuleInit {
   private readonly s3Clients = new Map<string, S3Client>();
@@ -213,22 +219,37 @@ export class MypageService implements OnModuleInit {
 
   async listCommunityActivity(
     userId: string,
-    take = 20,
+    options: number | ListCommunityActivityOptions = {},
   ): Promise<MyCommunityActivityListResponse> {
-    const limit = Math.min(Math.max(Math.floor(take) || 20, 1), 50);
-    const posts = await this.prisma.communityPost.findMany({
-      where: { authorId: userId },
-      select: {
-        id: true,
-        boardType: true,
-        title: true,
-        likeCount: true,
-        createdAt: true,
-        _count: { select: { answers: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    });
+    const normalized =
+      typeof options === 'number' ? { take: options } : options;
+    const takeMode =
+      normalized.take !== undefined &&
+      normalized.page === undefined &&
+      normalized.pageSize === undefined;
+    const page = takeMode ? 1 : this.clampPositiveInt(normalized.page, 1);
+    const pageSize = takeMode
+      ? this.clampPositiveInt(normalized.take, 20, 50)
+      : this.clampPositiveInt(normalized.pageSize, 20, 50);
+    const where = { authorId: userId };
+
+    const [total, posts] = await Promise.all([
+      this.prisma.communityPost.count({ where }),
+      this.prisma.communityPost.findMany({
+        where,
+        select: {
+          id: true,
+          boardType: true,
+          title: true,
+          likeCount: true,
+          createdAt: true,
+          _count: { select: { answers: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
 
     return {
       items: posts.map((post) => ({
@@ -239,6 +260,9 @@ export class MypageService implements OnModuleInit {
         likeCount: post.likeCount,
         createdAt: post.createdAt.toISOString(),
       })),
+      page,
+      pageSize,
+      total,
     };
   }
 
@@ -888,5 +912,15 @@ export class MypageService implements OnModuleInit {
   private registrationNumberLast4(value: string) {
     const normalized = value.replace(/[^0-9A-Za-z]/g, '');
     return normalized ? normalized.slice(-4) : null;
+  }
+
+  private clampPositiveInt(
+    value: number | undefined,
+    fallback: number,
+    max = Number.MAX_SAFE_INTEGER,
+  ) {
+    const normalized = Math.floor(Number(value));
+    if (!Number.isFinite(normalized) || normalized < 1) return fallback;
+    return Math.min(normalized, max);
   }
 }

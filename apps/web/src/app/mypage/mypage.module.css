@@ -502,6 +502,13 @@
   font-size: 0.75rem;
 }
 
+.activityPageSummary {
+  margin: -0.25rem 0 0.875rem;
+  color: var(--app-muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
 .itemActions {
   flex: none;
   display: flex;

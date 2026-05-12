@@ -20,6 +20,7 @@ export async function getPosts(options: {
   board?: BoardType;
   search?: string;
   sort?: SortOrder;
+  mine?: boolean;
 }): Promise<CommunityPost[]> {
   const data = await fetchCommunityPosts(options);
   return data.items;

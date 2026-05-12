@@ -129,8 +129,8 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
                 {loggingOut ? "로그아웃 중" : "로그아웃"}
               </ActionButton>
             </div>
-          ) : isLanding ? (
-            <div className={styles.landingActions}>
+          ) : (
+            <div className={styles.guestActions}>
               <Link href={loginHref} className={styles.loginLink}>
                 로그인
               </Link>
@@ -138,10 +138,6 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
                 회원가입
               </ActionLink>
             </div>
-          ) : (
-            <ActionLink href={loginHref} size="sm">
-              로그인 / 회원가입
-            </ActionLink>
           )}
         </div>
       </div>

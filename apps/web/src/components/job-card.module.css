@@ -94,9 +94,7 @@
   display: flex;
   align-items: flex-end;
   min-height: 5rem;
-  background:
-    radial-gradient(circle at 92% 12%, rgba(232, 69, 122, 0.1), transparent 7rem),
-    var(--gray-50);
+  background: radial-gradient(circle at 92% 12%, rgba(232, 69, 122, 0.1), transparent 7rem), var(--gray-50);
   padding: 0.65rem 1.25rem 0.65rem;
 }
 
@@ -113,11 +111,7 @@
 }
 
 .bannerOverlay {
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.54) 0%,
-    rgba(255, 255, 255, 0.86) 100%
-  );
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.54) 0%, rgba(255, 255, 255, 0.86) 100%);
 }
 
 .banner > :not(.bannerImage):not(.bannerOverlay) {
@@ -127,19 +121,49 @@
 
 .dDay {
   position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
-  border-radius: 999px;
+  top: 0;
+  right: 1.25rem;
+  z-index: 2;
+  transform: translateY(-3%);
+  border-radius: 0 0 5px 5px;
+  border: 1px solid transparent;
+  border-top: 0;
   background: var(--gray-100);
   color: var(--gray-600);
-  padding: 0.125rem 0.65rem;
+  padding: 0.25rem 0.75rem 0.3rem;
   font-size: 0.6875rem;
   font-weight: 900;
+  box-shadow: var(--shadow-sm);
 }
 
-.urgent {
-  background: var(--brand-soft);
-  color: var(--brand);
+.dDayToday {
+  border-color: #fecdd3;
+  background: #ffe4e6;
+  color: #be123c;
+}
+
+.dDaySoon {
+  border-color: #fed7aa;
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.dDayWeek {
+  border-color: #fde68a;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.dDayMuted {
+  border-color: #e5e7eb;
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.dDayExpired {
+  border-color: #d1d5db;
+  background: #e5e7eb;
+  color: #6b7280;
 }
 
 .logo {
@@ -184,10 +208,11 @@
 }
 
 .gridBody {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
-  padding: 1.25rem;
+  padding: 1.5rem 1.25rem 1.25rem;
 }
 
 .badgeRow {
@@ -195,6 +220,19 @@
   flex-wrap: wrap;
   gap: 0.4rem;
   margin-bottom: 0.65rem;
+}
+
+.gridTopRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.gridTopRow .badgeRow {
+  min-width: 0;
+  margin-bottom: 0;
 }
 
 .gridTitle {
@@ -242,6 +280,7 @@
 
 .gridActions {
   display: flex;
+  justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 1rem;
 }

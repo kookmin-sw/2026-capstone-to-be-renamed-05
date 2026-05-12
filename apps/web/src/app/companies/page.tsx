@@ -258,8 +258,8 @@ export default function CompaniesPage() {
 
             {/* 체크박스 필터 컬럼들 */}
             {filterOpen && (
-              <div className="border-t border-[var(--app-line)] px-5 py-4">
-                <div className="flex flex-wrap gap-x-8 gap-y-4">
+              <div className="overflow-x-auto border-t border-[var(--app-line)] px-5 py-4">
+                <div className="flex gap-5">
                   {/* 회사 유형 */}
                   <div className="min-w-[120px]">
                     <h3 className="mb-2 text-xs font-bold text-gray-800">

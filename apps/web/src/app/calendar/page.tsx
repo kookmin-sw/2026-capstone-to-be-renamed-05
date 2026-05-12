@@ -277,8 +277,8 @@ export default function CalendarPage() {
             </div>
 
             {filterOpen && (
-              <div className="border-t border-[var(--app-line)] px-5 py-4">
-                <div className="flex flex-wrap gap-x-8 gap-y-4">
+              <div className="overflow-x-auto border-t border-[var(--app-line)] px-5 py-4">
+                <div className="flex gap-5">
                   <CheckboxColumn
                     title="직무군"
                     field="jobFamily"

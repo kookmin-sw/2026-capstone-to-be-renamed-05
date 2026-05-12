@@ -21,6 +21,7 @@ export const jobSortLabels = {
   latest: "최신순",
   experienceAsc: "경력 낮은순",
   companyType: "회사 유형별",
+  expired: "마감된 공고",
 };
 
 export function JobFilterPanel({

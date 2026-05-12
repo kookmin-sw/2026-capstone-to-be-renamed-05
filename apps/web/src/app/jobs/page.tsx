@@ -406,66 +406,6 @@ function RegionFilterColumn({
   );
 }
 
-function DeadlineSoonColumn({
-  filters,
-  onChange,
-}: {
-  filters: JobFilterState;
-  onChange: (f: JobFilterState) => void;
-}) {
-  const checked = filters.deadline === "soon";
-
-  return (
-    <div className="min-w-[120px]">
-      <h3 className="mb-2 text-xs font-bold text-gray-800">마감일</h3>
-      <div className="flex flex-col gap-1.5">
-        <label className="flex cursor-pointer items-center gap-2 text-xs text-gray-700">
-          <input
-            type="checkbox"
-            checked={!checked}
-            onChange={() =>
-              onChange({
-                ...filters,
-                deadline: "",
-                deadlineType: "",
-                deadlineWithinDays: "",
-              })
-            }
-            className="h-3.5 w-3.5 cursor-pointer accent-[#E8457A]"
-          />
-          전체
-        </label>
-        <label className="flex cursor-pointer items-center gap-2 text-xs text-gray-700">
-          <input
-            type="checkbox"
-            checked={checked}
-            onChange={() =>
-              onChange(
-                checked
-                  ? {
-                      ...filters,
-                      deadline: "",
-                      deadlineType: "",
-                      deadlineWithinDays: "",
-                    }
-                  : {
-                      ...filters,
-                      deadline: "soon",
-                      deadlineType: "FIXED_DATE",
-                      deadlineWithinDays: "7",
-                      sort: "deadlineAsc",
-                    },
-              )
-            }
-            className="h-3.5 w-3.5 cursor-pointer accent-[#E8457A]"
-          />
-          마감 임박
-        </label>
-      </div>
-    </div>
-  );
-}
-
 function splitMultiValue(value: string) {
   return value
     .split(",")
@@ -706,8 +646,8 @@ export default function JobsPage() {
             </div>
 
             {filterOpen && (
-              <div className="border-t border-[var(--app-line)] px-5 py-4">
-                <div className="flex flex-wrap gap-x-8 gap-y-4">
+              <div className="overflow-x-auto border-t border-[var(--app-line)] px-5 py-4">
+                <div className="flex gap-5">
                   <CheckboxColumn
                     title="직무군"
                     field="jobFamily"
@@ -744,7 +684,6 @@ export default function JobsPage() {
                     filters={filters}
                     onChange={setFilters}
                   />
-                  <DeadlineSoonColumn filters={filters} onChange={setFilters} />
                   <FilterInput
                     label="마감 기간"
                     type="number"

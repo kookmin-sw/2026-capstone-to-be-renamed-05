@@ -189,12 +189,12 @@ export class ListJobsDto {
   maxAttritionRate?: number;
 
   @ApiPropertyOptional({
-    enum: ['deadlineAsc', 'latest', 'experienceAsc', 'companyType'],
+    enum: ['deadlineAsc', 'latest', 'experienceAsc', 'companyType', 'expired'],
     default: 'deadlineAsc',
   })
   @IsOptional()
-  @IsIn(['deadlineAsc', 'latest', 'experienceAsc', 'companyType'])
-  sort?: 'deadlineAsc' | 'latest' | 'experienceAsc' | 'companyType';
+  @IsIn(['deadlineAsc', 'latest', 'experienceAsc', 'companyType', 'expired'])
+  sort?: 'deadlineAsc' | 'latest' | 'experienceAsc' | 'companyType' | 'expired';
 
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()

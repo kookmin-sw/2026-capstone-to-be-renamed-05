@@ -113,7 +113,6 @@ export function JobGridCard({
         : dDay === 0
           ? "D-Day"
           : `D-${dDay}`;
-  const isUrgent = dDay !== null && dDay >= 0 && dDay <= 7;
 
   return (
     <Link href={jobDetailHref(job.id)} className={styles.gridCard}>
@@ -147,13 +146,6 @@ export function JobGridCard({
             <div className={styles.bannerOverlay} />
           </>
         ) : null}
-        {dDayLabel && (
-          <span
-            className={cn(styles.dDay, isUrgent && styles.urgent)}
-          >
-            {dDayLabel}
-          </span>
-        )}
         <div className={styles.logo}>
           {job.companyLogoUrl ? (
             <img
@@ -171,9 +163,16 @@ export function JobGridCard({
       </div>
 
       <div className={styles.gridBody}>
-        <div className={styles.badgeRow}>
-          <Badge tone="pink">{jobFamilyLabels[job.jobFamily]}</Badge>
-          <Badge>{employmentLabels[job.employmentType]}</Badge>
+        {dDayLabel && (
+          <span className={cn(styles.dDay, dDayToneClassName(dDay))}>
+            {dDayLabel}
+          </span>
+        )}
+        <div className={styles.gridTopRow}>
+          <div className={styles.badgeRow}>
+            <Badge tone="pink">{jobFamilyLabels[job.jobFamily]}</Badge>
+            <Badge>{employmentLabels[job.employmentType]}</Badge>
+          </div>
         </div>
         <h3 className={styles.gridTitle}>{job.title}</h3>
         <div className={styles.factGrid}>
@@ -202,6 +201,15 @@ export function JobGridCard({
       </div>
     </Link>
   );
+}
+
+function dDayToneClassName(dDay: number | null) {
+  if (dDay === null) return styles.dDayMuted;
+  if (dDay < 0) return styles.dDayExpired;
+  if (dDay === 0) return styles.dDayToday;
+  if (dDay <= 3) return styles.dDaySoon;
+  if (dDay <= 7) return styles.dDayWeek;
+  return styles.dDayMuted;
 }
 
 export function CompactJobRow({ job }: { job: JobListItem }) {

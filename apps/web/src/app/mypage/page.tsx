@@ -10,7 +10,6 @@ import type {
   ResumeItem,
 } from "@cpa/shared";
 import {
-  Award,
   Bookmark,
   BrainCircuit,
   Camera,
@@ -19,12 +18,12 @@ import {
   FileText,
   KeyRound,
   MessageCircle,
-  ShieldCheck,
   Sparkles,
   Trash2,
   Upload,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   type ChangeEvent,
@@ -46,8 +45,6 @@ import {
   fetchMyProfile,
   fetchMyResumes,
   getMyResumeDownloadUrl,
-  submitMyCpaVerificationRequest,
-  updateMyPassword,
   updateMyProfile,
   uploadMyResume,
 } from "@/lib/api";
@@ -111,22 +108,13 @@ export default function MyPage() {
   const [uploadingResume, setUploadingResume] = useState(false);
   const [updatingProfileImage, setUpdatingProfileImage] = useState(false);
   const [displayNameInput, setDisplayNameInput] = useState("");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
-  const [changingPassword, setChangingPassword] = useState(false);
-  const [applicantName, setApplicantName] = useState("");
-  const [birthDate, setBirthDate] = useState("");
-  const [registrationNumber, setRegistrationNumber] = useState("");
-  const [requestedCareerStage, setRequestedCareerStage] =
-    useState<PersonalCareerStage>("CPA_UNPLACED");
-  const [submittingVerification, setSubmittingVerification] = useState(false);
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const [communityExpanded, setCommunityExpanded] = useState(false);
   const [likelihoodResult, setLikelihoodResult] = useState("");
 
   const resumeFileInputRef = useRef<HTMLInputElement>(null);
   const profileImageInputRef = useRef<HTMLInputElement>(null);
+  const verificationBadgeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -212,6 +200,19 @@ export default function MyPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const button = verificationBadgeButtonRef.current;
+    if (!button || !profile) return;
+
+    const open = () => setVerificationModalOpen(true);
+    button.addEventListener("mousedown", open);
+    button.addEventListener("click", open);
+    return () => {
+      button.removeEventListener("mousedown", open);
+      button.removeEventListener("click", open);
+    };
+  }, [profile]);
+
   const filteredBookmarks =
     bookmarkFilter === "ALL"
       ? bookmarks
@@ -273,84 +274,6 @@ export default function MyPage() {
     } finally {
       setUpdatingProfileImage(false);
       if (profileImageInputRef.current) profileImageInputRef.current.value = "";
-    }
-  }
-
-  async function handleRemoveProfileImage() {
-    if (!profile?.profileImageUrl) return;
-    setMessage("");
-    setUpdatingProfileImage(true);
-    try {
-      const updated = await updateMyProfile({ profileImageUrl: null });
-      setProfile(updated);
-      setMessage("프로필 사진을 제거했습니다.");
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "프로필 사진 제거에 실패했습니다.",
-      );
-    } finally {
-      setUpdatingProfileImage(false);
-    }
-  }
-
-  async function handlePasswordSave(event: FormEvent) {
-    event.preventDefault();
-    setMessage("");
-    if (newPassword !== newPasswordConfirm) {
-      setMessage("새 비밀번호가 서로 일치하지 않습니다.");
-      return;
-    }
-    setChangingPassword(true);
-    try {
-      await updateMyPassword({ currentPassword, newPassword });
-      setCurrentPassword("");
-      setNewPassword("");
-      setNewPasswordConfirm("");
-      setMessage("비밀번호를 변경했습니다.");
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "비밀번호 변경에 실패했습니다.",
-      );
-    } finally {
-      setChangingPassword(false);
-    }
-  }
-
-  async function handleVerificationSubmit(event: FormEvent) {
-    event.preventDefault();
-    setMessage("");
-    if (!isValidBirthDate(birthDate)) {
-      setMessage("생년월일은 YYYY-MM-DD 형식으로 입력해주세요.");
-      return;
-    }
-    setSubmittingVerification(true);
-    try {
-      await submitMyCpaVerificationRequest({
-        applicantName,
-        birthDate,
-        registrationNumber,
-        requestedCareerStage,
-      });
-      const updated = await fetchMyProfile();
-      setProfile(updated);
-      setApplicantName("");
-      setBirthDate("");
-      setRegistrationNumber("");
-      setMessage(
-        "CPA 검증 요청을 제출했습니다. 관리자가 확인한 뒤 반영됩니다.",
-      );
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "CPA 검증 요청에 실패했습니다.",
-      );
-    } finally {
-      setSubmittingVerification(false);
     }
   }
 
@@ -471,16 +394,13 @@ export default function MyPage() {
     );
   }
 
-  const canSubmitVerification =
-    profile.cpaVerificationStatus !== "PENDING" &&
-    profile.cpaVerificationStatus !== "CPA_VERIFIED";
   const displayName = profile.displayName ?? profile.username;
   const displayNameDirty =
     displayNameInput.trim() !== (profile.displayName ?? "");
-  const passwordReady =
-    currentPassword.length >= 8 &&
-    newPassword.length >= 8 &&
-    newPasswordConfirm.length >= 8;
+
+  function openVerificationModal() {
+    setVerificationModalOpen(true);
+  }
 
   return (
     <>
@@ -488,72 +408,60 @@ export default function MyPage() {
       <main className={styles.page}>
         <div className={styles.container}>
           <section className={styles.hero}>
-            <div className={styles.heroProfile}>
-              <button
-                type="button"
-                className={styles.avatarButton}
-                onClick={() => profileImageInputRef.current?.click()}
-                disabled={updatingProfileImage}
-                aria-label="프로필 사진 업로드"
-              >
-                {profile.profileImageUrl ? (
-                  <img
-                    src={profile.profileImageUrl}
-                    alt={`${displayName} 프로필 사진`}
-                    className={styles.avatarImage}
-                  />
-                ) : (
-                  <span className={styles.avatarInitial}>
-                    {displayName.slice(0, 1).toUpperCase()}
-                  </span>
-                )}
-                <span className={styles.avatarCamera}>
-                  <Camera size={15} />
-                </span>
-              </button>
-              <input
-                ref={profileImageInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                className={styles.hiddenInput}
-                onChange={handleProfileImageUpload}
-              />
-              <div className={styles.heroInfo}>
-                <h1>{displayName}</h1>
-                <p>
-                  @{profile.username} · 가입일 {formatDate(profile.createdAt)}
-                </p>
+            <div className={styles.coverImage} aria-hidden="true" />
+            <div className={styles.heroBody}>
+              <div className={styles.heroProfile}>
                 <button
                   type="button"
+                  className={styles.avatarButton}
+                  onClick={() => profileImageInputRef.current?.click()}
+                  disabled={updatingProfileImage}
+                  aria-label="프로필 사진 업로드"
+                >
+                  {profile.profileImageUrl ? (
+                    <Image
+                      src={profile.profileImageUrl}
+                      alt={`${displayName} 프로필 사진`}
+                      className={styles.avatarImage}
+                      fill
+                      sizes="104px"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className={styles.avatarInitial}>
+                      {displayName.slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
+                  <span className={styles.avatarCamera}>
+                    <Camera size={15} />
+                  </span>
+                </button>
+                <input
+                  ref={profileImageInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className={styles.hiddenInput}
+                  onChange={handleProfileImageUpload}
+                />
+                <div className={styles.heroInfo}>
+                  <h1>{displayName}</h1>
+                  <p>
+                    @{profile.username} · 가입일 {formatDate(profile.createdAt)}
+                  </p>
+                </div>
+              </div>
+              <div className={styles.heroBadgeArea}>
+                <button
+                  ref={verificationBadgeButtonRef}
+                  type="button"
                   className={styles.badgeButton}
-                  onClick={() => setVerificationModalOpen(true)}
+                  onMouseDown={openVerificationModal}
+                  onClick={openVerificationModal}
+                  aria-label="CPA 인증 상세 보기"
                 >
                   <VerificationBadge status={profile.cpaVerificationStatus} />
                 </button>
               </div>
-            </div>
-            <div className={styles.heroActions}>
-              <ActionButton
-                type="button"
-                variant="outline"
-                size="sm"
-                iconStart={<Upload size={14} />}
-                onClick={() => resumeFileInputRef.current?.click()}
-                disabled={uploadingResume || resumes.length >= 5}
-              >
-                이력서 업로드
-              </ActionButton>
-              {profile.profileImageUrl && (
-                <ActionButton
-                  type="button"
-                  variant="subtle"
-                  size="sm"
-                  onClick={() => void handleRemoveProfileImage()}
-                  disabled={updatingProfileImage}
-                >
-                  사진 제거
-                </ActionButton>
-              )}
             </div>
           </section>
 
@@ -645,10 +553,7 @@ export default function MyPage() {
                 </div>
               </form>
 
-              <form
-                className={styles.passwordForm}
-                onSubmit={handlePasswordSave}
-              >
+              <div className={styles.passwordForm}>
                 <div className={styles.subsectionTitle}>
                   <KeyRound size={16} />
                   비밀번호
@@ -658,9 +563,8 @@ export default function MyPage() {
                   <input
                     className={styles.input}
                     type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
                     autoComplete="current-password"
+                    disabled
                   />
                 </label>
                 <label className={styles.field}>
@@ -668,10 +572,9 @@ export default function MyPage() {
                   <input
                     className={styles.input}
                     type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
                     autoComplete="new-password"
                     minLength={8}
+                    disabled
                   />
                 </label>
                 <label className={styles.field}>
@@ -679,147 +582,22 @@ export default function MyPage() {
                   <input
                     className={styles.input}
                     type="password"
-                    value={newPasswordConfirm}
-                    onChange={(e) => setNewPasswordConfirm(e.target.value)}
                     autoComplete="new-password"
                     minLength={8}
+                    disabled
                   />
                 </label>
                 <div className={styles.formActions}>
                   <ActionButton
-                    type="submit"
+                    type="button"
                     size="sm"
                     variant="outline"
-                    disabled={!passwordReady || changingPassword}
+                    disabled
                   >
-                    {changingPassword ? "변경 중" : "비밀번호 변경"}
+                    비밀번호 변경
                   </ActionButton>
                 </div>
-              </form>
-            </section>
-
-            <section className={styles.panel}>
-              <div className={styles.panelHeader}>
-                <h2>
-                  <ShieldCheck size={17} />
-                  CPA 인증 요청
-                </h2>
               </div>
-              <div className={styles.statusRows}>
-                <InfoRow
-                  label="검증 상태"
-                  value={verificationLabels[profile.cpaVerificationStatus]}
-                />
-                <InfoRow
-                  label="수습 상태"
-                  value={
-                    profile.careerStage
-                      ? careerStageLabels[profile.careerStage]
-                      : "미설정"
-                  }
-                />
-                <InfoRow
-                  label="고용 이력"
-                  value={employmentLabels[profile.employmentHistoryStatus]}
-                />
-                <InfoRow
-                  label="수습 CPA 방"
-                  value={
-                    profile.traineeRoomAccess
-                      ? "입장 가능"
-                      : "검증 후 입장 가능"
-                  }
-                />
-                {profile.pendingVerificationRequest && (
-                  <InfoRow
-                    label="검토 중인 요청"
-                    value={`${careerStageLabels[profile.pendingVerificationRequest.requestedCareerStage]} · ${formatDate(profile.pendingVerificationRequest.createdAt)}`}
-                  />
-                )}
-              </div>
-
-              {canSubmitVerification ? (
-                <form
-                  className={styles.verificationForm}
-                  onSubmit={handleVerificationSubmit}
-                >
-                  <label className={styles.field}>
-                    성명
-                    <input
-                      className={styles.input}
-                      value={applicantName}
-                      onChange={(e) => setApplicantName(e.target.value)}
-                      maxLength={80}
-                      required
-                    />
-                  </label>
-                  <label className={styles.field}>
-                    생년월일
-                    <input
-                      className={styles.input}
-                      inputMode="numeric"
-                      value={birthDate}
-                      onChange={(e) =>
-                        setBirthDate(formatBirthDateInput(e.target.value))
-                      }
-                      placeholder="YYYY-MM-DD"
-                      maxLength={10}
-                      required
-                    />
-                  </label>
-                  <label className={styles.field}>
-                    등록번호 또는 수습번호
-                    <input
-                      className={styles.input}
-                      value={registrationNumber}
-                      onChange={(e) => setRegistrationNumber(e.target.value)}
-                      placeholder="예: CPA-12345"
-                      maxLength={40}
-                      required
-                    />
-                  </label>
-                  <label className={styles.field}>
-                    신청 단계
-                    <select
-                      className={styles.input}
-                      value={requestedCareerStage}
-                      onChange={(e) =>
-                        setRequestedCareerStage(
-                          e.target.value as PersonalCareerStage,
-                        )
-                      }
-                    >
-                      {Object.entries(careerStageLabels).map(
-                        ([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ),
-                      )}
-                    </select>
-                  </label>
-                  <div className={styles.formActions}>
-                    <ActionButton
-                      type="submit"
-                      size="sm"
-                      disabled={
-                        submittingVerification ||
-                        !applicantName.trim() ||
-                        !isValidBirthDate(birthDate) ||
-                        !registrationNumber.trim()
-                      }
-                    >
-                      {submittingVerification ? "제출 중" : "검증 요청"}
-                    </ActionButton>
-                  </div>
-                </form>
-              ) : (
-                <div className={styles.lockedNotice}>
-                  {profile.cpaVerificationStatus === "CPA_VERIFIED"
-                    ? "CPA 인증이 완료되었습니다."
-                    : "이미 검토 중인 요청이 있습니다."}
-                </div>
-              )}
             </section>
           </div>
 
@@ -1043,6 +821,18 @@ export default function MyPage() {
                 }
               />
               <InfoRow
+                label="수습 상태"
+                value={
+                  profile.careerStage
+                    ? careerStageLabels[profile.careerStage]
+                    : "미설정"
+                }
+              />
+              <InfoRow
+                label="고용 이력"
+                value={employmentLabels[profile.employmentHistoryStatus]}
+              />
+              <InfoRow
                 label="커뮤니티 뱃지"
                 value={
                   profile.cpaVerificationStatus === "CPA_VERIFIED"
@@ -1086,9 +876,7 @@ function VerificationBadge({
         size === "large" ? styles.cpaBadgeLarge : ""
       }`}
     >
-      <span className={styles.badgeSeal}>
-        <Award size={size === "large" ? 34 : 18} />
-      </span>
+      <span className={styles.badgeSeal} aria-hidden="true" />
       <span className={styles.badgeLabel}>{verificationLabels[status]}</span>
     </span>
   );
@@ -1227,22 +1015,4 @@ function readFileAsDataUrl(file: File) {
     });
     reader.readAsDataURL(file);
   });
-}
-
-function formatBirthDateInput(value: string) {
-  const digits = value.replace(/\D/g, "").slice(0, 8);
-  if (digits.length <= 4) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
-  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
-}
-
-function isValidBirthDate(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
-  );
 }

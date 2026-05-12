@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronDown, X } from 'lucide-react';
+import { Check, ChevronDown, Map, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { koreaRegions } from '@/lib/regions';
 import { cn } from '@/lib/utils';
@@ -83,12 +83,15 @@ export function RegionFilterDialog({
         type="button"
         onClick={openDialog}
         className={cn(
-          'flex w-full items-center justify-between border border-[var(--app-line)] bg-white text-left text-[var(--foreground)] outline-none focus:border-[var(--brand)]',
-          compact ? 'rounded-lg px-2 py-1.5 text-xs' : 'mt-2 px-3 py-2 text-sm',
+          'flex w-full cursor-pointer items-center justify-between gap-2 border border-[var(--app-line)] bg-white text-left text-[var(--foreground)] outline-none transition-colors hover:border-[var(--brand-mid)] focus:border-[var(--brand)]',
+          compact ? 'h-9 rounded-lg px-2 text-xs' : 'mt-2 h-10 px-3 text-sm',
         )}
       >
-        <span className={cn('truncate', selectedLocations.length ? '' : 'text-[var(--app-muted)]')}>{summary}</span>
-        <ChevronDown size={16} />
+        <span className="flex min-w-0 items-center gap-1.5">
+          <Map size={14} className="shrink-0 text-[var(--brand)]" />
+          <span className={cn('truncate', selectedLocations.length ? '' : 'text-[var(--app-muted)]')}>{summary}</span>
+        </span>
+        <ChevronDown size={16} className="shrink-0 text-gray-400" />
       </button>
 
       {selectedLocations.length > 0 && (
@@ -122,7 +125,7 @@ export function RegionFilterDialog({
               <button
                 type="button"
                 onClick={closeDialog}
-                className="rounded-md p-2 hover:bg-neutral-100"
+                className="cursor-pointer rounded-md p-2 hover:bg-[var(--brand-soft)] hover:text-[var(--brand)]"
                 aria-label="닫기"
               >
                 <X size={28} />
@@ -132,8 +135,8 @@ export function RegionFilterDialog({
             <div className="grid gap-4 overflow-y-auto px-6 pb-5">
               <label className="text-sm font-medium text-[var(--app-muted)]">대한민국</label>
 
-              <div className="grid min-h-[360px] overflow-hidden rounded-lg border border-[var(--app-line)] md:grid-cols-[1fr_1.05fr]">
-                <div className="border-r border-[var(--app-line)] p-2">
+              <div className="grid min-h-[360px] overflow-hidden rounded-lg border border-[var(--app-line)] bg-white md:grid-cols-[1fr_1.05fr]">
+                <div className="border-r border-[var(--app-line)] bg-gray-50 p-2">
                   <RegionNavButton
                     active={activeProvince === '전국'}
                     label="전국"
@@ -185,7 +188,7 @@ export function RegionFilterDialog({
                     key={location}
                     type="button"
                     onClick={() => removeDraftLocation(location)}
-                    className="inline-flex items-center gap-2 rounded-md bg-neutral-100 px-3 py-2 text-sm font-medium text-neutral-700"
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[var(--brand-mid)] bg-[var(--brand-soft)] px-3 py-2 text-sm font-semibold text-[var(--brand)]"
                   >
                     {displayLocation(location)}
                     <X size={16} />
@@ -198,14 +201,14 @@ export function RegionFilterDialog({
               <button
                 type="button"
                 onClick={reset}
-                className="rounded-md border border-[var(--app-line)] px-4 py-3 text-base font-semibold"
+                className="cursor-pointer rounded-md border border-[var(--app-line)] px-4 py-3 text-base font-semibold hover:border-[var(--brand-mid)] hover:bg-[var(--brand-soft)] hover:text-[var(--brand)]"
               >
                 초기화
               </button>
               <button
                 type="button"
                 onClick={apply}
-                className="rounded-md bg-blue-600 px-4 py-3 text-base font-semibold text-white hover:bg-blue-700"
+                className="cursor-pointer rounded-md bg-[var(--brand)] px-4 py-3 text-base font-semibold text-white hover:bg-[var(--brand-strong)]"
               >
                 적용
               </button>
@@ -234,12 +237,12 @@ function RegionNavButton({
       onClick={onClick}
       className={
         active
-          ? 'flex w-full items-center justify-between rounded-md bg-neutral-100 px-4 py-3 text-left text-base font-semibold'
-          : 'flex w-full items-center justify-between rounded-md px-4 py-3 text-left text-base font-semibold hover:bg-neutral-50'
+          ? 'flex w-full cursor-pointer items-center justify-between rounded-md bg-white px-4 py-3 text-left text-base font-semibold text-[var(--brand)] shadow-sm'
+          : 'flex w-full cursor-pointer items-center justify-between rounded-md px-4 py-3 text-left text-base font-semibold text-gray-700 hover:bg-white hover:text-[var(--brand)]'
       }
     >
       <span>{label}</span>
-      {count > 0 && <span className="text-blue-600">{count}</span>}
+      {count > 0 && <span className="text-[var(--brand)]">{count}</span>}
     </button>
   );
 }
@@ -251,18 +254,18 @@ function RegionCheckRow({ label, checked, onChange }: { label: string; checked: 
       role="checkbox"
       aria-checked={checked}
       onClick={onChange}
-      className="flex w-full cursor-pointer items-center justify-between rounded-md px-4 py-3 text-left text-base font-semibold hover:bg-neutral-50"
+      className="flex w-full cursor-pointer items-center justify-between rounded-md px-4 py-3 text-left text-base font-semibold text-gray-700 hover:bg-[var(--brand-soft)] hover:text-[var(--brand)]"
     >
       <span>{label}</span>
       <span
         aria-hidden="true"
         className={
           checked
-            ? 'flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 text-white'
-            : 'h-7 w-7 rounded-md border-2 border-neutral-300 bg-white'
+            ? 'flex h-6 w-6 items-center justify-center rounded-full bg-[var(--brand)] text-white shadow-sm'
+            : 'h-6 w-6 rounded-full border-2 border-gray-300 bg-white'
         }
       >
-        {checked && <Check size={19} strokeWidth={3} />}
+        {checked && <Check size={15} strokeWidth={3} />}
       </span>
     </button>
   );

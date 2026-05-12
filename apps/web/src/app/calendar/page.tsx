@@ -75,7 +75,17 @@ function CheckboxColumn({
   filters: JobFilterState;
   onChange: (f: JobFilterState) => void;
 }) {
-  const current = filters[field] as string;
+  const selected = splitMultiValue(filters[field] as string);
+  const update = (next: string[]) => {
+    const unique = next.filter(
+      (value, index, all) => all.indexOf(value) === index,
+    );
+    onChange({
+      ...filters,
+      [field]: unique.length === options.length ? "" : unique.join(","),
+    });
+  };
+
   return (
     <div className="min-w-[100px]">
       <h3 className="mb-2 text-xs font-bold text-gray-800">{title}</h3>
@@ -83,9 +93,9 @@ function CheckboxColumn({
         <label className="flex cursor-pointer items-center gap-2 text-xs text-gray-700">
           <input
             type="checkbox"
-            checked={current === ""}
-            onChange={() => onChange({ ...filters, [field]: "" })}
-            className="h-3.5 w-3.5 accent-[#E8457A]"
+            checked={selected.length === 0}
+            onChange={() => update([])}
+            className="h-3.5 w-3.5 cursor-pointer accent-[#E8457A]"
           />
           전체
         </label>
@@ -96,14 +106,15 @@ function CheckboxColumn({
           >
             <input
               type="checkbox"
-              checked={current === opt.value}
+              checked={selected.includes(opt.value)}
               onChange={() =>
-                onChange({
-                  ...filters,
-                  [field]: current === opt.value ? "" : opt.value,
-                })
+                update(
+                  selected.includes(opt.value)
+                    ? selected.filter((value) => value !== opt.value)
+                    : [...selected, opt.value],
+                )
               }
-              className="h-3.5 w-3.5 accent-[#E8457A]"
+              className="h-3.5 w-3.5 cursor-pointer accent-[#E8457A]"
             />
             {opt.label}
           </label>
@@ -111,6 +122,13 @@ function CheckboxColumn({
       </div>
     </div>
   );
+}
+
+function splitMultiValue(value: string) {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function RegionFilterColumn({
@@ -139,7 +157,7 @@ export default function CalendarPage() {
   const [calendarRanges, setCalendarRanges] = useState<JobCalendarRange[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filterOpen, setFilterOpen] = useState(true);
+  const [filterOpen, setFilterOpen] = useState(false);
   const { filters, setFilters, ready } = useJobFilterState();
 
   const calendarRange = useMemo(
@@ -210,34 +228,41 @@ export default function CalendarPage() {
                   setFilters({ ...filters, search: e.target.value })
                 }
                 placeholder="회사명, 직무, 키워드로 검색"
-                className="w-full rounded-xl border border-[var(--app-line)] bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-[var(--brand)]"
+                className="h-10 w-full rounded-xl border border-[var(--app-line)] bg-white pl-9 pr-4 text-sm outline-none focus:border-[var(--brand)]"
               />
             </div>
             <ActionButton type="button" iconStart={<Search size={15} />}>
               검색
             </ActionButton>
           </div>
-
-          <JobPresetBar filters={filters} onChange={setFilters} />
         </div>
 
         {/* 필터 카드 */}
         <div className="mx-auto max-w-7xl px-6 pb-4">
           <div className="rounded-2xl border border-[var(--app-line)] bg-white">
             <div className="flex items-center justify-between px-5 py-3">
-              <ActionButton
-                type="button"
-                onClick={() => setFilterOpen((prev) => !prev)}
-                variant="ghost"
-                size="sm"
-                className={styles.filterHeaderButton}
-                iconStart={<SlidersHorizontal size={15} />}
-              >
-                필터
-                <span className="text-xs font-medium text-gray-400">
-                  {filterOpen ? "필터 닫기 ∧" : "필터 열기 ∨"}
-                </span>
-              </ActionButton>
+              <div className={styles.filterHeaderLeft}>
+                <ActionButton
+                  type="button"
+                  onClick={() => setFilterOpen((prev) => !prev)}
+                  variant="ghost"
+                  size="sm"
+                  className={styles.filterHeaderButton}
+                  iconStart={<SlidersHorizontal size={15} />}
+                >
+                  필터
+                  <span className="text-xs font-medium text-gray-400">
+                    {filterOpen ? "필터 닫기 ∧" : "필터 열기 ∨"}
+                  </span>
+                </ActionButton>
+                {!filterOpen && (
+                  <JobPresetBar
+                    filters={filters}
+                    onChange={setFilters}
+                    className={styles.inlinePresetBar}
+                  />
+                )}
+              </div>
               {filterOpen && (
                 <ActionButton
                   type="button"
@@ -252,8 +277,8 @@ export default function CalendarPage() {
             </div>
 
             {filterOpen && (
-              <div className="overflow-x-auto border-t border-[var(--app-line)] px-5 py-4">
-                <div className="flex gap-8">
+              <div className="border-t border-[var(--app-line)] px-5 py-4">
+                <div className="flex flex-wrap gap-x-8 gap-y-4">
                   <CheckboxColumn
                     title="직무군"
                     field="jobFamily"

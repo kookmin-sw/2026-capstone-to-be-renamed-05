@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SiteNav } from "@/components/site-nav";
 import { ActionButton, ActionLink } from "@/components/ui/action-button";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { getPosts, getTrendingPosts } from "@/lib/community-api";
 import {
   BOARD_TYPES,
@@ -167,7 +168,7 @@ function CommunityPageContent() {
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                 placeholder="제목, 내용, 태그로 검색"
-                className="w-full rounded-xl border border-[var(--app-line)] bg-white py-2.5 pl-9 pr-4 text-sm outline-none focus:border-[var(--brand)]"
+                className="h-10 w-full rounded-xl border border-[var(--app-line)] bg-white pl-9 pr-4 text-sm outline-none focus:border-[var(--brand)]"
               />
             </div>
             <ActionButton
@@ -214,14 +215,17 @@ function CommunityPageContent() {
                 전체 <strong>{posts.length.toLocaleString("ko-KR")}</strong>건
               </p>
               <div className={styles.statsRowRight}>
-                <select
+                <FilterSelect
+                  label="정렬"
+                  hideLabel
                   value={sort}
-                  onChange={(e) => setSort(e.target.value as SortOrder)}
+                  options={[
+                    { value: "latest", label: "최신순" },
+                    { value: "popular", label: "인기순" },
+                  ]}
+                  onChange={(value) => setSort(value as SortOrder)}
                   className={styles.sortSelect}
-                >
-                  <option value="latest">최신순</option>
-                  <option value="popular">인기순</option>
-                </select>
+                />
                 {traineeLocked ? (
                   <ActionLink href="/mypage" variant="outline" size="sm">
                     CPA 검증하기

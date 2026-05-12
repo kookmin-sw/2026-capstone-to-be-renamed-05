@@ -117,6 +117,24 @@ export function JobGridCard({
 
   return (
     <Link href={jobDetailHref(job.id)} className={styles.gridCard}>
+      {onToggleBookmark && (
+        <button
+          type="button"
+          className={styles.bookmarkBtn}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleBookmark(job.id);
+          }}
+          aria-label={bookmarked ? "북마크 해제" : "북마크 추가"}
+        >
+          <Bookmark
+            size={18}
+            fill={bookmarked ? "#facc15" : "none"}
+            stroke={bookmarked ? "#facc15" : "currentColor"}
+          />
+        </button>
+      )}
       <div className={styles.banner}>
         {job.companyBackgroundUrl ? (
           <>
@@ -180,24 +198,6 @@ export function JobGridCard({
           >
             <ExternalLink size={13} />
           </button>
-          {onToggleBookmark && (
-            <button
-              type="button"
-              className={styles.bookmarkBtn}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onToggleBookmark(job.id);
-              }}
-              aria-label={bookmarked ? "북마크 해제" : "북마크 추가"}
-            >
-              <Bookmark
-                size={16}
-                fill={bookmarked ? "#facc15" : "none"}
-                stroke={bookmarked ? "#facc15" : "currentColor"}
-              />
-            </button>
-          )}
         </div>
       </div>
     </Link>

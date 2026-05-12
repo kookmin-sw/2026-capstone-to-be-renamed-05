@@ -26,13 +26,14 @@
 .heroInner {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
+  grid-template-columns: minmax(0, 0.76fr) minmax(0, 1.24fr);
   align-items: center;
-  gap: 2rem;
-  max-width: 80rem;
+  gap: clamp(0.75rem, 2vw, 2rem);
+  box-sizing: border-box;
+  width: min(100%, 90rem);
   min-height: 46rem;
   margin: 0 auto;
-  padding: 6.5rem 1.5rem 6rem;
+  padding: 6.5rem clamp(2.5rem, 5vw, 5rem) 6rem;
 }
 
 .heroCopy {
@@ -85,10 +86,8 @@
   position: relative;
   min-width: 0;
   /* 이미지 외곽을 배경색과 자연스럽게 블렌딩 */
-  -webkit-mask-image:
-    radial-gradient(ellipse 78% 72% at 56% 50%, black 28%, rgba(0, 0, 0, 0.7) 52%, transparent 100%);
-  mask-image:
-    radial-gradient(ellipse 78% 72% at 56% 50%, black 28%, rgba(0, 0, 0, 0.7) 52%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 78% 72% at 56% 50%, black 28%, rgba(0, 0, 0, 0.7) 52%, transparent 100%);
+  mask-image: radial-gradient(ellipse 78% 72% at 56% 50%, black 28%, rgba(0, 0, 0, 0.7) 52%, transparent 100%);
 }
 
 .heroVisual::before {
@@ -106,7 +105,7 @@
   position: relative;
   z-index: 1;
   display: block;
-  width: min(58rem, 122%);
+  width: min(56rem, 105%);
   max-width: none;
   height: auto;
   margin-left: -2.5rem;
@@ -366,9 +365,9 @@
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.5rem;
-  max-width: 48rem;
-  margin: 3.5rem auto 0;
+  gap: 5.5rem;
+  max-width: 70rem;
+  margin: 5.5rem auto 0;
 }
 
 .statCard {
@@ -376,35 +375,14 @@
   flex-direction: column;
   align-items: center;
   gap: 0.625rem;
-  padding: 2.25rem 1.5rem 2rem;
-  border: 1px solid #e8eaed;
-  border-radius: 0.875rem;
-  background: #ffffff;
-  /* 원형 아이콘이 카드 밖으로 절대 튀어나오지 않도록 */
+  padding: 0.25rem 1.5rem 2rem;
   overflow: hidden;
-}
-
-.statIcon {
-  position: relative;
-  flex-shrink: 0;
-  width: 3.25rem;
-  height: 3.25rem;
-  border-radius: 999px;
-  background: #f3f4f6;
-  color: #6b7280;
-}
-
-.statIcon svg {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
 }
 
 .statCard strong {
   display: block;
-  color: #202738;
-  font-size: 1.75rem;
+  color: #38202f;
+  font-size: 5rem;
   font-weight: 900;
   letter-spacing: 0;
   line-height: 1;

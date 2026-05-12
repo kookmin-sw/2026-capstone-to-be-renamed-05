@@ -127,6 +127,18 @@ textarea {
   font: inherit;
 }
 
+button:not(:disabled),
+[role="button"],
+input[type="checkbox"],
+select,
+label[for] {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);

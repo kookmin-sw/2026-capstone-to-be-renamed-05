@@ -81,7 +81,12 @@ function pushMappedLabel(
   labels: Record<string, string>,
 ) {
   if (!value) return;
-  parts.push(labels[value] ?? value);
+  const mapped = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => labels[item] ?? item);
+  if (mapped.length) parts.push(mapped.join("/"));
 }
 
 function pushCareerLabel(parts: string[], value: string | undefined) {

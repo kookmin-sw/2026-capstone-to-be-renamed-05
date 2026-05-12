@@ -28,11 +28,13 @@
     color 160ms ease;
 }
 
+
 .tab:hover,
 .tabActive {
   border-color: var(--brand);
   background: var(--brand-soft);
   color: var(--brand);
+  cursor: pointer;
 }
 
 .submit {

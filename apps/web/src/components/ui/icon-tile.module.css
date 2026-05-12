@@ -3,7 +3,7 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  border: 1px solid var(--brand-mid);
+  /* border: 1px solid var(--brand-mid); */
   background: var(--brand-soft);
   color: var(--brand);
   box-shadow: var(--shadow-xs);

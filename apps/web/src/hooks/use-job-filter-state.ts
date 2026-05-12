@@ -1,12 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { fetchJobFilterPreference, saveJobFilterPreference } from "@/lib/api";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   defaultJobFilters,
-  jobFiltersToPreference,
   jobFiltersToQueryString,
-  normalizeJobFilterPreference,
   parseJobFiltersFromParams,
   type JobFilterState,
 } from "@/lib/job-filters";
@@ -18,8 +15,6 @@ export type SetJobFiltersOptions = {
 export function useJobFilterState() {
   const [filters, setFilters] = useState<JobFilterState>(defaultJobFilters);
   const [ready, setReady] = useState(false);
-  const [canPersist, setCanPersist] = useState(false);
-  const lastSaved = useRef("");
 
   useEffect(() => {
     let ignore = false;
@@ -32,25 +27,14 @@ export function useJobFilterState() {
         return;
       }
 
-      fetchJobFilterPreference()
-        .then((data) => {
-          if (ignore) return;
-          setCanPersist(data.authenticated);
-          const restored = normalizeJobFilterPreference(data.filter);
-          setFilters(restored);
-          setReady(true);
-        })
-        .catch(() => {
-          if (ignore) return;
-          setCanPersist(false);
-          setReady(true);
-        });
+      if (ignore) return;
+      setFilters(defaultJobFilters);
+      setReady(true);
     });
 
     const syncFromHistory = () => {
       const urlFilters = readCurrentUrlFilters();
-      if (!urlFilters.hasAnyQuery) return;
-      setFilters(urlFilters.filters);
+      setFilters(urlFilters.hasAnyQuery ? urlFilters.filters : defaultJobFilters);
       setReady(true);
     };
     window.addEventListener("popstate", syncFromHistory);
@@ -77,22 +61,6 @@ export function useJobFilterState() {
     }
   }, [queryString, ready]);
 
-  useEffect(() => {
-    if (!ready || !canPersist) return;
-    const payload = JSON.stringify(jobFiltersToPreference(filters));
-    if (payload === lastSaved.current) return;
-    const timer = window.setTimeout(() => {
-      saveJobFilterPreference(jobFiltersToPreference(filters))
-        .then(() => {
-          lastSaved.current = payload;
-        })
-        .catch(() => {
-          setCanPersist(false);
-        });
-    }, 350);
-    return () => window.clearTimeout(timer);
-  }, [canPersist, filters, ready]);
-
   const updateFilters = useCallback(
     (next: JobFilterState, options: SetJobFiltersOptions = {}) => {
       setFilters({
@@ -109,7 +77,7 @@ export function useJobFilterState() {
     setFilters: updateFilters,
     ready,
     queryString,
-    canPersist,
+    canPersist: false,
   };
 }
 

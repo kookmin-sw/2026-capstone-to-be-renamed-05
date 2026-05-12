@@ -82,6 +82,7 @@
 }
 
 .gridCard {
+  position: relative;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -127,7 +128,7 @@
 .dDay {
   position: absolute;
   top: 0.75rem;
-  right: 0.75rem;
+  left: 0.75rem;
   border-radius: 999px;
   background: var(--gray-100);
   color: var(--gray-600);
@@ -250,23 +251,26 @@
 }
 
 .bookmarkBtn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 5;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--line);
-  background: var(--surface);
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
   color: var(--gray-400);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .bookmarkBtn:hover {
-  border-color: #facc15;
   color: #facc15;
-  background: #fefce8;
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .compactRow {

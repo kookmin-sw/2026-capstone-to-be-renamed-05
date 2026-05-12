@@ -208,12 +208,22 @@ export class JobsService {
   private async buildWhere(query: ListJobsDto): Promise<Prisma.JobWhereInput> {
     const where: Prisma.JobWhereInput = {
       status: JobStatus.OPEN,
-      ...(query.jobFamily && { jobFamily: query.jobFamily }),
-      ...(query.companyType && { companyType: query.companyType }),
-      ...(query.traineeStatus && { traineeStatus: query.traineeStatus }),
-      ...(query.employmentType && { employmentType: query.employmentType }),
-      ...(query.kicpaCondition && { kicpaCondition: query.kicpaCondition }),
-      ...(query.deadlineType && { deadlineType: query.deadlineType }),
+      ...(query.jobFamily?.length && { jobFamily: { in: query.jobFamily } }),
+      ...(query.companyType?.length && {
+        companyType: { in: query.companyType },
+      }),
+      ...(query.traineeStatus?.length && {
+        traineeStatus: { in: query.traineeStatus },
+      }),
+      ...(query.employmentType?.length && {
+        employmentType: { in: query.employmentType },
+      }),
+      ...(query.kicpaCondition?.length && {
+        kicpaCondition: { in: query.kicpaCondition },
+      }),
+      ...(query.deadlineType?.length && {
+        deadlineType: { in: query.deadlineType },
+      }),
       ...(query.practicalTrainingInstitution !== undefined && {
         practicalTrainingInstitution: query.practicalTrainingInstitution,
       }),

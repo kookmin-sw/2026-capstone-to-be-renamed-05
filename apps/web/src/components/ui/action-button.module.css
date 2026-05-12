@@ -8,6 +8,7 @@
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
+  cursor: pointer;
   transition:
     background-color 160ms ease,
     border-color 160ms ease,

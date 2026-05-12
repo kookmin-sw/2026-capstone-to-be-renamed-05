@@ -243,16 +243,12 @@ export default function Home() {
 
       <section className={styles.outroSection} aria-label="서비스 지표">
         <h2>
-          회계사의 커리어 여정을
+          회계사를 위한 모든 여정을
           <br />더 <span>든든하게</span> 함께합니다
         </h2>
-        <p>핵심 조건을 기반으로 나에게 맞는 공고를 빠르게 제공합니다.</p>
         <div className={styles.statsGrid}>
           {stats.map(({ icon: Icon, value, label }) => (
             <div className={styles.statCard} key={label}>
-              <span className={styles.statIcon}>
-                <Icon size={22} />
-              </span>
               <strong>{value}</strong>
               <span>{label}</span>
             </div>

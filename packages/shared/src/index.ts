@@ -448,6 +448,9 @@ export type MyCommunityActivityItem = {
 
 export type MyCommunityActivityListResponse = {
   items: MyCommunityActivityItem[];
+  page: number;
+  pageSize: number;
+  total: number;
 };
 
 export type PersonalVerificationRequestItem = {

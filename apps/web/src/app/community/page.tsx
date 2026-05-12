@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SiteNav } from '@/components/site-nav';
-import { ActionButton, ActionLink } from '@/components/ui/action-button';
+import { ActionLink } from '@/components/ui/action-button';
 import { FilterSelect } from '@/components/ui/filter-select';
+import { fetchCurrentUser } from '@/lib/api';
 import { getPosts, getTrendingPosts } from '@/lib/community-api';
 import {
   BOARD_TYPES,
@@ -76,6 +77,8 @@ function CommunityPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const activeBoard = (searchParams.get('board') as BoardType | null) ?? 'CPA_PREP';
+  const mineOnly = searchParams.get('mine') === 'true';
+  const queryString = searchParams.toString();
 
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [trendingPosts, setTrendingPosts] = useState<CommunityPost[]>([]);
@@ -92,7 +95,21 @@ function CommunityPageContent() {
       setLoading(true);
       setError('');
       try {
-        const items = await getPosts({ board: activeBoard, search, sort });
+        if (mineOnly) {
+          const user = await fetchCurrentUser();
+          if (!user) {
+            const next = `/community${queryString ? `?${queryString}` : ''}`;
+            router.replace(`/login?next=${encodeURIComponent(next)}`);
+            return;
+          }
+        }
+
+        const items = await getPosts({
+          board: activeBoard,
+          search,
+          sort,
+          mine: mineOnly,
+        });
         if (!ignore) setPosts(items);
       } catch (caught) {
         if (!ignore) {
@@ -106,7 +123,7 @@ function CommunityPageContent() {
     return () => {
       ignore = true;
     };
-  }, [activeBoard, search, sort]);
+  }, [activeBoard, mineOnly, queryString, router, search, sort]);
 
   useEffect(() => {
     let ignore = false;
@@ -129,7 +146,19 @@ function CommunityPageContent() {
   function handleBoardChange(board: BoardType) {
     setSearch('');
     setSearchInput('');
-    router.push(`/community?board=${board}`);
+    const params = new URLSearchParams(queryString);
+    params.set('board', board);
+    router.push(`/community?${params.toString()}`);
+  }
+
+  function handleMineChange(checked: boolean) {
+    const params = new URLSearchParams(queryString);
+    if (checked) {
+      params.set('mine', 'true');
+    } else {
+      params.delete('mine');
+    }
+    router.push(`/community?${params.toString()}`);
   }
 
   const traineeLocked = activeBoard === 'TRAINEE' && Boolean(error);
@@ -180,6 +209,14 @@ function CommunityPageContent() {
                 onChange={(value) => setSort(value as SortOrder)}
                 className={styles.sortSelect}
               />
+              <label className={styles.mineFilter}>
+                <input
+                  type="checkbox"
+                  checked={mineOnly}
+                  onChange={(event) => handleMineChange(event.currentTarget.checked)}
+                />
+                <span>내가 쓴 글</span>
+              </label>
               <form
                 className={styles.searchInputWrap}
                 onSubmit={(event) => {
@@ -228,7 +265,11 @@ function CommunityPageContent() {
               ) : (
                 <div className={styles.emptyState}>
                   {search
-                    ? `"${search}"에 해당하는 게시글이 없습니다.`
+                    ? mineOnly
+                      ? `"${search}"에 해당하는 내가 쓴 글이 없습니다.`
+                      : `"${search}"에 해당하는 게시글이 없습니다.`
+                    : mineOnly
+                      ? '이 게시판에 내가 쓴 글이 없습니다.'
                     : '아직 게시글이 없습니다. 첫 번째 글을 작성해보세요.'}
                 </div>
               )}

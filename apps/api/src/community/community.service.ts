@@ -52,12 +52,18 @@ export class CommunityService {
     if (query.board === CommunityBoardType.TRAINEE) {
       await this.assertTraineeAccess(user);
     }
+    if (query.mine && !user) {
+      throw new UnauthorizedException('Login is required.');
+    }
 
     const where: Prisma.CommunityPostWhereInput = {};
     if (query.board) {
       where.boardType = query.board;
     } else if (!(await this.canAccessTrainee(user))) {
       where.boardType = { not: CommunityBoardType.TRAINEE };
+    }
+    if (query.mine && user) {
+      where.authorId = user.id;
     }
 
     const search = query.search?.trim();

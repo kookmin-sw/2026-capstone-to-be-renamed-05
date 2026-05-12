@@ -190,6 +190,26 @@
   min-width: 6.25rem;
 }
 
+.mineFilter {
+  flex: none;
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--gray-700);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mineFilter input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+
 .writeButton {
   min-height: 2.5rem;
 }

@@ -66,8 +66,33 @@ npm run prisma:migrate:deploy
 echo "==> Building API"
 npm run build --workspace @cpa/api
 
+should_update_ec2_host() {
+  case "$(printf '%s' "${DEPLOY_AUTO_UPDATE_EC2_HOST:-}" | tr '[:upper:]' '[:lower:]')" in
+    1 | true | yes | on) return 0 ;;
+    0 | false | no | off) return 1 ;;
+  esac
+
+  case "$(printf '%s' "${DEPLOY_AUTO_UPDATE_WEB_HOST:-}" | tr '[:upper:]' '[:lower:]')" in
+    1 | true | yes | on) return 0 ;;
+  esac
+
+  if [[ -n "${S3_WEB_ENDPOINT:-}" ]]; then
+    case "$(printf '%s' "${AUTH_COOKIE_SECURE:-}" | tr '[:upper:]' '[:lower:]')" in
+      0 | false | no | off) return 0 ;;
+    esac
+  fi
+
+  return 1
+}
+
+if should_update_ec2_host; then
+  deploy_update_ec2_host=true
+else
+  deploy_update_ec2_host=false
+fi
+
 echo "==> Building and syncing static web to S3"
-S3_DEPLOY_UPDATE_EC2_HOST="${DEPLOY_AUTO_UPDATE_EC2_HOST:-true}" \
+S3_DEPLOY_UPDATE_EC2_HOST="${deploy_update_ec2_host}" \
   ENV_FILE="${ENV_FILE}" \
   npm run deploy:web:s3
 
@@ -76,6 +101,29 @@ if [[ -f "${ENV_FILE}" ]]; then
   # shellcheck disable=SC1090
   source "${ENV_FILE}"
   set +a
+fi
+
+should_restart_web_static() {
+  case "$(printf '%s' "${DEPLOY_RESTART_WEB_STATIC:-}" | tr '[:upper:]' '[:lower:]')" in
+    1 | true | yes | on) return 0 ;;
+    0 | false | no | off) return 1 ;;
+  esac
+
+  if [[ -z "${NEXT_PUBLIC_CANONICAL_WEB_ORIGIN:-}" ]]; then
+    return 1
+  fi
+
+  case "$(printf '%s' "${AUTH_COOKIE_SECURE:-}" | tr '[:upper:]' '[:lower:]')" in
+    0 | false | no | off) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+if should_restart_web_static; then
+  echo "==> Restarting EC2 static web"
+  ENV_FILE="${ENV_FILE}" \
+    NODE_VERSION="${NODE_VERSION}" \
+    bash scripts/restart-web-static.sh
 fi
 
 if [[ "${DEPLOY_DEFER_API_RESTART:-0}" == "1" ]]; then

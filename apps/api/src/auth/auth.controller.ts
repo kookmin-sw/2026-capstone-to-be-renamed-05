@@ -6,6 +6,7 @@ import {
   Post,
   Req,
   Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -49,8 +50,12 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  me(@Req() req: RequestWithUser) {
-    return { user: req.user };
+  async me(@Req() req: RequestWithUser) {
+    const user = await this.authService.findSafeUser(req.user!.id);
+    if (!user) {
+      throw new UnauthorizedException('로그인이 필요합니다.');
+    }
+    return { user };
   }
 
   @HttpCode(200)

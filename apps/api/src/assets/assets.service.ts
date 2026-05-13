@@ -9,9 +9,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { AssetPurpose, AssetStatus, type Asset } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
-import { mkdir, stat, writeFile } from 'node:fs/promises';
+import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve, sep } from 'node:path';
 import {
+  DeleteObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -25,11 +26,14 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCompanyBackgroundUploadUrlDto } from './dto/create-company-background-upload-url.dto';
 import { CreateCompanyLogoUploadUrlDto } from './dto/create-company-logo-upload-url.dto';
+import { CreateProfileImageUploadUrlDto } from './dto/create-profile-image-upload-url.dto';
 import {
   COMPANY_BACKGROUND_EXTENSIONS,
   COMPANY_BACKGROUND_MAX_BYTES,
   COMPANY_LOGO_EXTENSIONS,
   COMPANY_LOGO_MAX_BYTES,
+  PROFILE_IMAGE_EXTENSIONS,
+  PROFILE_IMAGE_MAX_BYTES,
 } from './logo-asset.constants';
 
 const DEFAULT_PRESIGN_EXPIRES_SECONDS = 300;
@@ -73,32 +77,44 @@ export class AssetsService implements OnModuleInit {
     userId: string,
     dto: CreateCompanyLogoUploadUrlDto,
   ) {
-    return this.createCompanyImageUploadUrl(
-      userId,
-      dto,
-      AssetPurpose.COMPANY_LOGO,
-    );
+    return this.createImageUploadUrl(userId, dto, AssetPurpose.COMPANY_LOGO);
   }
 
   async createCompanyBackgroundUploadUrl(
     userId: string,
     dto: CreateCompanyBackgroundUploadUrlDto,
   ) {
-    return this.createCompanyImageUploadUrl(
+    return this.createImageUploadUrl(
       userId,
       dto,
       AssetPurpose.COMPANY_BACKGROUND,
     );
   }
 
-  private async createCompanyImageUploadUrl(
+  async createProfileImageUploadUrl(
     userId: string,
-    dto: CreateCompanyLogoUploadUrlDto | CreateCompanyBackgroundUploadUrlDto,
+    dto: CreateProfileImageUploadUrlDto,
+  ) {
+    return this.createImageUploadUrl(
+      userId,
+      dto,
+      AssetPurpose.USER_PROFILE_IMAGE,
+    );
+  }
+
+  private async createImageUploadUrl(
+    userId: string,
+    dto:
+      | CreateCompanyLogoUploadUrlDto
+      | CreateCompanyBackgroundUploadUrlDto
+      | CreateProfileImageUploadUrlDto,
     purpose: AssetPurpose,
   ) {
-    const company = await this.getOwnedCompanyOrThrow(userId);
+    const company = this.isCompanyImagePurpose(purpose)
+      ? await this.getOwnedCompanyOrThrow(userId)
+      : null;
     const storageConfig = this.getAssetStorageConfig();
-    const config = this.getCompanyImagePurposeConfig(purpose);
+    const config = this.getImagePurposeConfig(purpose);
     const extension = config.extensions.get(dto.contentType);
 
     if (!extension) {
@@ -110,7 +126,7 @@ export class AssetsService implements OnModuleInit {
 
     const key = [
       config.keyPrefix,
-      company.id,
+      company?.id ?? userId,
       `${Date.now()}-${randomUUID()}.${extension}`,
     ].join('/');
     const publicUrl = this.buildPublicUrl(storageConfig.publicBaseUrl, key);
@@ -126,7 +142,7 @@ export class AssetsService implements OnModuleInit {
         byteSize: dto.byteSize,
         originalName: this.normalizeOriginalName(dto.fileName),
         uploadedById: userId,
-        companyId: company.id,
+        companyId: company?.id ?? null,
       },
     });
 
@@ -181,7 +197,7 @@ export class AssetsService implements OnModuleInit {
         id: assetId,
         uploadedById: userId,
         purpose: {
-          in: [AssetPurpose.COMPANY_LOGO, AssetPurpose.COMPANY_BACKGROUND],
+          in: this.uploadableImagePurposes(),
         },
         status: AssetStatus.PENDING,
       },
@@ -199,7 +215,7 @@ export class AssetsService implements OnModuleInit {
     const contentType = this.parseContentTypeHeader(contentTypeHeader);
     if (contentType !== asset.contentType) {
       throw new BadRequestException(
-        'Uploaded company image content type does not match the request.',
+        'Uploaded image content type does not match the request.',
       );
     }
     this.assertLocalUploadBody(asset, body);
@@ -221,7 +237,7 @@ export class AssetsService implements OnModuleInit {
         id: assetId,
         uploadedById: userId,
         purpose: {
-          in: [AssetPurpose.COMPANY_LOGO, AssetPurpose.COMPANY_BACKGROUND],
+          in: this.uploadableImagePurposes(),
         },
       },
     });
@@ -249,6 +265,26 @@ export class AssetsService implements OnModuleInit {
     });
 
     return { asset: this.toAssetResponse(updated) };
+  }
+
+  async deleteAsset(
+    userId: string,
+    assetId: string,
+    allowedPurposes: AssetPurpose[],
+  ) {
+    const asset = await this.prisma.asset.findFirst({
+      where: {
+        id: assetId,
+        uploadedById: userId,
+        purpose: { in: allowedPurposes },
+      },
+    });
+
+    if (!asset) return { ok: false };
+
+    await this.deleteStoredObject(asset);
+    await this.prisma.asset.delete({ where: { id: asset.id } });
+    return { ok: true };
   }
 
   private async headLocalObject(asset: Pick<Asset, 'contentType' | 'key'>) {
@@ -287,24 +323,20 @@ export class AssetsService implements OnModuleInit {
     asset: { byteSize: number; contentType: string; purpose: AssetPurpose },
     head: Pick<HeadObjectCommandOutput, 'ContentLength' | 'ContentType'>,
   ) {
-    const config = this.getCompanyImagePurposeConfig(asset.purpose);
+    const config = this.getImagePurposeConfig(asset.purpose);
     if (!head.ContentLength || head.ContentLength <= 0) {
       throw new BadRequestException(
-        '업로드된 기업 이미지 크기를 확인할 수 없습니다.',
+        '업로드된 이미지 크기를 확인할 수 없습니다.',
       );
     }
     if (head.ContentLength > config.maxBytes) {
       throw new BadRequestException(config.oversizeMessage);
     }
     if (head.ContentLength !== asset.byteSize) {
-      throw new BadRequestException(
-        '업로드된 기업 이미지 크기가 요청과 다릅니다.',
-      );
+      throw new BadRequestException('업로드된 이미지 크기가 요청과 다릅니다.');
     }
     if (head.ContentType !== asset.contentType) {
-      throw new BadRequestException(
-        '업로드된 기업 이미지 형식이 요청과 다릅니다.',
-      );
+      throw new BadRequestException('업로드된 이미지 형식이 요청과 다릅니다.');
     }
   }
 
@@ -312,21 +344,37 @@ export class AssetsService implements OnModuleInit {
     asset: Pick<Asset, 'byteSize' | 'purpose'>,
     body: Buffer,
   ) {
-    const config = this.getCompanyImagePurposeConfig(asset.purpose);
+    const config = this.getImagePurposeConfig(asset.purpose);
     if (body.length <= 0) {
-      throw new BadRequestException('Uploaded company image file is empty.');
+      throw new BadRequestException('Uploaded image file is empty.');
     }
     if (body.length > config.maxBytes) {
       throw new BadRequestException(config.oversizeMessage);
     }
     if (body.length !== asset.byteSize) {
       throw new BadRequestException(
-        'Uploaded company image size does not match the request.',
+        'Uploaded image size does not match the request.',
       );
     }
   }
 
-  private getCompanyImagePurposeConfig(purpose: AssetPurpose): {
+  private async deleteStoredObject(
+    asset: Pick<Asset, 'bucket' | 'region' | 'key'>,
+  ) {
+    if (this.isLocalAsset(asset)) {
+      const localConfig = this.getLocalConfig();
+      await rm(this.resolveLocalAssetPath(localConfig.rootDir, asset.key), {
+        force: true,
+      });
+      return;
+    }
+
+    await this.getS3Client(asset.region).send(
+      new DeleteObjectCommand({ Bucket: asset.bucket, Key: asset.key }),
+    );
+  }
+
+  private getImagePurposeConfig(purpose: AssetPurpose): {
     keyPrefix: string;
     extensions: Map<string, string>;
     maxBytes: number;
@@ -344,6 +392,17 @@ export class AssetsService implements OnModuleInit {
       };
     }
 
+    if (purpose === AssetPurpose.USER_PROFILE_IMAGE) {
+      return {
+        keyPrefix: 'profile-images',
+        extensions: PROFILE_IMAGE_EXTENSIONS,
+        maxBytes: PROFILE_IMAGE_MAX_BYTES,
+        invalidTypeMessage:
+          '프로필 사진은 PNG, JPG, WEBP 파일만 업로드할 수 있습니다.',
+        oversizeMessage: '프로필 사진은 2MB 이하로 업로드해 주세요.',
+      };
+    }
+
     return {
       keyPrefix: 'company-logos',
       extensions: COMPANY_LOGO_EXTENSIONS,
@@ -352,6 +411,21 @@ export class AssetsService implements OnModuleInit {
         '기업 이미지는 PNG, JPG, WEBP, GIF 파일만 업로드할 수 있습니다.',
       oversizeMessage: '기업 이미지는 2MB 이하로 업로드해 주세요.',
     };
+  }
+
+  private uploadableImagePurposes() {
+    return [
+      AssetPurpose.COMPANY_LOGO,
+      AssetPurpose.COMPANY_BACKGROUND,
+      AssetPurpose.USER_PROFILE_IMAGE,
+    ];
+  }
+
+  private isCompanyImagePurpose(purpose: AssetPurpose) {
+    return (
+      purpose === AssetPurpose.COMPANY_LOGO ||
+      purpose === AssetPurpose.COMPANY_BACKGROUND
+    );
   }
 
   private async getOwnedCompanyOrThrow(userId: string) {

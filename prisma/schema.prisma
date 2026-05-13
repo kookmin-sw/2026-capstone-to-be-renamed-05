@@ -82,6 +82,7 @@ enum AiSuggestionStatus {
 enum AssetPurpose {
   COMPANY_LOGO
   COMPANY_BACKGROUND
+  USER_PROFILE_IMAGE
 }
 
 enum AssetStatus {
@@ -133,6 +134,7 @@ model User {
   username            String   @unique
   passwordHash        String
   displayName         String?
+  profileImageAssetId String?  @unique
   profileImageUrl     String?
   role                UserRole
   jobFilterPreference Json?
@@ -140,6 +142,7 @@ model User {
   updatedAt           DateTime @updatedAt
 
   ownedCompany                      Company?                   @relation("CompanyOwner")
+  profileImageAsset                  Asset?                     @relation("UserProfileImageAsset", fields: [profileImageAssetId], references: [id], onDelete: SetNull)
   jobPresets                        UserJobPreset[]
   jobSubmissions                    JobSubmission[]            @relation("JobSubmissionSubmitter")
   reviewedJobSubmissions            JobSubmission[]            @relation("JobSubmissionReviewer")
@@ -234,15 +237,16 @@ model Asset {
   byteSize     Int
   originalName String?
   uploadedById String
-  companyId    String
+  companyId    String?
   completedAt  DateTime?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
   uploadedBy     User     @relation("AssetUploader", fields: [uploadedById], references: [id])
-  company        Company  @relation("CompanyAssets", fields: [companyId], references: [id], onDelete: Cascade)
+  company        Company? @relation("CompanyAssets", fields: [companyId], references: [id], onDelete: Cascade)
   logoForCompany Company? @relation("CompanyLogoAsset")
   backgroundForCompany Company? @relation("CompanyBackgroundAsset")
+  profileImageForUser User? @relation("UserProfileImageAsset")
 
   @@index([companyId, purpose, status])
   @@index([uploadedById, status])

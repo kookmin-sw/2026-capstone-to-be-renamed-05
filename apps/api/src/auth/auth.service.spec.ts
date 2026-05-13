@@ -112,4 +112,39 @@ describe('AuthService', () => {
     expect(prisma.company.create).not.toHaveBeenCalled();
     expect(argon2.hash).not.toHaveBeenCalled();
   });
+
+  it('returns the latest safe user with profile image URL', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      username: 'jobseeker',
+      displayName: '수습 CPA',
+      profileImageUrl: null,
+      role: UserRole.JOB_SEEKER,
+      ownedCompany: null,
+      profileImageAsset: {
+        publicUrl: 'https://assets.example.com/profile.png',
+      },
+    });
+
+    await expect(service.findSafeUser('user-1')).resolves.toEqual({
+      id: 'user-1',
+      username: 'jobseeker',
+      displayName: '수습 CPA',
+      profileImageUrl: 'https://assets.example.com/profile.png',
+      role: UserRole.JOB_SEEKER,
+      companyId: null,
+    });
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        profileImageUrl: true,
+        role: true,
+        ownedCompany: { select: { id: true } },
+        profileImageAsset: { select: { publicUrl: true } },
+      },
+    });
+  });
 });

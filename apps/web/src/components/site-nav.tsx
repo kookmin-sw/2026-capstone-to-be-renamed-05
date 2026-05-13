@@ -1,11 +1,17 @@
 "use client";
 
 import { LogOut } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ActionButton, ActionLink } from "@/components/ui/action-button";
-import { fetchCurrentUser, logoutRequest, type AuthUser } from "@/lib/api";
+import {
+  AUTH_USER_CHANGED_EVENT,
+  fetchCurrentUser,
+  logoutRequest,
+  type AuthUser,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 import styles from "./site-nav.module.css";
 
@@ -30,18 +36,25 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
 
   useEffect(() => {
     let ignore = false;
-    fetchCurrentUser()
-      .then((currentUser) => {
-        if (!ignore) setUser(currentUser);
-      })
-      .catch(() => {
-        if (!ignore) setUser(null);
-      })
-      .finally(() => {
-        if (!ignore) setAuthReady(true);
-      });
+
+    function loadCurrentUser() {
+      fetchCurrentUser()
+        .then((currentUser) => {
+          if (!ignore) setUser(currentUser);
+        })
+        .catch(() => {
+          if (!ignore) setUser(null);
+        })
+        .finally(() => {
+          if (!ignore) setAuthReady(true);
+        });
+    }
+
+    loadCurrentUser();
+    window.addEventListener(AUTH_USER_CHANGED_EVENT, loadCurrentUser);
     return () => {
       ignore = true;
+      window.removeEventListener(AUTH_USER_CHANGED_EVENT, loadCurrentUser);
     };
   }, [pathname]);
   const isLanding = variant === "landing";
@@ -115,6 +128,16 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
         <div className={styles.spacer}>
           {!authReady ? null : user ? (
             <div className={styles.userActions}>
+              {user.profileImageUrl && (
+                <span className={styles.userAvatar}>
+                  <Image
+                    src={user.profileImageUrl}
+                    alt={`${user.displayName ?? user.username} 프로필 사진`}
+                    width={29}
+                    height={29}
+                  />
+                </span>
+              )}
               <span className={styles.userName}>
                 {user.displayName ?? user.username}
               </span>

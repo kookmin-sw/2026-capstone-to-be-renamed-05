@@ -40,6 +40,7 @@ import type {
 import { getApiBaseUrl } from "./runtime-config";
 
 const API_BASE_URL = getApiBaseUrl();
+export const AUTH_USER_CHANGED_EVENT = "accountit:auth-user-changed";
 
 export type JobListResponse = {
   items: JobListItem[];
@@ -59,6 +60,7 @@ export type AuthUser = {
   id: string;
   username: string;
   displayName: string | null;
+  profileImageUrl: string | null;
   role: "JOB_SEEKER" | "COMPANY" | "ADMIN";
   companyId: string | null;
 };
@@ -92,6 +94,8 @@ type CompanyLogoAssetResponse = {
 
 type CompanyBackgroundUploadUrlResponse = CompanyLogoUploadUrlResponse;
 type CompanyBackgroundAssetResponse = CompanyLogoAssetResponse;
+type ProfileImageUploadUrlResponse = CompanyLogoUploadUrlResponse;
+type ProfileImageAssetResponse = CompanyLogoAssetResponse;
 
 export type CompanyJobSubmissionPayload = {
   title: string;
@@ -314,6 +318,72 @@ export async function uploadCompanyBackground(file: File) {
   }
   if (!("asset" in completeData)) {
     throw new Error("기업 배경 이미지 업로드 확인에 실패했습니다.");
+  }
+
+  return {
+    assetId: completeData.asset.id,
+    publicUrl: completeData.asset.publicUrl,
+  };
+}
+
+export async function uploadMyProfileImage(file: File) {
+  const uploadUrlResponse = await fetch(
+    `${API_BASE_URL}/assets/profile-image/upload-url`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type,
+        byteSize: file.size,
+      }),
+    },
+  );
+  const uploadUrlData =
+    (await uploadUrlResponse.json()) as ProfileImageUploadUrlResponse & {
+      message?: string | string[];
+    };
+  if (!uploadUrlResponse.ok || !uploadUrlData.uploadUrl) {
+    throw new Error(
+      readMessage(
+        uploadUrlData.message,
+        "프로필 사진 업로드 URL 생성에 실패했습니다.",
+      ),
+    );
+  }
+
+  const uploadResponse = await fetch(uploadUrlData.uploadUrl, {
+    method: uploadUrlData.method,
+    headers: uploadUrlData.headers,
+    credentials: uploadUrlData.requiresCredentials ? "include" : "omit",
+    body: file,
+  });
+  if (!uploadResponse.ok) {
+    throw new Error("프로필 사진을 업로드하지 못했습니다.");
+  }
+
+  const completeResponse = await fetch(
+    `${API_BASE_URL}/assets/${uploadUrlData.assetId}/complete`,
+    {
+      method: "POST",
+      credentials: "include",
+    },
+  );
+  const completeData = (await completeResponse.json()) as
+    | ProfileImageAssetResponse
+    | { message?: string | string[] };
+  if (!completeResponse.ok) {
+    const errorData = completeData as { message?: string | string[] };
+    throw new Error(
+      readMessage(
+        errorData.message,
+        "프로필 사진 업로드 확인에 실패했습니다.",
+      ),
+    );
+  }
+  if (!("asset" in completeData)) {
+    throw new Error("프로필 사진 업로드 확인에 실패했습니다.");
   }
 
   return {
@@ -940,6 +1010,7 @@ export async function fetchMyProfile() {
 
 export async function updateMyProfile(data: {
   displayName?: string;
+  profileImageAssetId?: string;
   profileImageUrl?: string | null;
 }) {
   const response = await fetch(`${API_BASE_URL}/mypage/profile`, {
@@ -951,6 +1022,19 @@ export async function updateMyProfile(data: {
   if (!response.ok) {
     throw new Error(
       await readApiError(response, "프로필 수정에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as MyProfileResponse;
+}
+
+export async function deleteMyProfileImage() {
+  const response = await fetch(`${API_BASE_URL}/mypage/profile/image`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "프로필 사진 삭제에 실패했습니다."),
     );
   }
   return (await response.json()) as MyProfileResponse;

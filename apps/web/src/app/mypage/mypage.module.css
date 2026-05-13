@@ -216,6 +216,20 @@
   color: var(--brand);
 }
 
+.profilePhotoActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.profilePhotoActions span {
+  color: var(--app-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
 .message {
   border: 1px solid var(--brand-mid);
   border-radius: 8px;

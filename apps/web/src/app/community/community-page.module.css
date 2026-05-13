@@ -287,6 +287,12 @@
   gap: 0.2rem;
 }
 
+.authorMetaItem {
+  gap: 0.4rem;
+  color: var(--gray-700);
+  font-weight: 700;
+}
+
 .metaComment {
   color: var(--brand);
   font-weight: 700;

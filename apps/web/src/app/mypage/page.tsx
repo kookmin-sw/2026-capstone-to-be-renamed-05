@@ -37,7 +37,9 @@ import {
 import { SiteNav } from "@/components/site-nav";
 import { ActionButton, ActionLink } from "@/components/ui/action-button";
 import {
+  AUTH_USER_CHANGED_EVENT,
   deleteMyBookmark,
+  deleteMyProfileImage,
   deleteMyResume,
   fetchCurrentUser,
   fetchMyBookmarks,
@@ -46,6 +48,7 @@ import {
   fetchMyResumes,
   getMyResumeDownloadUrl,
   updateMyProfile,
+  uploadMyProfileImage,
   uploadMyResume,
 } from "@/lib/api";
 import {
@@ -57,12 +60,12 @@ import styles from "./mypage.module.css";
 
 const RESUME_MAX_BYTES = 10 * 1024 * 1024;
 const RESUME_EXTENSIONS = new Set(["pdf", "doc", "docx", "hwp", "hwpx"]);
-const PROFILE_IMAGE_MAX_BYTES = 1.5 * 1024 * 1024;
+const PROFILE_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+const PROFILE_IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp"]);
 const PROFILE_IMAGE_TYPES = new Set([
   "image/png",
   "image/jpeg",
   "image/webp",
-  "image/gif",
 ]);
 
 const careerStageLabels: Record<PersonalCareerStage, string> = {
@@ -236,6 +239,7 @@ export default function MyPage() {
       });
       setProfile(updated);
       setDisplayNameInput(updated.displayName ?? "");
+      notifyAuthUserChanged();
       setMessage("프로필을 수정했습니다.");
     } catch (error) {
       setMessage(
@@ -260,19 +264,47 @@ export default function MyPage() {
 
     setUpdatingProfileImage(true);
     try {
-      const profileImageUrl = await readFileAsDataUrl(file);
-      const updated = await updateMyProfile({ profileImageUrl });
+      const image = await uploadMyProfileImage(file);
+      const updated = await updateMyProfile({
+        profileImageAssetId: image.assetId,
+      });
       setProfile(updated);
-      setMessage("프로필 사진을 변경했습니다.");
+      notifyAuthUserChanged();
+      setMessage(
+        profile?.profileImageUrl
+          ? "프로필 사진을 변경했습니다."
+          : "프로필 사진을 등록했습니다.",
+      );
     } catch (error) {
       setMessage(
         error instanceof Error
           ? error.message
-          : "프로필 사진 변경에 실패했습니다.",
+          : "프로필 사진 업로드에 실패했습니다.",
       );
     } finally {
       setUpdatingProfileImage(false);
       if (profileImageInputRef.current) profileImageInputRef.current.value = "";
+    }
+  }
+
+  async function handleDeleteProfileImage() {
+    if (!profile?.profileImageUrl) return;
+    if (!window.confirm("프로필 사진을 삭제할까요?")) return;
+    setMessage("");
+    setUpdatingProfileImage(true);
+    try {
+      const updated = await deleteMyProfileImage();
+      setProfile(updated);
+      notifyAuthUserChanged();
+      setMessage("프로필 사진을 삭제했습니다.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "프로필 사진 삭제에 실패했습니다.",
+      );
+    } finally {
+      setUpdatingProfileImage(false);
     }
   }
 
@@ -438,7 +470,7 @@ export default function MyPage() {
                 <input
                   ref={profileImageInputRef}
                   type="file"
-                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
                   className={styles.hiddenInput}
                   onChange={handleProfileImageUpload}
                 />
@@ -525,6 +557,34 @@ export default function MyPage() {
             <section className={styles.panel}>
               <div className={styles.panelHeader}>
                 <h2>내 프로필</h2>
+              </div>
+              <div className={styles.profilePhotoActions}>
+                <ActionButton
+                  type="button"
+                  size="sm"
+                  iconStart={<Camera size={14} />}
+                  disabled={updatingProfileImage}
+                  onClick={() => profileImageInputRef.current?.click()}
+                >
+                  {updatingProfileImage
+                    ? "처리 중"
+                    : profile.profileImageUrl
+                      ? "사진 변경"
+                      : "사진 등록"}
+                </ActionButton>
+                {profile.profileImageUrl && (
+                  <ActionButton
+                    type="button"
+                    variant="subtle"
+                    size="sm"
+                    iconStart={<Trash2 size={14} />}
+                    disabled={updatingProfileImage}
+                    onClick={() => void handleDeleteProfileImage()}
+                  >
+                    사진 삭제
+                  </ActionButton>
+                )}
+                <span>PNG, JPG, WEBP · 최대 2MB</span>
               </div>
               <form className={styles.profileForm} onSubmit={handleProfileSave}>
                 <label className={styles.field}>
@@ -983,31 +1043,22 @@ function validateResumeFile(file: File) {
 }
 
 function validateProfileImage(file: File) {
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  if (!extension || !PROFILE_IMAGE_EXTENSIONS.has(extension)) {
+    return "프로필 사진은 PNG, JPG, WEBP 파일만 업로드할 수 있습니다.";
+  }
   if (!PROFILE_IMAGE_TYPES.has(file.type)) {
-    return "프로필 사진은 PNG, JPG, WEBP, GIF 파일만 업로드할 수 있습니다.";
+    return "프로필 사진 파일 형식이 올바르지 않습니다.";
   }
   if (file.size <= 0) {
     return "빈 이미지 파일은 업로드할 수 없습니다.";
   }
   if (file.size > PROFILE_IMAGE_MAX_BYTES) {
-    return "프로필 사진은 1.5MB 이하로 업로드해주세요.";
+    return "프로필 사진은 2MB 이하로 업로드해주세요.";
   }
   return "";
 }
 
-function readFileAsDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener("load", () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-      } else {
-        reject(new Error("이미지 파일을 읽지 못했습니다."));
-      }
-    });
-    reader.addEventListener("error", () => {
-      reject(new Error("이미지 파일을 읽지 못했습니다."));
-    });
-    reader.readAsDataURL(file);
-  });
+function notifyAuthUserChanged() {
+  window.dispatchEvent(new Event(AUTH_USER_CHANGED_EVENT));
 }

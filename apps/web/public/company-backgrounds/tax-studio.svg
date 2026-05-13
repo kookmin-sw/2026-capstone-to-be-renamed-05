@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-label="Tax studio background">
+  <rect width="1200" height="675" fill="#fff7ed"/>
+  <circle cx="960" cy="150" r="95" fill="#fed7aa"/>
+  <rect x="180" y="150" width="300" height="380" rx="22" fill="#ffffff" stroke="#fdba74" stroke-width="10"/>
+  <rect x="545" y="210" width="470" height="260" rx="22" fill="#431407"/>
+  <path d="M230 230h190M230 290h150M230 350h210" stroke="#ea580c" stroke-width="16" stroke-linecap="round"/>
+  <path d="M610 285h310M610 355h240" stroke="#ffedd5" stroke-width="18" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Firm logo">
+  <rect width="96" height="96" rx="18" fill="#f1f5f9"/>
+  <rect x="23" y="20" width="50" height="56" rx="7" fill="#334155"/>
+  <path d="M34 34h28M34 46h28M34 58h18" stroke="#f8fafc" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="66" cy="64" r="10" fill="#22c55e"/>
+</svg>

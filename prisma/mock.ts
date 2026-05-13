@@ -2,13 +2,22 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import {
   AssetPurpose,
   AssetStatus,
+  BookmarkTargetType,
+  CommunityBoardType,
+  CommunityPostStatus,
   Company,
   CompanyType,
+  CpaVerificationStatus,
   DeadlineType,
+  EmploymentHistoryStatus,
   EmploymentType,
   JobFamily,
+  JobStatus,
   KicpaCondition,
   Label,
+  NotificationType,
+  PersonalCareerStage,
+  Prisma,
   PrismaClient,
   Source,
   TraineeStatus,
@@ -30,17 +39,69 @@ for (const envFilePath of resolveEnvFilePaths()) {
 const TARGET_COMPANY_COUNT = 75;
 const TARGET_JOB_COUNT = 300;
 const MOCK_PASSWORD = "password123";
+const jobSeekerMockUsers = [
+  {
+    username: "test002",
+    displayName: "테스트 개인회원",
+    profileImageUrl: "/mock-avatars/cpa-trainee.svg",
+    careerStage: PersonalCareerStage.CPA_UNPLACED,
+    employmentHistoryStatus: EmploymentHistoryStatus.NONE,
+  },
+  {
+    username: "community001",
+    displayName: "감사준비생 민서",
+    profileImageUrl: "/mock-avatars/audit-learner.svg",
+    careerStage: PersonalCareerStage.CPA_UNPLACED,
+    employmentHistoryStatus: EmploymentHistoryStatus.NONE,
+  },
+  {
+    username: "community002",
+    displayName: "수습회계사 준호",
+    profileImageUrl: "/mock-avatars/trainee-junior.svg",
+    careerStage: PersonalCareerStage.TRAINEE,
+    employmentHistoryStatus: EmploymentHistoryStatus.HAS_EMPLOYMENT,
+  },
+  {
+    username: "community003",
+    displayName: "택스 실무자 서윤",
+    profileImageUrl: "/mock-avatars/tax-advisor.svg",
+    careerStage: PersonalCareerStage.LICENSED_CPA,
+    employmentHistoryStatus: EmploymentHistoryStatus.HAS_EMPLOYMENT,
+  },
+  {
+    username: "community004",
+    displayName: "내부회계 지민",
+    profileImageUrl: "/mock-avatars/icfr-specialist.svg",
+    careerStage: PersonalCareerStage.LICENSED_CPA,
+    employmentHistoryStatus: EmploymentHistoryStatus.HAS_EMPLOYMENT,
+  },
+  {
+    username: "community005",
+    displayName: "FAS 지원자 도윤",
+    profileImageUrl: "/mock-avatars/fas-analyst.svg",
+    careerStage: PersonalCareerStage.TRAINEE,
+    employmentHistoryStatus: EmploymentHistoryStatus.HAS_EMPLOYMENT,
+  },
+  {
+    username: "community006",
+    displayName: "공시 담당 하린",
+    profileImageUrl: "/mock-avatars/reporting-lead.svg",
+    careerStage: PersonalCareerStage.LICENSED_CPA,
+    employmentHistoryStatus: EmploymentHistoryStatus.HAS_EMPLOYMENT,
+  },
+];
 const mockUsers = [
   {
     username: "test001",
     displayName: "테스트 관리자",
     role: UserRole.ADMIN,
   },
-  {
-    username: "test002",
-    displayName: "테스트 개인회원",
+  ...jobSeekerMockUsers.map((user) => ({
+    username: user.username,
+    displayName: user.displayName,
+    profileImageUrl: user.profileImageUrl,
     role: UserRole.JOB_SEEKER,
-  },
+  })),
 ];
 const legacyMockUsers = [
   { username: "admin", displayName: "관리자", role: UserRole.ADMIN },
@@ -128,40 +189,106 @@ const companyTypeTags: Record<CompanyType, string[]> = {
   [CompanyType.PUBLIC_INSTITUTION]: ["공공기관", "예산", "정산"],
 };
 
-const companyBackgroundByType: Record<
-  CompanyType,
-  { fileName: string; originalName: string }
-> = {
-  [CompanyType.BIG4]: {
-    fileName: "big4.png",
-    originalName: "Big4 accounting office background",
-  },
-  [CompanyType.LOCAL_ACCOUNTING_FIRM]: {
-    fileName: "local-accounting-firm.png",
-    originalName: "Local accounting firm background",
-  },
-  [CompanyType.MID_SMALL_ACCOUNTING_FIRM]: {
-    fileName: "mid-small-accounting-firm.png",
-    originalName: "Small tax accounting office background",
-  },
-  [CompanyType.FINANCIAL_COMPANY]: {
-    fileName: "financial-company.png",
-    originalName: "Financial company background",
-  },
-  [CompanyType.GENERAL_COMPANY]: {
-    fileName: "general-company.png",
-    originalName: "Corporate finance team background",
-  },
-  [CompanyType.PUBLIC_INSTITUTION]: {
-    fileName: "public-institution.png",
-    originalName: "Public institution finance office background",
-  },
+const companyFocusPhrases: Record<CompanyType, string[]> = {
+  [CompanyType.BIG4]: [
+    "상장사 감사와 글로벌 리포팅 프로젝트 비중이 높습니다",
+    "산업별 감사본부와 Deal, Tax, Risk 조직이 함께 움직입니다",
+  ],
+  [CompanyType.LOCAL_ACCOUNTING_FIRM]: [
+    "중견기업 외부감사와 세무조정 업무를 균형 있게 운영합니다",
+    "수습 CPA가 감사 현장, 조서 작성, 고객 커뮤니케이션을 순차적으로 경험합니다",
+  ],
+  [CompanyType.MID_SMALL_ACCOUNTING_FIRM]: [
+    "초기 스타트업과 개인사업자의 기장, 신고, 월간 재무 관리를 지원합니다",
+    "세무 이슈 리서치와 CFO 아웃소싱 업무를 함께 다룹니다",
+  ],
+  [CompanyType.FINANCIAL_COMPANY]: [
+    "금융상품 회계, 리스크 데이터, 내부통제 검토를 연결합니다",
+    "투자 의사결정에 필요한 재무 분석과 규제 대응 자료를 만듭니다",
+  ],
+  [CompanyType.GENERAL_COMPANY]: [
+    "월결산, 연결결산, 공시, 내부회계 운영을 실무 중심으로 다룹니다",
+    "사업부와 가까운 재무 파트너 역할을 중요하게 봅니다",
+  ],
+  [CompanyType.PUBLIC_INSTITUTION]: [
+    "예산 집행, 보조금 정산, 공공 회계 기준 검토를 담당합니다",
+    "감사 대응과 투명한 재무 보고 체계를 중시합니다",
+  ],
 };
 
-const companyLogoByName = new Map<
-  string,
-  { fileName: string; originalName: string }
->([
+const companyCulturePhrases = [
+  "신입에게는 체크리스트와 리뷰어 피드백을 제공하고, 경력자에게는 프로젝트 리드 기회를 부여합니다",
+  "하이브리드 근무와 집중 리뷰 기간을 구분해 업무 리듬을 관리합니다",
+  "공고마다 전형 절차, 필요 경력, CPA 관련 조건을 명확히 쓰는 것을 채용 원칙으로 삼습니다",
+  "교육 세션, 케이스 스터디, 실무 문서 템플릿을 통해 온보딩 속도를 높입니다",
+];
+
+type MockImageAsset = { fileName: string; originalName: string };
+
+const companyBackgroundByType: Record<CompanyType, MockImageAsset[]> = {
+  [CompanyType.BIG4]: [
+    {
+      fileName: "big4.png",
+      originalName: "Big4 accounting office background",
+    },
+    {
+      fileName: "audit-tower.svg",
+      originalName: "Audit tower background",
+    },
+  ],
+  [CompanyType.LOCAL_ACCOUNTING_FIRM]: [
+    {
+      fileName: "local-accounting-firm.png",
+      originalName: "Local accounting firm background",
+    },
+    {
+      fileName: "local-desk.svg",
+      originalName: "Local accounting desk background",
+    },
+  ],
+  [CompanyType.MID_SMALL_ACCOUNTING_FIRM]: [
+    {
+      fileName: "mid-small-accounting-firm.png",
+      originalName: "Small tax accounting office background",
+    },
+    {
+      fileName: "tax-studio.svg",
+      originalName: "Tax studio background",
+    },
+  ],
+  [CompanyType.FINANCIAL_COMPANY]: [
+    {
+      fileName: "financial-company.png",
+      originalName: "Financial company background",
+    },
+    {
+      fileName: "finance-grid.svg",
+      originalName: "Finance grid background",
+    },
+  ],
+  [CompanyType.GENERAL_COMPANY]: [
+    {
+      fileName: "general-company.png",
+      originalName: "Corporate finance team background",
+    },
+    {
+      fileName: "corporate-ledger.svg",
+      originalName: "Corporate ledger background",
+    },
+  ],
+  [CompanyType.PUBLIC_INSTITUTION]: [
+    {
+      fileName: "public-institution.png",
+      originalName: "Public institution finance office background",
+    },
+    {
+      fileName: "public-archive.svg",
+      originalName: "Public archive background",
+    },
+  ],
+};
+
+const companyLogoByName = new Map<string, MockImageAsset>([
   [
     "한빛회계법인",
     {
@@ -199,6 +326,19 @@ const companyLogoByName = new Map<
   ],
 ]);
 
+const companyLogoPalette: MockImageAsset[] = [
+  { fileName: "mock-logo-apex.svg", originalName: "Apex mock logo" },
+  { fileName: "mock-logo-bridge.svg", originalName: "Bridge mock logo" },
+  { fileName: "mock-logo-core.svg", originalName: "Core mock logo" },
+  { fileName: "mock-logo-delta.svg", originalName: "Delta mock logo" },
+  { fileName: "mock-logo-eon.svg", originalName: "Eon mock logo" },
+  { fileName: "mock-logo-firm.svg", originalName: "Firm mock logo" },
+  { fileName: "mock-logo-grid.svg", originalName: "Grid mock logo" },
+  { fileName: "mock-logo-halo.svg", originalName: "Halo mock logo" },
+  { fileName: "mock-logo-ion.svg", originalName: "Ion mock logo" },
+  { fileName: "mock-logo-juno.svg", originalName: "Juno mock logo" },
+];
+
 function buildMockPublicAssetUrl(path: string) {
   const publicBaseUrl =
     process.env.NEXT_PUBLIC_S3_PUBLIC_BASE_URL?.trim() ||
@@ -224,6 +364,22 @@ function getStaticAssetByteSize(path: string) {
   } catch {
     return 1;
   }
+}
+
+function getMockAssetContentType(path: string) {
+  return path.endsWith(".svg") ? "image/svg+xml" : "image/png";
+}
+
+function pickCompanyBackground(company: Company, index: number) {
+  const backgrounds = companyBackgroundByType[company.type];
+  return backgrounds[index % backgrounds.length];
+}
+
+function pickCompanyLogo(company: Company, index: number) {
+  return (
+    companyLogoByName.get(company.name) ??
+    companyLogoPalette[index % companyLogoPalette.length]
+  );
 }
 
 function calculateRecentAttritionRate(trend: EmployeeTrendPoint[]) {
@@ -369,17 +525,31 @@ function createGeneratedCompanyProfiles(count: number): CompanyProfile[] {
     const name = createGeneratedCompanyName(index, type);
     const employeeTrend = createEmployeeTrend(index + 10, type);
     const latestTotal = employeeTrend[employeeTrend.length - 1].total;
+    const focus =
+      companyFocusPhrases[type][index % companyFocusPhrases[type].length];
+    const culture = companyCulturePhrases[index % companyCulturePhrases.length];
+    const secondaryTag =
+      focus.includes("내부통제") || focus.includes("내부회계")
+        ? "내부통제"
+        : focus.includes("세무") || focus.includes("신고")
+          ? "세무실무"
+          : focus.includes("Deal") || focus.includes("투자")
+            ? "재무분석"
+            : focus.includes("수습")
+              ? "수습교육"
+              : "공시대응";
 
     return {
       name,
       type,
       websiteUrl: `https://example.com/demo-company-${pad(index + 1, 3)}`,
-      description: `${name}은(는) ${companyTypeDescriptions[type]} CPA와 회계 실무자가 공고 조건을 빠르게 비교할 수 있도록 만든 데모 회사 데이터입니다.`,
+      description: `${name}은(는) ${companyTypeDescriptions[type]} ${focus}. ${culture}. 채용 공고에는 담당 업무, 필수/우대 조건, 수습 가능 여부, 전형 절차, 근무 방식을 빠짐없이 제공하도록 관리합니다.`,
       businessNumber: createBusinessNumber(index + 500),
       externalLinks: [
         `https://example.com/demo-company-${pad(index + 1, 3)}/careers`,
+        `https://example.com/demo-company-${pad(index + 1, 3)}/about`,
       ],
-      tags: companyTypeTags[type],
+      tags: [...new Set([...companyTypeTags[type], secondaryTag])],
       employeeCount: latestTotal,
       averageSalary:
         4700 +
@@ -580,7 +750,7 @@ function createGeneratedJob(
 
   return {
     title,
-    description: `${company.name} ${title} 포지션입니다. ${familyDescriptions[jobFamily]} 경력 구간, 수습 가능 여부, KICPA 요건을 필터에서 확인할 수 있도록 구성한 데모 공고입니다.`,
+    description: `${company.name} ${title} 포지션입니다. ${familyDescriptions[jobFamily]} 주요 업무는 월별 산출물 관리, 실무 자료 검토, 이해관계자 커뮤니케이션입니다. 지원자는 ${minExperienceYears === 0 ? "신입 또는 수습 CPA 지원자" : `${minExperienceYears}년 이상 실무 경험자`}를 우선 검토하며, KICPA 조건과 수습 가능 여부는 공고 조건에 맞춰 명시했습니다. 근무지는 ${locations[index % locations.length]}이며 서류 검토 후 실무 인터뷰와 처우 협의를 진행합니다.`,
     company,
     source,
     originalUrl: `https://example.com/generated/jobs/${pad(index + 1, 4)}`,
@@ -668,11 +838,16 @@ function buildCareerVerificationMetadata(company: Company) {
   return null;
 }
 
-async function upsertCompanyBackgroundAsset(company: Company, ownerUserId: string) {
-  const background = companyBackgroundByType[company.type];
+async function upsertCompanyBackgroundAsset(
+  company: Company,
+  ownerUserId: string,
+  index: number,
+) {
+  const background = pickCompanyBackground(company, index);
   const assetPath = `company-backgrounds/${background.fileName}`;
   const publicUrl = buildMockPublicAssetUrl(assetPath);
   const key = `mock-company-backgrounds/${company.id}/${background.fileName}`;
+  const contentType = getMockAssetContentType(assetPath);
   const asset = await prisma.asset.upsert({
     where: { key },
     update: {
@@ -681,7 +856,7 @@ async function upsertCompanyBackgroundAsset(company: Company, ownerUserId: strin
       bucket: getMockStorageBucket(),
       region: getMockStorageRegion(),
       publicUrl,
-      contentType: "image/png",
+      contentType,
       byteSize: getStaticAssetByteSize(assetPath),
       originalName: background.originalName,
       uploadedById: ownerUserId,
@@ -695,7 +870,7 @@ async function upsertCompanyBackgroundAsset(company: Company, ownerUserId: strin
       region: getMockStorageRegion(),
       key,
       publicUrl,
-      contentType: "image/png",
+      contentType,
       byteSize: getStaticAssetByteSize(assetPath),
       originalName: background.originalName,
       uploadedById: ownerUserId,
@@ -710,13 +885,16 @@ async function upsertCompanyBackgroundAsset(company: Company, ownerUserId: strin
   });
 }
 
-async function upsertCompanyLogoAsset(company: Company, ownerUserId: string) {
-  const logo = companyLogoByName.get(company.name);
-  if (!logo) return;
-
+async function upsertCompanyLogoAsset(
+  company: Company,
+  ownerUserId: string,
+  index: number,
+) {
+  const logo = pickCompanyLogo(company, index);
   const assetPath = `company-logos/${logo.fileName}`;
   const publicUrl = buildMockPublicAssetUrl(assetPath);
   const key = `mock-company-logos/${company.id}/${logo.fileName}`;
+  const contentType = getMockAssetContentType(assetPath);
   const asset = await prisma.asset.upsert({
     where: { key },
     update: {
@@ -725,7 +903,7 @@ async function upsertCompanyLogoAsset(company: Company, ownerUserId: string) {
       bucket: getMockStorageBucket(),
       region: getMockStorageRegion(),
       publicUrl,
-      contentType: "image/png",
+      contentType,
       byteSize: getStaticAssetByteSize(assetPath),
       originalName: logo.originalName,
       uploadedById: ownerUserId,
@@ -739,7 +917,7 @@ async function upsertCompanyLogoAsset(company: Company, ownerUserId: string) {
       region: getMockStorageRegion(),
       key,
       publicUrl,
-      contentType: "image/png",
+      contentType,
       byteSize: getStaticAssetByteSize(assetPath),
       originalName: logo.originalName,
       uploadedById: ownerUserId,
@@ -752,6 +930,458 @@ async function upsertCompanyLogoAsset(company: Company, ownerUserId: string) {
     where: { id: company.id },
     data: { logoAsset: { connect: { id: asset.id } } },
   });
+}
+
+const communitySeedUsernames = jobSeekerMockUsers.map((user) => user.username);
+
+function seedDate(dayOffset: number, hour = 9) {
+  return new Date(Date.UTC(2026, 4, 13 - dayOffset, hour, 0, 0));
+}
+
+async function seedCommunityData(
+  userByUsername: Map<string, { id: string; username: string }>,
+) {
+  const authors = communitySeedUsernames.map((username) => {
+    const user = userByUsername.get(username);
+    if (!user) throw new Error(`Missing mock user: ${username}`);
+    return user;
+  });
+
+  await prisma.communityAnswer.deleteMany({
+    where: { authorId: { in: authors.map((author) => author.id) } },
+  });
+  await prisma.communityPost.deleteMany({
+    where: { authorId: { in: authors.map((author) => author.id) } },
+  });
+
+  const postSeeds = [
+    {
+      boardType: CommunityBoardType.CPA_PREP,
+      title: "1차 합격 후 수습 공고를 언제부터 봐야 할까요?",
+      content:
+        "감사 시즌 전에 수습 가능한 로컬 회계법인 공고를 미리 보고 있습니다. KICPA 우대와 수습 가능 표시가 같이 있는 공고를 중심으로 보면 되는지, 지원 타이밍은 어느 정도가 적당한지 궁금합니다.",
+      status: CommunityPostStatus.ANSWERED,
+      tags: ["수습", "감사", "지원시기"],
+      authorIndex: 1,
+      isAnonymous: false,
+      viewCount: 128,
+      likeCount: 9,
+      dayOffset: 1,
+      answers: [
+        {
+          authorIndex: 2,
+          content:
+            "수습 가능 표시와 실무수습기관 여부를 같이 확인하세요. 5월 이후에는 마감이 빠른 공고가 많아서 북마크해 두고 마감순으로 보는 편이 좋았습니다.",
+          isAnonymous: false,
+          likeCount: 6,
+          isAccepted: true,
+        },
+        {
+          authorIndex: 3,
+          content:
+            "지원서 준비가 덜 됐어도 관심 공고로 저장해 두면 마감 임박 알림을 받을 수 있어서 놓치는 일이 줄었습니다.",
+          isAnonymous: true,
+          likeCount: 3,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.TRAINEE,
+      title: "실무수습기관 가능 여부가 애매한 공고는 어떻게 확인하시나요?",
+      content:
+        "공고에는 수습 가능이라고 쓰여 있는데 회사 소개에는 실무수습기관인지 명확하지 않은 경우가 있습니다. 지원 전 문의 메일을 보내는 게 좋을까요?",
+      status: CommunityPostStatus.QUESTION,
+      tags: ["실무수습", "공고확인"],
+      authorIndex: 2,
+      isAnonymous: true,
+      viewCount: 86,
+      likeCount: 4,
+      dayOffset: 2,
+      answers: [
+        {
+          authorIndex: 4,
+          content:
+            "채용 담당자에게 실무수습기관 등록 여부와 수습 인정 시작일을 같이 물어보면 답변이 명확합니다. 공고 원문 링크도 함께 보관해 두세요.",
+          isAnonymous: false,
+          likeCount: 5,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.SENIOR,
+      title: "내부회계 경력으로 이직할 때 감사 경력은 얼마나 인정되나요?",
+      content:
+        "외부감사 3년차입니다. 내부회계관리제도 담당자 공고를 보면 4년 이상을 요구하는 곳도 있고 감사 경력을 우대하는 곳도 있던데, 실제로는 어느 정도 인정받는지 경험이 궁금합니다.",
+      status: CommunityPostStatus.ANSWERED,
+      tags: ["내부회계", "이직", "경력"],
+      authorIndex: 5,
+      isAnonymous: false,
+      viewCount: 214,
+      likeCount: 18,
+      dayOffset: 3,
+      answers: [
+        {
+          authorIndex: 6,
+          content:
+            "통제 테스트와 감사 대응 경험을 구체적으로 설명하면 인정받기 쉽습니다. 다만 운영평가 문서화나 RCM 개선 경험이 있으면 훨씬 유리했습니다.",
+          isAnonymous: false,
+          likeCount: 12,
+          isAccepted: true,
+        },
+        {
+          authorIndex: 4,
+          content:
+            "회사마다 다르지만 상장사 내부회계 공고는 감사 경력을 실무 기반으로 보는 곳이 많았습니다.",
+          isAnonymous: true,
+          likeCount: 4,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.FREE,
+      title: "마감 임박 공고 필터 조합 공유합니다",
+      content:
+        "저는 서울, 감사, 수습 가능, KICPA 우대, 14일 이내 마감 조합을 프리셋으로 저장해 두고 매일 확인합니다. 관심 공고로 저장한 뒤 원문 링크까지 열어 두면 지원 일정 관리가 편합니다.",
+      status: CommunityPostStatus.INFO,
+      tags: ["프리셋", "관심공고", "마감관리"],
+      authorIndex: 0,
+      isAnonymous: false,
+      viewCount: 176,
+      likeCount: 21,
+      dayOffset: 4,
+      answers: [
+        {
+          authorIndex: 1,
+          content:
+            "저도 비슷하게 쓰고 있는데 회사 유형까지 로컬로 좁히면 수습 공고 찾기가 더 쉬웠습니다.",
+          isAnonymous: false,
+          likeCount: 7,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.CPA_PREP,
+      title: "FAS 주니어 공고는 어떤 태그를 봐야 하나요?",
+      content:
+        "감사보다 FAS 쪽에 관심이 있습니다. FAS, Deal, 재무실사, 가치평가가 같이 보이는 공고를 보면 되는지 궁금합니다.",
+      status: CommunityPostStatus.QUESTION,
+      tags: ["FAS", "Deal", "주니어"],
+      authorIndex: 5,
+      isAnonymous: true,
+      viewCount: 65,
+      likeCount: 5,
+      dayOffset: 5,
+      answers: [
+        {
+          authorIndex: 3,
+          content:
+            "FAS와 Deal을 같이 보고, 설명에 재무실사나 valuation이 들어간 공고를 우선 보세요. KICPA 필수보다는 우대가 많습니다.",
+          isAnonymous: false,
+          likeCount: 4,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.TRAINEE,
+      title: "수습 중 원문 지원 클릭 후 따로 기록하시나요?",
+      content:
+        "관심 공고에 저장해 둔 뒤 원문에서 지원하면 제가 어디까지 진행했는지 헷갈립니다. 다들 별도 스프레드시트를 쓰시나요?",
+      status: CommunityPostStatus.QUESTION,
+      tags: ["지원관리", "관심공고"],
+      authorIndex: 2,
+      isAnonymous: false,
+      viewCount: 47,
+      likeCount: 2,
+      dayOffset: 6,
+      answers: [],
+    },
+    {
+      boardType: CommunityBoardType.SENIOR,
+      title: "상장사 공시 담당 공고 볼 때 체크하는 항목",
+      content:
+        "분기/반기/사업보고서 작성 경험, 연결 범위, 감사인 커뮤니케이션, 내부회계 협업 구조를 먼저 봅니다. 공고 내용이 부실하면 면접에서 역할 범위를 꼭 확인하세요.",
+      status: CommunityPostStatus.INFO,
+      tags: ["공시", "상장사", "체크리스트"],
+      authorIndex: 6,
+      isAnonymous: false,
+      viewCount: 139,
+      likeCount: 16,
+      dayOffset: 7,
+      answers: [
+        {
+          authorIndex: 4,
+          content:
+            "연결결산 담당 여부와 외부감사 대응 범위도 같이 확인하면 좋았습니다.",
+          isAnonymous: false,
+          likeCount: 6,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.FREE,
+      title: "채용공고 설명이 자세한 회사가 확실히 지원하기 편하네요",
+      content:
+        "담당 업무와 우대 조건, 마감 방식, 실무수습 여부가 명확한 공고는 비교가 훨씬 쉽습니다. 데모 데이터에도 이런 공고가 더 많아지면 좋겠습니다.",
+      status: CommunityPostStatus.FREE,
+      tags: ["공고품질", "데이터"],
+      authorIndex: 1,
+      isAnonymous: true,
+      viewCount: 94,
+      likeCount: 11,
+      dayOffset: 8,
+      answers: [],
+    },
+  ];
+
+  for (const [postIndex, seed] of postSeeds.entries()) {
+    const post = await prisma.communityPost.create({
+      data: {
+        boardType: seed.boardType,
+        title: seed.title,
+        content: seed.content,
+        status: seed.status,
+        tags: seed.tags,
+        authorId: authors[seed.authorIndex].id,
+        isAnonymous: seed.isAnonymous,
+        viewCount: seed.viewCount,
+        likeCount: seed.likeCount,
+        createdAt: seedDate(seed.dayOffset, 9 + (postIndex % 8)),
+        updatedAt: seedDate(seed.dayOffset, 10 + (postIndex % 8)),
+      },
+    });
+
+    let acceptedAnswerId: string | null = null;
+    for (const [answerIndex, answerSeed] of seed.answers.entries()) {
+      const answer = await prisma.communityAnswer.create({
+        data: {
+          postId: post.id,
+          authorId: authors[answerSeed.authorIndex].id,
+          content: answerSeed.content,
+          isAnonymous: answerSeed.isAnonymous,
+          likeCount: answerSeed.likeCount,
+          isAccepted: Boolean(answerSeed.isAccepted),
+          createdAt: seedDate(seed.dayOffset - 1, 8 + answerIndex),
+          updatedAt: seedDate(seed.dayOffset - 1, 8 + answerIndex),
+        },
+      });
+      if (answerSeed.isAccepted) acceptedAnswerId = answer.id;
+    }
+
+    if (acceptedAnswerId) {
+      await prisma.communityPost.update({
+        where: { id: post.id },
+        data: {
+          status: CommunityPostStatus.ANSWERED,
+          acceptedAnswerId,
+        },
+      });
+    }
+  }
+}
+
+const orderedPresetKeys = [
+  "search",
+  "jobFamily",
+  "companyType",
+  "traineeStatus",
+  "employmentType",
+  "kicpaCondition",
+  "deadlineType",
+  "practicalTrainingInstitution",
+  "deadlineWithinDays",
+  "careerLevel",
+  "minExperienceYears",
+  "maxExperienceYears",
+  "minCompanyAgeYears",
+  "maxCompanyAgeYears",
+  "maxAttritionRate",
+  "salaryLevel",
+  "sort",
+] as const;
+
+function orderPresetFilter(filter: Record<string, unknown>) {
+  const ordered: Record<string, Prisma.InputJsonValue> = {};
+  for (const key of orderedPresetKeys) {
+    if (typeof filter[key] === "string" && filter[key]) {
+      ordered[key] = filter[key];
+    }
+  }
+  if (Array.isArray(filter.selectedLocations)) {
+    ordered.selectedLocations = filter.selectedLocations.filter(
+      (location): location is string => typeof location === "string",
+    );
+  }
+  return ordered as Prisma.InputJsonObject;
+}
+
+async function seedBookmarksPresetsAndSubscriptions(
+  userByUsername: Map<string, { id: string; username: string }>,
+  labelByName: Map<string, Label>,
+) {
+  const seedUsers = ["test002", "community001", "community002"]
+    .map((username) => userByUsername.get(username))
+    .filter((user): user is { id: string; username: string } => Boolean(user));
+  const seedUserIds = seedUsers.map((user) => user.id);
+  const [jobs, companies] = await Promise.all([
+    prisma.job.findMany({
+      where: { status: JobStatus.OPEN },
+      orderBy: [{ deadline: "asc" }, { createdAt: "desc" }],
+      take: 18,
+    }),
+    prisma.company.findMany({
+      orderBy: [{ employeeCount: "desc" }, { name: "asc" }],
+      take: 8,
+    }),
+  ]);
+
+  await Promise.all([
+    prisma.bookmark.deleteMany({ where: { userId: { in: seedUserIds } } }),
+    prisma.userJobPreset.deleteMany({ where: { userId: { in: seedUserIds } } }),
+    prisma.jobTagSubscription.deleteMany({
+      where: { userId: { in: seedUserIds } },
+    }),
+    prisma.notification.deleteMany({ where: { userId: { in: seedUserIds } } }),
+  ]);
+
+  const bookmarkData = seedUsers.flatMap((user, userIndex) => [
+    ...jobs.slice(userIndex * 4, userIndex * 4 + 6).map((job, index) => ({
+      userId: user.id,
+      targetType: BookmarkTargetType.JOB,
+      targetId: job.id,
+      createdAt: seedDate(7 - index, 7 + userIndex),
+    })),
+    ...companies
+      .slice(userIndex * 2, userIndex * 2 + 2)
+      .map((company, index) => ({
+        userId: user.id,
+        targetType: BookmarkTargetType.COMPANY,
+        targetId: company.id,
+        createdAt: seedDate(6 - index, 13 + userIndex),
+      })),
+  ]);
+  if (bookmarkData.length) {
+    await prisma.bookmark.createMany({
+      data: bookmarkData,
+      skipDuplicates: true,
+    });
+  }
+
+  const presetSeeds = [
+    {
+      userIndex: 0,
+      autoLabel: "서울 수습 감사",
+      filterState: {
+        jobFamily: JobFamily.AUDIT,
+        traineeStatus: TraineeStatus.AVAILABLE,
+        kicpaCondition: KicpaCondition.PREFERRED,
+        practicalTrainingInstitution: "true",
+        deadlineWithinDays: "14",
+        selectedLocations: ["서울 중구", "서울 강남구"],
+      },
+      lastUsedAt: seedDate(0, 8),
+    },
+    {
+      userIndex: 0,
+      autoLabel: "내부회계 경력",
+      filterState: {
+        jobFamily: JobFamily.INTERNAL_ACCOUNTING,
+        companyType: CompanyType.GENERAL_COMPANY,
+        careerLevel: "experienced",
+        minExperienceYears: "3",
+        selectedLocations: ["서울 영등포구", "경기 성남시"],
+      },
+      lastUsedAt: seedDate(2, 18),
+    },
+    {
+      userIndex: 1,
+      autoLabel: "FAS·Deal 주니어",
+      filterState: {
+        jobFamily: `${JobFamily.FAS},${JobFamily.DEAL}`,
+        kicpaCondition: KicpaCondition.PREFERRED,
+        careerLevel: "junior",
+        selectedLocations: ["서울 중구", "서울 여의도"],
+      },
+      lastUsedAt: seedDate(1, 12),
+    },
+    {
+      userIndex: 2,
+      autoLabel: "세무 신입·계약직 제외",
+      filterState: {
+        jobFamily: JobFamily.TAX,
+        employmentType: EmploymentType.FULL_TIME,
+        careerLevel: "entry",
+        deadlineType: DeadlineType.FIXED_DATE,
+      },
+      lastUsedAt: null,
+    },
+  ];
+
+  await prisma.userJobPreset.createMany({
+    data: presetSeeds
+      .filter((seed) => seedUsers[seed.userIndex])
+      .map((seed) => {
+        const filterState = orderPresetFilter(seed.filterState);
+        return {
+          userId: seedUsers[seed.userIndex].id,
+          filterState,
+          autoLabel: seed.autoLabel,
+          filterSignature: JSON.stringify(filterState),
+          lastUsedAt: seed.lastUsedAt,
+          createdAt: seedDate(9 - seed.userIndex, 8),
+        };
+      }),
+    skipDuplicates: true,
+  });
+
+  const subscribedLabels = ["수습가능", "마감임박", "KICPA우대", "내부회계"]
+    .map((name) => labelByName.get(name))
+    .filter((label): label is Label => Boolean(label));
+  await prisma.jobTagSubscription.createMany({
+    data: seedUsers.flatMap((user, userIndex) =>
+      subscribedLabels.slice(0, 2 + userIndex).map((label) => ({
+        userId: user.id,
+        labelId: label.id,
+        createdAt: seedDate(10 - userIndex, 9),
+      })),
+    ),
+    skipDuplicates: true,
+  });
+
+  const primaryUser = seedUsers[0];
+  const urgentLabel = labelByName.get("마감임박");
+  const traineeLabel = labelByName.get("수습가능");
+  if (primaryUser && jobs[0] && urgentLabel) {
+    await prisma.notification.create({
+      data: {
+        userId: primaryUser.id,
+        type: NotificationType.BOOKMARK_DEADLINE_SOON,
+        title: "관심 공고 마감이 가까워졌습니다",
+        body: `${jobs[0].title} 공고 마감일을 확인해 주세요.`,
+        href: `/jobs/detail/?id=${jobs[0].id}`,
+        jobId: jobs[0].id,
+        labelId: urgentLabel.id,
+        metadata: { source: "mock", targetType: "bookmark" },
+        dedupeKey: `mock-bookmark-deadline-${jobs[0].id}`,
+        createdAt: seedDate(0, 9),
+      },
+    });
+  }
+  if (primaryUser && jobs[1] && traineeLabel) {
+    await prisma.notification.create({
+      data: {
+        userId: primaryUser.id,
+        type: NotificationType.TAG_NEW_JOB,
+        title: "구독 태그에 맞는 새 공고가 있습니다",
+        body: `${traineeLabel.name} 태그가 붙은 ${jobs[1].title} 공고를 확인해 보세요.`,
+        href: `/jobs/detail/?id=${jobs[1].id}`,
+        jobId: jobs[1].id,
+        labelId: traineeLabel.id,
+        metadata: { source: "mock", tag: traineeLabel.name },
+        dedupeKey: `mock-tag-new-job-${jobs[1].id}-${traineeLabel.id}`,
+        createdAt: seedDate(0, 11),
+      },
+    });
+  }
 }
 
 async function main() {
@@ -944,22 +1574,53 @@ async function main() {
       jobSubmissions: { none: {} },
     },
   });
-  for (const user of mockUsers) {
-    await prisma.user.upsert({
-      where: { username: user.username },
-      update: {
-        passwordHash,
-        displayName: user.displayName,
-        role: user.role,
-      },
-      create: {
-        username: user.username,
-        passwordHash,
-        displayName: user.displayName,
-        role: user.role,
-      },
-    });
-  }
+  const seededUsers = await Promise.all(
+    mockUsers.map((user) =>
+      prisma.user.upsert({
+        where: { username: user.username },
+        update: {
+          passwordHash,
+          displayName: user.displayName,
+          role: user.role,
+          profileImageUrl:
+            "profileImageUrl" in user ? user.profileImageUrl : null,
+        },
+        create: {
+          username: user.username,
+          passwordHash,
+          displayName: user.displayName,
+          role: user.role,
+          profileImageUrl:
+            "profileImageUrl" in user ? user.profileImageUrl : null,
+        },
+      }),
+    ),
+  );
+  const userByUsername = new Map(
+    seededUsers.map((user) => [user.username, user]),
+  );
+
+  await Promise.all(
+    jobSeekerMockUsers.map((user) => {
+      const savedUser = userByUsername.get(user.username)!;
+      return prisma.personalProfile.upsert({
+        where: { userId: savedUser.id },
+        update: {
+          cpaVerificationStatus: CpaVerificationStatus.CPA_VERIFIED,
+          careerStage: user.careerStage,
+          employmentHistoryStatus: user.employmentHistoryStatus,
+          verifiedAt: new Date("2026-05-01T00:00:00.000Z"),
+        },
+        create: {
+          userId: savedUser.id,
+          cpaVerificationStatus: CpaVerificationStatus.CPA_VERIFIED,
+          careerStage: user.careerStage,
+          employmentHistoryStatus: user.employmentHistoryStatus,
+          verifiedAt: new Date("2026-05-01T00:00:00.000Z"),
+        },
+      });
+    }),
+  );
 
   const companyOwners = await Promise.all(
     companyProfiles.map((company, index) => {
@@ -997,12 +1658,12 @@ async function main() {
 
   await Promise.all(
     companies.map((company, index) =>
-      upsertCompanyBackgroundAsset(company, companyOwners[index].id),
+      upsertCompanyBackgroundAsset(company, companyOwners[index].id, index),
     ),
   );
   await Promise.all(
     companies.map((company, index) =>
-      upsertCompanyLogoAsset(company, companyOwners[index].id),
+      upsertCompanyLogoAsset(company, companyOwners[index].id, index),
     ),
   );
 
@@ -1028,7 +1689,7 @@ async function main() {
     {
       title: "수습 CPA 감사본부 채용",
       description:
-        "수습 CPA 지원 가능. 회계감사 보조와 재무제표 검토 업무를 수행합니다.",
+        "수습 CPA 지원 가능 공고입니다. 회계감사 보조, 재무제표 검토, 감사조서 작성, 고객 자료 요청 커뮤니케이션을 담당합니다. 입사 후 4주 온보딩과 현장 리뷰어 피드백을 제공하며 실무수습기관 요건을 충족할 수 있도록 배정합니다.",
       company: companies[0],
       source: kicpaSource,
       originalUrl: "https://example.com/jobs/hanbit-audit-trainee",
@@ -1048,7 +1709,7 @@ async function main() {
     {
       title: "Deal Advisory 주니어 회계사",
       description:
-        "FDD, valuation, transaction service 프로젝트를 지원할 주니어 회계사를 채용합니다.",
+        "FDD, valuation, transaction service 프로젝트를 지원할 주니어 회계사를 채용합니다. 재무제표 정규화, 운전자본 분석, 실사 Q&A 관리, 보고서 작성 보조를 맡으며 Deal 프로젝트 경험 또는 KICPA 자격을 우대합니다.",
       company: companies[1],
       source: big4Source,
       originalUrl: "https://example.com/jobs/samil-deal-junior",
@@ -1068,7 +1729,7 @@ async function main() {
     {
       title: "내부회계관리제도 담당자",
       description:
-        "상장사 내부회계 운영 평가, 통제 설계, 외부감사 대응 업무를 담당합니다.",
+        "상장사 내부회계 운영 평가, 통제 설계, 외부감사 대응 업무를 담당합니다. 프로세스별 RCM 업데이트, 설계/운영평가 문서화, 개선 과제 추적, 감사인 커뮤니케이션을 수행하며 회계 또는 내부통제 경력을 우대합니다.",
       company: companies[2],
       source: saraminSource,
       originalUrl: "https://example.com/jobs/dunamu-icfr",
@@ -1112,8 +1773,11 @@ async function main() {
     await upsertJob(jobData, createLastCheckedAt(index));
   }
 
+  await seedCommunityData(userByUsername);
+  await seedBookmarksPresetsAndSubscriptions(userByUsername, labelByName);
+
   console.log(
-    `Inserted or updated mock data: ${TARGET_COMPANY_COUNT} companies, ${TARGET_JOB_COUNT} jobs, ${TARGET_COMPANY_COUNT + mockUsers.length} users.`,
+    `Inserted or updated mock data: ${TARGET_COMPANY_COUNT} companies, ${TARGET_JOB_COUNT} jobs, ${TARGET_COMPANY_COUNT + mockUsers.length} users, community posts, bookmarks, presets.`,
   );
 }
 

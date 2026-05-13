@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-label="Corporate ledger background">
+  <rect width="1200" height="675" fill="#f1f5f9"/>
+  <rect x="140" y="105" width="920" height="460" rx="26" fill="#ffffff" stroke="#cbd5e1" stroke-width="10"/>
+  <path d="M220 200h760M220 285h760M220 370h760M220 455h760" stroke="#e2e8f0" stroke-width="10"/>
+  <path d="M320 160v355M610 160v355M830 160v355" stroke="#cbd5e1" stroke-width="8"/>
+  <rect x="235" y="222" width="185" height="30" rx="15" fill="#2563eb"/>
+  <rect x="650" y="307" width="250" height="30" rx="15" fill="#16a34a"/>
+  <rect x="460" y="392" width="180" height="30" rx="15" fill="#f97316"/>
+</svg>

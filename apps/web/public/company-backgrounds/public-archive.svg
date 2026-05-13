@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-label="Public archive background">
+  <rect width="1200" height="675" fill="#eff6ff"/>
+  <path d="M180 235h840v310H180z" fill="#dbeafe" stroke="#60a5fa" stroke-width="10"/>
+  <path d="M250 180h700l70 55H180l70-55Z" fill="#1d4ed8"/>
+  <rect x="275" y="300" width="150" height="170" rx="12" fill="#ffffff"/>
+  <rect x="525" y="300" width="150" height="170" rx="12" fill="#ffffff"/>
+  <rect x="775" y="300" width="150" height="170" rx="12" fill="#ffffff"/>
+  <path d="M305 350h90M555 350h90M805 350h90" stroke="#1e40af" stroke-width="14" stroke-linecap="round"/>
+</svg>

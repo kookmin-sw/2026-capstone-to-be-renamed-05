@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-label="Finance grid background">
+  <rect width="1200" height="675" fill="#0f172a"/>
+  <g stroke="#334155" stroke-width="3">
+    <path d="M0 135h1200M0 270h1200M0 405h1200M0 540h1200"/>
+    <path d="M200 0v675M400 0v675M600 0v675M800 0v675M1000 0v675"/>
+  </g>
+  <path d="M130 485 330 360l150 60 190-210 160 95 240-160" fill="none" stroke="#22c55e" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="670" cy="210" r="34" fill="#38bdf8"/>
+  <circle cx="1070" cy="145" r="34" fill="#facc15"/>
+</svg>

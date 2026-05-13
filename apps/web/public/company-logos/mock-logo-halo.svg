@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Halo logo">
+  <rect width="96" height="96" rx="24" fill="#fafafa"/>
+  <circle cx="48" cy="48" r="29" fill="none" stroke="#0ea5e9" stroke-width="10"/>
+  <path d="M48 28v40M28 48h40" stroke="#111827" stroke-width="8" stroke-linecap="round"/>
+</svg>

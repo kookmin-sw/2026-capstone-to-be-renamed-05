@@ -9,18 +9,29 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CommunityService } from './community.service';
 
 const createdAt = new Date('2026-05-10T00:00:00.000Z');
+const communityAuthorSelect = {
+  username: true,
+  displayName: true,
+  profileImageUrl: true,
+  profileImageAsset: { select: { publicUrl: true } },
+};
 
 describe('CommunityService trainee room access', () => {
   let prisma: {
     personalProfile: { findUnique: jest.Mock };
-    communityPost: { findMany: jest.Mock };
+    communityPost: { findMany: jest.Mock; findUnique: jest.Mock };
+    communityAnswer: { create: jest.Mock };
   };
   let service: CommunityService;
 
   beforeEach(() => {
     prisma = {
       personalProfile: { findUnique: jest.fn() },
-      communityPost: { findMany: jest.fn().mockResolvedValue([]) },
+      communityPost: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findUnique: jest.fn(),
+      },
+      communityAnswer: { create: jest.fn() },
     };
     service = new CommunityService(prisma as unknown as PrismaService);
   });
@@ -141,11 +152,156 @@ describe('CommunityService trainee room access', () => {
         ],
       },
       include: {
-        author: { select: { username: true, displayName: true } },
+        author: { select: communityAuthorSelect },
         _count: { select: { answers: true } },
       },
       orderBy: [{ likeCount: 'desc' }, { createdAt: 'desc' }],
       take: 100,
     });
+  });
+
+  it('returns asset and fallback author profile images for non-anonymous posts', async () => {
+    prisma.communityPost.findMany.mockResolvedValue([
+      {
+        id: 'post-asset',
+        boardType: CommunityBoardType.FREE,
+        title: 'Asset profile',
+        content: 'Uses uploaded asset',
+        status: CommunityPostStatus.FREE,
+        tags: [],
+        authorId: 'user-1',
+        author: {
+          username: 'asset-user',
+          displayName: 'Asset User',
+          profileImageUrl: 'https://legacy.example.com/profile.png',
+          profileImageAsset: {
+            publicUrl: 'https://assets.example.com/profile.png',
+          },
+        },
+        isAnonymous: false,
+        viewCount: 1,
+        likeCount: 0,
+        acceptedAnswerId: null,
+        createdAt,
+        updatedAt: createdAt,
+        _count: { answers: 0 },
+      },
+      {
+        id: 'post-fallback',
+        boardType: CommunityBoardType.FREE,
+        title: 'Fallback profile',
+        content: 'Uses legacy url',
+        status: CommunityPostStatus.FREE,
+        tags: [],
+        authorId: 'user-2',
+        author: {
+          username: 'fallback-user',
+          displayName: null,
+          profileImageUrl: 'https://legacy.example.com/fallback.png',
+          profileImageAsset: null,
+        },
+        isAnonymous: false,
+        viewCount: 1,
+        likeCount: 0,
+        acceptedAnswerId: null,
+        createdAt,
+        updatedAt: createdAt,
+        _count: { answers: 0 },
+      },
+    ]);
+
+    const result = await service.listPosts({ board: CommunityBoardType.FREE });
+
+    expect(result.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'post-asset',
+          authorName: 'Asset User',
+          authorProfileImageUrl: 'https://assets.example.com/profile.png',
+        }),
+        expect.objectContaining({
+          id: 'post-fallback',
+          authorName: 'fallback-user',
+          authorProfileImageUrl: 'https://legacy.example.com/fallback.png',
+        }),
+      ]),
+    );
+  });
+
+  it('hides author profile images for anonymous posts and answers', async () => {
+    prisma.communityPost.findMany.mockResolvedValue([
+      {
+        id: 'post-anonymous',
+        boardType: CommunityBoardType.FREE,
+        title: 'Anonymous profile',
+        content: 'Should hide author profile',
+        status: CommunityPostStatus.FREE,
+        tags: [],
+        authorId: 'user-1',
+        author: {
+          username: 'hidden-user',
+          displayName: 'Hidden User',
+          profileImageUrl: 'https://legacy.example.com/hidden.png',
+          profileImageAsset: {
+            publicUrl: 'https://assets.example.com/hidden.png',
+          },
+        },
+        isAnonymous: true,
+        viewCount: 1,
+        likeCount: 0,
+        acceptedAnswerId: null,
+        createdAt,
+        updatedAt: createdAt,
+        _count: { answers: 0 },
+      },
+    ]);
+    prisma.communityPost.findUnique.mockResolvedValue({
+      id: 'post-anonymous',
+      boardType: CommunityBoardType.FREE,
+    });
+    prisma.communityAnswer.create.mockResolvedValue({
+      id: 'answer-1',
+      postId: 'post-anonymous',
+      content: 'Anonymous answer',
+      authorId: 'user-1',
+      author: {
+        username: 'hidden-user',
+        displayName: 'Hidden User',
+        profileImageUrl: 'https://legacy.example.com/hidden-answer.png',
+        profileImageAsset: {
+          publicUrl: 'https://assets.example.com/hidden-answer.png',
+        },
+      },
+      isAnonymous: true,
+      likeCount: 0,
+      isAccepted: false,
+      createdAt,
+      updatedAt: createdAt,
+    });
+
+    const posts = await service.listPosts({ board: CommunityBoardType.FREE });
+    const answer = await service.createAnswer(
+      {
+        id: 'user-1',
+        username: 'hidden-user',
+        role: UserRole.JOB_SEEKER,
+        companyId: null,
+      },
+      'post-anonymous',
+      { content: 'Anonymous answer', isAnonymous: true },
+    );
+
+    expect(posts.items[0]).toEqual(
+      expect.objectContaining({
+        authorName: '익명',
+        authorProfileImageUrl: null,
+      }),
+    );
+    expect(answer).toEqual(
+      expect.objectContaining({
+        authorName: '익명',
+        authorProfileImageUrl: null,
+      }),
+    );
   });
 });

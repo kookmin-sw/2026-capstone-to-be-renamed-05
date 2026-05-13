@@ -8,6 +8,7 @@ import { SiteNav } from '@/components/site-nav';
 import { ActionLink } from '@/components/ui/action-button';
 import { FilterSelect } from '@/components/ui/filter-select';
 import { fetchCurrentUser } from '@/lib/api';
+import { AuthorAvatar } from './_components/author-avatar';
 import { getPosts, getTrendingPosts } from '@/lib/community-api';
 import {
   BOARD_TYPES,
@@ -61,7 +62,14 @@ function PostRow({ post }: { post: CommunityPost }) {
         )}
       </div>
       <div className={styles.postMeta}>
-        <span className={styles.metaItem}>{post.authorName}</span>
+        <span className={`${styles.metaItem} ${styles.authorMetaItem}`}>
+          <AuthorAvatar
+            authorName={post.authorName}
+            imageUrl={post.authorProfileImageUrl}
+            isAnonymous={post.isAnonymous}
+          />
+          {post.authorName}
+        </span>
         <span className={styles.metaItem}>{relativeTime(post.createdAt)}</span>
         <span className={styles.metaItem}>조회 {post.viewCount}</span>
         <span className={`${styles.metaItem} ${post.commentCount > 0 ? styles.metaComment : ''}`}>

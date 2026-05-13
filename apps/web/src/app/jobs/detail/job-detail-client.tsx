@@ -1,6 +1,6 @@
 "use client";
 
-import type { JobDetailItem } from "@cpa/shared";
+import type { JobDetailItem, JobFitAnalysisItem, ResumeItem } from "@cpa/shared";
 import {
   ArrowLeft,
   BriefcaseBusiness,
@@ -23,8 +23,18 @@ import {
 import { SiteNav } from "@/components/site-nav";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { InfoItem } from "@/components/ui/info-item";
-import { actionButtonClassName } from "@/components/ui/action-button";
-import { fetchJobDetail } from "@/lib/api";
+import {
+  ActionButton,
+  ActionLink,
+  actionButtonClassName,
+} from "@/components/ui/action-button";
+import {
+  fetchCurrentUser,
+  fetchJobDetail,
+  fetchMyHighFitJobAnalyses,
+  fetchMyResumes,
+  type AuthUser,
+} from "@/lib/api";
 import {
   companyTypeLabels,
   deadlineTypeLabels,
@@ -41,26 +51,72 @@ export function JobDetailClient() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
   const [job, setJob] = useState<JobDetailItem | null>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [resumes, setResumes] = useState<ResumeItem[]>([]);
+  const [analyses, setAnalyses] = useState<JobFitAnalysisItem[]>([]);
+  const [displayedAnalysis, setDisplayedAnalysis] =
+    useState<JobFitAnalysisItem | null>(null);
+  const [selectedResumeId, setSelectedResumeId] = useState("");
+  const [analysisLoading, setAnalysisLoading] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!id) return;
 
+    const jobId = id;
     let ignore = false;
-    fetchJobDetail(id)
-      .then((data) => {
-        if (!ignore) {
-          setJob(data);
-          setError("");
+    async function load() {
+      try {
+        const [jobData, user] = await Promise.all([
+          fetchJobDetail(jobId),
+          fetchCurrentUser(),
+        ]);
+
+        if (ignore) return;
+
+        setJob(jobData);
+        setCurrentUser(user ?? null);
+        setError("");
+
+        if (user?.role === "JOB_SEEKER") {
+          const [resumeResult, analysisResult] = await Promise.allSettled([
+            fetchMyResumes(),
+            fetchMyHighFitJobAnalyses(5),
+          ]);
+
+          if (ignore) return;
+
+          const resumeItems =
+            resumeResult.status === "fulfilled" ? resumeResult.value.items : [];
+          const analysisItems =
+            analysisResult.status === "fulfilled"
+              ? analysisResult.value.items
+              : [];
+          setResumes(resumeItems);
+          setSelectedResumeId(
+            (prev) =>
+              prev ||
+              resumeItems.find((resume) => resume.isPrimary)?.id ||
+              resumeItems[0]?.id ||
+              "",
+          );
+          setAnalyses(analysisItems);
         }
-      })
-      .catch((caught: Error) => {
-        if (!ignore) setError(caught.message);
-      })
-      .finally(() => {
+      } catch (caught) {
+        if (!ignore) {
+          setError(
+            caught instanceof Error
+              ? caught.message
+              : "공고 상세를 불러오지 못했습니다.",
+          );
+        }
+      } finally {
         if (!ignore) setLoading(false);
-      });
+      }
+    }
+
+    void load();
 
     return () => {
       ignore = true;
@@ -118,10 +174,210 @@ export function JobDetailClient() {
     );
   }
 
-  return <JobDetail job={job} />;
+  function handleAnalyze() {
+    if (!selectedResumeId || analysisLoading) return;
+    setAnalysisLoading(true);
+    setDisplayedAnalysis(null);
+
+    window.setTimeout(() => {
+      if (analyses.length > 0) {
+        const index = Math.floor(Math.random() * analyses.length);
+        setDisplayedAnalysis(analyses[index]);
+      }
+      setAnalysisLoading(false);
+    }, 750);
+  }
+
+  return (
+    <JobDetail
+      job={job}
+      currentUser={currentUser}
+      resumes={resumes}
+      selectedResumeId={selectedResumeId}
+      onResumeChange={setSelectedResumeId}
+      onAnalyze={handleAnalyze}
+      analysisLoading={analysisLoading}
+      displayedAnalysis={displayedAnalysis}
+    />
+  );
 }
 
-function JobDetail({ job }: { job: JobDetailItem }) {
+function JobFitAnalysisPanel({
+  job,
+  currentUser,
+  resumes,
+  selectedResumeId,
+  onResumeChange,
+  onAnalyze,
+  analysisLoading,
+  displayedAnalysis,
+}: {
+  job: JobDetailItem;
+  currentUser: AuthUser | null;
+  resumes: ResumeItem[];
+  selectedResumeId: string;
+  onResumeChange: (resumeId: string) => void;
+  onAnalyze: () => void;
+  analysisLoading: boolean;
+  displayedAnalysis: JobFitAnalysisItem | null;
+}) {
+  const selectedAnalysis = displayedAnalysis;
+  const loginHref = `/login?next=${encodeURIComponent(`/jobs/detail?id=${job.id}`)}`;
+
+  if (!currentUser) {
+    return (
+      <section className={styles.fitAnalysisPanel}>
+        <div className={styles.fitAnalysisIntro}>
+          <span className={styles.fitEyebrow}>AI 적합도 분석</span>
+          <h2>내 이력서로 이 공고의 합격 가능성을 확인하세요</h2>
+          <p>로그인하면 업로드한 이력서와 공고 조건을 연결해 강점과 보완점을 볼 수 있습니다.</p>
+        </div>
+        <ActionLink href={loginHref} size="sm" iconStart={<Sparkles size={14} />}>
+          로그인 후 분석
+        </ActionLink>
+      </section>
+    );
+  }
+
+  if (currentUser.role !== "JOB_SEEKER") {
+    return (
+      <section className={styles.fitAnalysisPanel}>
+        <div className={styles.fitAnalysisIntro}>
+          <span className={styles.fitEyebrow}>AI 적합도 분석</span>
+          <h2>개인회원 전용 분석</h2>
+          <p>이력서 기반 공고 분석은 개인회원 계정에서 사용할 수 있습니다.</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (!resumes.length) {
+    return (
+      <section className={styles.fitAnalysisPanel}>
+        <div className={styles.fitAnalysisIntro}>
+          <span className={styles.fitEyebrow}>AI 적합도 분석</span>
+          <h2>이력서를 등록하면 바로 분석할 수 있습니다</h2>
+          <p>마이페이지에 최대 5개의 이력서를 등록하고 공고별 적합도를 비교해보세요.</p>
+        </div>
+        <ActionLink href="/mypage" size="sm" iconStart={<FileText size={14} />}>
+          이력서 등록
+        </ActionLink>
+      </section>
+    );
+  }
+
+  return (
+    <section className={styles.fitAnalysisPanel}>
+      <div className={styles.fitAnalysisHeader}>
+        <div className={styles.fitAnalysisIntro}>
+          <span className={styles.fitEyebrow}>AI 적합도 분석</span>
+          <h2>선택한 이력서로 이 공고를 분석합니다</h2>
+          <p>공고 조건과 이력서 포지션을 비교해 강점, 기업 우선순위, 감점 요인을 정리합니다.</p>
+        </div>
+        <div className={styles.fitControlRow}>
+          <select
+            className={styles.resumeSelect}
+            value={selectedResumeId}
+            onChange={(event) => onResumeChange(event.target.value)}
+            aria-label="분석할 이력서 선택"
+          >
+            {resumes.map((resume) => (
+              <option key={resume.id} value={resume.id}>
+                {resume.fileName}
+              </option>
+            ))}
+          </select>
+          <ActionButton
+            type="button"
+            size="sm"
+            iconStart={<Sparkles size={14} />}
+            onClick={onAnalyze}
+            disabled={analysisLoading || !selectedResumeId}
+          >
+            {analysisLoading
+              ? "분석 중"
+              : selectedAnalysis
+                ? "다시 확인"
+                : "결과 확인"}
+          </ActionButton>
+        </div>
+      </div>
+
+      {analysisLoading ? (
+        <div className={styles.fitEmptyState}>
+          이력서와 공고 조건을 비교하는 중입니다.
+        </div>
+      ) : selectedAnalysis ? (
+        <div className={styles.fitResult}>
+          <div className={styles.fitScoreBox}>
+            <span>합격확률</span>
+            <strong>{selectedAnalysis.fitScore}%</strong>
+            <small>{formatShortDate(selectedAnalysis.createdAt)} 분석</small>
+          </div>
+          <div className={styles.fitResultBody}>
+            <p className={styles.fitSummary}>{selectedAnalysis.summary}</p>
+            <div className={styles.fitInsightGrid}>
+              <FitInsightList title="강점" items={selectedAnalysis.strengths} />
+              <FitInsightList
+                title="기업이 보는 포인트"
+                items={selectedAnalysis.companyPriorities}
+              />
+              <FitInsightList title="보완점" items={selectedAnalysis.gaps} />
+            </div>
+            <div className={styles.fitRecommendation}>
+              <strong>추천 액션</strong>
+              <span>{selectedAnalysis.recommendation}</span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className={styles.fitEmptyState}>
+          결과 확인 버튼을 누르면 이력서 기반 적합도 요약을 확인할 수 있습니다.
+        </div>
+      )}
+    </section>
+  );
+}
+
+function FitInsightList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className={styles.fitInsightList}>
+      <strong>{title}</strong>
+      <ul>
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function formatShortDate(iso: string) {
+  return new Date(iso).toLocaleDateString("ko-KR", {
+    month: "2-digit",
+    day: "2-digit",
+  });
+}
+
+function JobDetail({
+  job,
+  currentUser,
+  resumes,
+  selectedResumeId,
+  onResumeChange,
+  onAnalyze,
+  analysisLoading,
+  displayedAnalysis,
+}: {
+  job: JobDetailItem;
+  currentUser: AuthUser | null;
+  resumes: ResumeItem[];
+  selectedResumeId: string;
+  onResumeChange: (resumeId: string) => void;
+  onAnalyze: () => void;
+  analysisLoading: boolean;
+  displayedAnalysis: JobFitAnalysisItem | null;
+}) {
   const initial = job.companyName.charAt(0);
 
   const dDayLabel =
@@ -217,6 +473,17 @@ function JobDetail({ job }: { job: JobDetailItem }) {
 
       <section className={styles.body}>
         <div className="grid gap-4">
+          <JobFitAnalysisPanel
+            job={job}
+            currentUser={currentUser}
+            resumes={resumes}
+            selectedResumeId={selectedResumeId}
+            onResumeChange={onResumeChange}
+            onAnalyze={onAnalyze}
+            analysisLoading={analysisLoading}
+            displayedAnalysis={displayedAnalysis}
+          />
+
           <section className={styles.section}>
             <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-gray-900">
               <FileText size={15} className={styles.sectionIcon} />

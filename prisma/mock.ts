@@ -6,10 +6,12 @@ import {
   CompanyType,
   DeadlineType,
   EmploymentType,
+  Job,
   JobFamily,
   KicpaCondition,
   Label,
   PrismaClient,
+  Resume,
   Source,
   TraineeStatus,
   UserRole,
@@ -21,7 +23,8 @@ import {
   resolvePrismaPostgresConfig,
 } from "../apps/api/src/config/runtime-environment";
 import { statSync } from "node:fs";
-import { join } from "node:path";
+import { mkdir, writeFile } from "node:fs/promises";
+import { extname, isAbsolute, join } from "node:path";
 
 for (const envFilePath of resolveEnvFilePaths()) {
   loadDotenv({ path: envFilePath, override: false });
@@ -648,6 +651,218 @@ async function upsertJob(jobData: SeedJob, lastCheckedAt = new Date()) {
   });
 }
 
+type MockAnalysisJob = Job & {
+  company: { name: string };
+};
+
+const mockResumeSeedData = [
+  {
+    id: "mock-resume-test002-audit-trainee",
+    fileName: "audit-trainee-resume.pdf",
+    createdAt: new Date("2026-05-01T01:00:00.000Z"),
+  },
+  {
+    id: "mock-resume-test002-tax-junior",
+    fileName: "tax-junior-resume.pdf",
+    createdAt: new Date("2026-05-02T01:00:00.000Z"),
+  },
+  {
+    id: "mock-resume-test002-deal-fas",
+    fileName: "deal-fas-resume.pdf",
+    createdAt: new Date("2026-05-03T01:00:00.000Z"),
+  },
+  {
+    id: "mock-resume-test002-icfr",
+    fileName: "icfr-internal-accounting-resume.pdf",
+    createdAt: new Date("2026-05-04T01:00:00.000Z"),
+  },
+  {
+    id: "mock-resume-test002-finance",
+    fileName: "finance-inhouse-resume.pdf",
+    createdAt: new Date("2026-05-05T01:00:00.000Z"),
+  },
+] as const;
+
+function buildMockResumeBody(fileName: string) {
+  return Buffer.from(
+    `%PDF-1.4\n% Accountit mock resume: ${fileName}\n1 0 obj\n<<>>\nendobj\n%%EOF\n`,
+  );
+}
+
+function resolveMockResumeRootDir() {
+  const configuredPath = process.env.LOCAL_RESUME_DIR?.trim();
+  if (!configuredPath) {
+    return join(process.cwd(), "var", "uploads", "resumes");
+  }
+  return isAbsolute(configuredPath)
+    ? configuredPath
+    : join(process.cwd(), configuredPath);
+}
+
+async function writeMockResumePlaceholder(userId: string, resume: Resume) {
+  if (process.env.RESUME_STORAGE_DRIVER?.trim().toLowerCase() === "s3") return;
+
+  const rootDir = resolveMockResumeRootDir();
+  const extension = extname(resume.fileName).toLowerCase();
+  const targetDir = join(rootDir, userId);
+  await mkdir(targetDir, { recursive: true });
+  await writeFile(
+    join(targetDir, `${resume.id}${extension}`),
+    buildMockResumeBody(resume.fileName),
+  );
+}
+
+async function upsertMockResumes(userId: string) {
+  const resumes: Resume[] = [];
+  const seedIds = mockResumeSeedData.map((resume) => resume.id);
+
+  await prisma.resume.deleteMany({
+    where: {
+      userId,
+      id: { notIn: seedIds },
+    },
+  });
+  await prisma.resume.updateMany({
+    where: { userId },
+    data: { isPrimary: false },
+  });
+
+  for (const [index, seed] of mockResumeSeedData.entries()) {
+    const body = buildMockResumeBody(seed.fileName);
+    const resume = await prisma.resume.upsert({
+      where: { id: seed.id },
+      update: {
+        userId,
+        fileName: seed.fileName,
+        fileUrl: `/mypage/resumes/${seed.id}/download`,
+        contentType: "application/pdf",
+        byteSize: body.length,
+        isPrimary: index === 0,
+      },
+      create: {
+        id: seed.id,
+        userId,
+        fileName: seed.fileName,
+        fileUrl: `/mypage/resumes/${seed.id}/download`,
+        contentType: "application/pdf",
+        byteSize: body.length,
+        isPrimary: index === 0,
+        createdAt: seed.createdAt,
+      },
+    });
+    await writeMockResumePlaceholder(userId, resume);
+    resumes.push(resume);
+  }
+
+  return resumes;
+}
+
+function buildMockAnalysisPayload(
+  index: number,
+  job: MockAnalysisJob,
+  resume: Resume,
+) {
+  const scores = [92, 88, 84, 80, 76];
+  const score = scores[index % scores.length];
+  const familyLabel = jobFamilyDisplayNamesForMock[job.jobFamily];
+  const summary =
+    score >= 85
+      ? `${job.company.name} ${job.title}와 ${resume.fileName}의 적합도가 매우 높습니다. ${familyLabel} 경험을 전면에 세우면 강한 지원 시그널이 됩니다.`
+      : `${job.company.name} ${job.title}는 합격 가능성이 높은 편입니다. 핵심 요건은 맞지만 경력 근거를 더 구체화하면 좋습니다.`;
+
+  const strengths = [
+    `${familyLabel} 직무와 연결되는 이력서 버전이 선택되어 공고 키워드 매칭이 좋습니다.`,
+    job.kicpaCondition === KicpaCondition.REQUIRED
+      ? "KICPA 필수 조건을 지원서 상단에서 바로 증빙할 수 있습니다."
+      : "KICPA 우대/회계 전문성 신호를 강점으로 활용할 수 있습니다.",
+    job.traineeStatus === TraineeStatus.AVAILABLE
+      ? "수습 가능 공고라 초기 커리어 설계와 실무수습 니즈가 잘 맞습니다."
+      : "실무 투입 가능성을 프로젝트 산출물 중심으로 설명하기 좋습니다.",
+  ];
+  const companyPriorities = [
+    `${job.company.name}는 ${familyLabel} 실무를 빠르게 맡을 수 있는 지원자를 우선적으로 볼 가능성이 높습니다.`,
+    "마감 전형에서는 직무 경험, 자격 요건, 커뮤니케이션 안정성을 짧은 시간 안에 확인하려 합니다.",
+    "공고 본문 기준으로 증빙 가능한 경험과 지원 동기의 구체성이 중요합니다.",
+  ];
+  const gaps = [
+    job.minExperienceYears && job.minExperienceYears > 0
+      ? `요구 경력 ${job.minExperienceYears}년 이상을 충족한다는 근거를 숫자와 산출물로 보강해야 합니다.`
+      : "신입/주니어 가능성이 높지만 지원 동기와 학습 속도 근거를 더 선명하게 보여줘야 합니다.",
+    "이력서 첫 페이지에서 회사 선택 이유가 약하면 최종 설득력이 떨어질 수 있습니다.",
+  ];
+
+  return {
+    fitScore: score,
+    summary,
+    strengths,
+    companyPriorities,
+    gaps,
+    recommendation:
+      "지원 전 이력서 첫 페이지에 직무 관련 프로젝트 2개, KICPA/수습 가능 여부, 회사 선택 이유를 함께 배치하세요.",
+    rawJson: {
+      version: "mock-seed-v1",
+      source: "prisma/mock.ts",
+      inputs: {
+        jobId: job.id,
+        resumeId: resume.id,
+        jobFamily: job.jobFamily,
+        score,
+      },
+    },
+  };
+}
+
+const jobFamilyDisplayNamesForMock: Record<JobFamily, string> = {
+  [JobFamily.AUDIT]: "감사",
+  [JobFamily.TAX]: "세무",
+  [JobFamily.FAS]: "FAS",
+  [JobFamily.DEAL]: "Deal Advisory",
+  [JobFamily.INTERNAL_ACCOUNTING]: "내부회계관리제도",
+  [JobFamily.IN_HOUSE]: "인하우스 재무회계",
+};
+
+async function upsertMockJobFitAnalyses(userId: string, resumes: Resume[]) {
+  const analysisJobUrls = [
+    "https://example.com/jobs/hanbit-audit-trainee",
+    "https://example.com/jobs/samil-deal-junior",
+    "https://example.com/jobs/dunamu-icfr",
+    "https://example.com/generated/jobs/0001",
+    "https://example.com/generated/jobs/0002",
+  ];
+  const jobs = await prisma.job.findMany({
+    where: { originalUrl: { in: analysisJobUrls } },
+    include: { company: { select: { name: true } } },
+  });
+  const jobByUrl = new Map(jobs.map((job) => [job.originalUrl, job]));
+  let analysisCount = 0;
+
+  for (const [index, resume] of resumes.entries()) {
+    const job = jobByUrl.get(analysisJobUrls[index]);
+    if (!job) continue;
+    const payload = buildMockAnalysisPayload(index, job, resume);
+
+    await prisma.jobFitAnalysis.upsert({
+      where: {
+        userId_jobId_resumeId: {
+          userId,
+          jobId: job.id,
+          resumeId: resume.id,
+        },
+      },
+      update: payload,
+      create: {
+        userId,
+        jobId: job.id,
+        resumeId: resume.id,
+        ...payload,
+      },
+    });
+    analysisCount += 1;
+  }
+
+  return analysisCount;
+}
+
 function buildCareerVerificationMetadata(company: Company) {
   if (company.type === CompanyType.BIG4) {
     return {
@@ -960,6 +1175,9 @@ async function main() {
       },
     });
   }
+  const demoJobSeeker = await prisma.user.findUniqueOrThrow({
+    where: { username: "test002" },
+  });
 
   const companyOwners = await Promise.all(
     companyProfiles.map((company, index) => {
@@ -1112,8 +1330,14 @@ async function main() {
     await upsertJob(jobData, createLastCheckedAt(index));
   }
 
+  const mockResumes = await upsertMockResumes(demoJobSeeker.id);
+  const mockAnalysisCount = await upsertMockJobFitAnalyses(
+    demoJobSeeker.id,
+    mockResumes,
+  );
+
   console.log(
-    `Inserted or updated mock data: ${TARGET_COMPANY_COUNT} companies, ${TARGET_JOB_COUNT} jobs, ${TARGET_COMPANY_COUNT + mockUsers.length} users.`,
+    `Inserted or updated mock data: ${TARGET_COMPANY_COUNT} companies, ${TARGET_JOB_COUNT} jobs, ${TARGET_COMPANY_COUNT + mockUsers.length} users, ${mockResumes.length} resumes, ${mockAnalysisCount} job fit analyses.`,
   );
 }
 

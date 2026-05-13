@@ -13,6 +13,8 @@ import type {
   CommunityPostDetailResponse,
   CommunityPostItem,
   CommunityPostListResponse,
+  CreateJobFitAnalysisPayload,
+  CreateJobFitAnalysisResponse,
   CreateCommunityAnswerPayload,
   CreateCommunityPostPayload,
   CreatePersonalVerificationRequestPayload,
@@ -23,6 +25,7 @@ import type {
   JobDetailItem,
   JobFilterPreference,
   JobFilterPreferenceResponse,
+  JobFitAnalysisListResponse,
   JobListItem,
   JobSubmissionItem,
   KicpaCondition,
@@ -1088,6 +1091,58 @@ export async function fetchMyResumes() {
   return (await response.json()) as ResumeListResponse;
 }
 
+export async function fetchMyJobFitAnalyses(jobId?: string) {
+  const params = new URLSearchParams();
+  if (jobId) params.set("jobId", jobId);
+  const query = params.toString();
+  const response = await fetch(
+    `${API_BASE_URL}/mypage/job-fit-analyses${query ? `?${query}` : ""}`,
+    {
+      credentials: "include",
+      cache: "no-store",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "이력서 적합도 분석을 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as JobFitAnalysisListResponse;
+}
+
+export async function fetchMyHighFitJobAnalyses(take = 5) {
+  const response = await fetch(
+    `${API_BASE_URL}/mypage/job-fit-analyses/high-fit?take=${encodeURIComponent(String(take))}`,
+    {
+      credentials: "include",
+      cache: "no-store",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "합격확률 높은 공고를 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as JobFitAnalysisListResponse;
+}
+
+export async function createMyJobFitAnalysis(
+  payload: CreateJobFitAnalysisPayload,
+) {
+  const response = await fetch(`${API_BASE_URL}/mypage/job-fit-analyses`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "이력서 적합도 분석을 생성하지 못했습니다."),
+    );
+  }
+  return (await response.json()) as CreateJobFitAnalysisResponse;
+}
+
 export async function uploadMyResume(file: File) {
   const response = await fetch(`${API_BASE_URL}/mypage/resumes`, {
     method: "POST",
@@ -1121,4 +1176,20 @@ export async function deleteMyResume(id: string) {
     );
   }
   return (await response.json()) as { ok: boolean };
+}
+
+export async function setMyPrimaryResume(id: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/mypage/resumes/${encodeURIComponent(id)}/primary`,
+    {
+      method: "PATCH",
+      credentials: "include",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "대표 이력서를 변경하지 못했습니다."),
+    );
+  }
+  return (await response.json()) as ResumeItem;
 }

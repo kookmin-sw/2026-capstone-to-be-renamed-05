@@ -27,6 +27,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import type { RequestWithUser } from '../auth/auth.types';
 import { CreateBookmarkDto } from './dto/create-bookmark.dto';
+import { CreateJobFitAnalysisDto } from './dto/create-job-fit-analysis.dto';
 import { CreatePersonalVerificationRequestDto } from './dto/create-personal-verification-request.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -113,6 +114,37 @@ export class MypageController {
     return this.mypageService.deleteBookmark(req.user!.id, id);
   }
 
+  // ─── Job fit analyses ─────────────────────────────────────────────
+
+  @Get('job-fit-analyses')
+  @ApiQuery({ name: 'jobId', required: false, example: 'uuid-of-job' })
+  listJobFitAnalyses(
+    @Req() req: RequestWithUser,
+    @Query('jobId') jobId?: string,
+  ) {
+    return this.mypageService.listJobFitAnalyses(req.user!.id, jobId);
+  }
+
+  @Get('job-fit-analyses/high-fit')
+  @ApiQuery({ name: 'take', required: false, example: 5 })
+  listHighFitJobAnalyses(
+    @Req() req: RequestWithUser,
+    @Query('take') take?: string,
+  ) {
+    return this.mypageService.listHighFitJobAnalyses(
+      req.user!.id,
+      take ? Number(take) : undefined,
+    );
+  }
+
+  @Post('job-fit-analyses')
+  createJobFitAnalysis(
+    @Req() req: RequestWithUser,
+    @Body() dto: CreateJobFitAnalysisDto,
+  ) {
+    return this.mypageService.createJobFitAnalysis(req.user!.id, dto);
+  }
+
   // ─── Resumes ─────────────────────────────────────────────
 
   @Get('resumes')
@@ -162,6 +194,11 @@ export class MypageController {
   @Delete('resumes/:id')
   deleteResume(@Req() req: RequestWithUser, @Param('id') id: string) {
     return this.mypageService.deleteResume(req.user!.id, id);
+  }
+
+  @Patch('resumes/:id/primary')
+  setPrimaryResume(@Req() req: RequestWithUser, @Param('id') id: string) {
+    return this.mypageService.setPrimaryResume(req.user!.id, id);
   }
 }
 

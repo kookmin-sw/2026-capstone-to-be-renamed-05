@@ -404,12 +404,45 @@ export type ResumeItem = {
   fileUrl: string;
   contentType: string;
   byteSize: number;
+  isPrimary: boolean;
   createdAt: string;
   updatedAt: string;
 };
 
 export type ResumeListResponse = {
   items: ResumeItem[];
+};
+
+export type JobFitAnalysisItem = {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  companyId: string;
+  companyName: string;
+  resumeId: string;
+  resumeFileName: string;
+  fitScore: number;
+  summary: string;
+  strengths: string[];
+  companyPriorities: string[];
+  gaps: string[];
+  recommendation: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type JobFitAnalysisListResponse = {
+  items: JobFitAnalysisItem[];
+};
+
+export type CreateJobFitAnalysisPayload = {
+  jobId: string;
+  resumeId: string;
+};
+
+export type CreateJobFitAnalysisResponse = {
+  item: JobFitAnalysisItem;
+  reused: boolean;
 };
 
 export type MyProfileResponse = {

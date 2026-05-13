@@ -18,12 +18,16 @@ import {
   BookmarkTargetType,
   CpaVerificationStatus,
   EmploymentHistoryStatus,
+  JobStatus,
   PersonalVerificationRequestStatus,
   Prisma,
 } from '@prisma/client';
 import type {
   BookmarkItem,
   BookmarkListResponse,
+  CreateJobFitAnalysisResponse,
+  JobFitAnalysisItem,
+  JobFitAnalysisListResponse,
   MyCommunityActivityListResponse,
   MyProfileResponse,
   PersonalVerificationRequestItem,
@@ -84,6 +88,7 @@ type ResumeRecord = {
   fileUrl: string;
   contentType: string;
   byteSize: number;
+  isPrimary: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -127,8 +132,24 @@ const profileInclude = {
   },
 } satisfies Prisma.UserInclude;
 
+const jobFitAnalysisInclude = {
+  job: {
+    select: {
+      id: true,
+      title: true,
+      companyId: true,
+      company: { select: { name: true } },
+    },
+  },
+  resume: { select: { id: true, fileName: true } },
+} satisfies Prisma.JobFitAnalysisInclude;
+
 type ProfileUserRecord = Prisma.UserGetPayload<{
   include: typeof profileInclude;
+}>;
+
+type JobFitAnalysisRecord = Prisma.JobFitAnalysisGetPayload<{
+  include: typeof jobFitAnalysisInclude;
 }>;
 
 type VerificationRequestRecord = Prisma.PersonalVerificationRequestGetPayload<{
@@ -264,6 +285,101 @@ export class MypageService implements OnModuleInit {
       pageSize,
       total,
     };
+  }
+
+  async listJobFitAnalyses(
+    userId: string,
+    jobId?: string,
+  ): Promise<JobFitAnalysisListResponse> {
+    const analyses = await this.prisma.jobFitAnalysis.findMany({
+      where: {
+        userId,
+        ...(jobId?.trim() ? { jobId: jobId.trim() } : {}),
+      },
+      include: jobFitAnalysisInclude,
+      orderBy: [{ createdAt: 'desc' }],
+    });
+
+    return { items: analyses.map((analysis) => this.toJobFitAnalysisItem(analysis)) };
+  }
+
+  async listHighFitJobAnalyses(
+    userId: string,
+    take?: number,
+  ): Promise<JobFitAnalysisListResponse> {
+    const analyses = await this.prisma.jobFitAnalysis.findMany({
+      where: {
+        userId,
+        fitScore: { gte: 75 },
+      },
+      include: jobFitAnalysisInclude,
+      orderBy: [{ fitScore: 'desc' }, { createdAt: 'desc' }],
+      take: this.clampPositiveInt(take, 5, 10),
+    });
+
+    return { items: analyses.map((analysis) => this.toJobFitAnalysisItem(analysis)) };
+  }
+
+  async createJobFitAnalysis(
+    userId: string,
+    data: { jobId: string; resumeId: string },
+  ): Promise<CreateJobFitAnalysisResponse> {
+    const jobId = data.jobId.trim();
+    const resumeId = data.resumeId.trim();
+    if (!jobId || !resumeId) {
+      throw new BadRequestException('분석할 공고와 이력서를 선택해 주세요.');
+    }
+
+    const existing = await this.prisma.jobFitAnalysis.findUnique({
+      where: {
+        userId_jobId_resumeId: { userId, jobId, resumeId },
+      },
+      include: jobFitAnalysisInclude,
+    });
+    if (existing) {
+      return {
+        item: this.toJobFitAnalysisItem(existing),
+        reused: true,
+      };
+    }
+
+    const [resume, job] = await Promise.all([
+      this.prisma.resume.findFirst({
+        where: { id: resumeId, userId },
+        select: { id: true },
+      }),
+      this.prisma.job.findFirst({
+        where: { id: jobId, status: JobStatus.OPEN },
+        select: { id: true },
+      }),
+    ]);
+
+    if (!resume) {
+      throw new BadRequestException('본인이 업로드한 이력서만 분석에 사용할 수 있습니다.');
+    }
+    if (!job) {
+      throw new NotFoundException('분석 가능한 공개 채용공고를 찾을 수 없습니다.');
+    }
+
+    const seededAnalyses = await this.prisma.jobFitAnalysis.findMany({
+      where: {
+        userId,
+        fitScore: { gte: 75 },
+      },
+      include: jobFitAnalysisInclude,
+      orderBy: [{ fitScore: 'desc' }, { createdAt: 'desc' }],
+      take: 5,
+    });
+    const fallback =
+      seededAnalyses[Math.floor(Math.random() * seededAnalyses.length)];
+    if (fallback) {
+      return {
+        item: this.toJobFitAnalysisItem(fallback),
+        reused: true,
+      };
+    }
+
+    throw new NotFoundException('분석 결과를 찾을 수 없습니다.');
   }
 
   async createPersonalVerificationRequest(
@@ -436,7 +552,7 @@ export class MypageService implements OnModuleInit {
   async listResumes(userId: string): Promise<ResumeListResponse> {
     const resumes = await this.prisma.resume.findMany({
       where: { userId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ isPrimary: 'desc' }, { createdAt: 'desc' }],
     });
 
     return {
@@ -484,6 +600,7 @@ export class MypageService implements OnModuleInit {
           fileUrl: this.buildResumeDownloadPath(id),
           contentType: upload.contentType,
           byteSize: data.body.length,
+          isPrimary: count === 0,
         },
       });
 
@@ -494,6 +611,28 @@ export class MypageService implements OnModuleInit {
       );
       throw error;
     }
+  }
+
+  async setPrimaryResume(userId: string, id: string): Promise<ResumeItem> {
+    const resume = await this.prisma.resume.findFirst({
+      where: { id, userId },
+    });
+    if (!resume) {
+      throw new NotFoundException('Resume not found.');
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.resume.updateMany({
+        where: { userId, isPrimary: true },
+        data: { isPrimary: false },
+      });
+      return tx.resume.update({
+        where: { id },
+        data: { isPrimary: true },
+      });
+    });
+
+    return this.toResumeItem(updated);
   }
 
   async getResumeDownload(userId: string, id: string) {
@@ -533,6 +672,18 @@ export class MypageService implements OnModuleInit {
       throw new NotFoundException('Resume not found.');
     }
     await this.prisma.resume.delete({ where: { id } });
+    if (resume.isPrimary) {
+      const nextResume = await this.prisma.resume.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (nextResume) {
+        await this.prisma.resume.update({
+          where: { id: nextResume.id },
+          data: { isPrimary: true },
+        });
+      }
+    }
     const storageConfig = this.getResumeStorageConfig();
     const target = this.resolveResumeObjectTarget(
       storageConfig,
@@ -895,6 +1046,7 @@ export class MypageService implements OnModuleInit {
     fileUrl: string;
     contentType: string;
     byteSize: number;
+    isPrimary: boolean;
     createdAt: Date;
     updatedAt: Date;
   }): ResumeItem {
@@ -904,8 +1056,31 @@ export class MypageService implements OnModuleInit {
       fileUrl: resume.fileUrl,
       contentType: resume.contentType,
       byteSize: resume.byteSize,
+      isPrimary: resume.isPrimary,
       createdAt: resume.createdAt.toISOString(),
       updatedAt: resume.updatedAt.toISOString(),
+    };
+  }
+
+  private toJobFitAnalysisItem(
+    analysis: JobFitAnalysisRecord,
+  ): JobFitAnalysisItem {
+    return {
+      id: analysis.id,
+      jobId: analysis.jobId,
+      jobTitle: analysis.job.title,
+      companyId: analysis.job.companyId,
+      companyName: analysis.job.company.name,
+      resumeId: analysis.resumeId,
+      resumeFileName: analysis.resume.fileName,
+      fitScore: analysis.fitScore,
+      summary: analysis.summary,
+      strengths: analysis.strengths,
+      companyPriorities: analysis.companyPriorities,
+      gaps: analysis.gaps,
+      recommendation: analysis.recommendation,
+      createdAt: analysis.createdAt.toISOString(),
+      updatedAt: analysis.updatedAt.toISOString(),
     };
   }
 

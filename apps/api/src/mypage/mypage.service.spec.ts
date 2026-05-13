@@ -8,8 +8,12 @@ import {
   CpaVerificationStatus,
   CommunityBoardType,
   EmploymentHistoryStatus,
+  JobFamily,
+  JobStatus,
+  KicpaCondition,
   PersonalCareerStage,
   PersonalVerificationRequestStatus,
+  TraineeStatus,
 } from '@prisma/client';
 import argon2 from 'argon2';
 import {
@@ -53,8 +57,11 @@ describe('MypageService resumes', () => {
       create: jest.Mock;
       findFirst: jest.Mock;
       findMany: jest.Mock;
+      update: jest.Mock;
+      updateMany: jest.Mock;
       delete: jest.Mock;
     };
+    $transaction: jest.Mock;
   };
   let service: MypageService;
 
@@ -67,8 +74,13 @@ describe('MypageService resumes', () => {
         create: jest.fn(),
         findFirst: jest.fn(),
         findMany: jest.fn(),
+        update: jest.fn(),
+        updateMany: jest.fn(),
         delete: jest.fn(),
       },
+      $transaction: jest.fn((callback: (client: typeof prisma) => unknown) =>
+        callback(prisma),
+      ),
     };
     service = new MypageService(
       prisma as unknown as PrismaService,
@@ -209,6 +221,24 @@ describe('MypageService resumes', () => {
     expect(command.input).toMatchObject({
       Bucket: 'private-resumes',
       Key: 'resumes/user-1/resume-1.pdf',
+    });
+  });
+
+  it('marks a selected resume as the users primary resume', async () => {
+    const resume = resumeRecord({ id: 'resume-2', userId: 'user-1' });
+    prisma.resume.findFirst.mockResolvedValue(resume);
+    prisma.resume.update.mockResolvedValue({ ...resume, isPrimary: true });
+
+    const result = await service.setPrimaryResume('user-1', 'resume-2');
+
+    expect(result).toMatchObject({ id: 'resume-2', isPrimary: true });
+    expect(prisma.resume.updateMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', isPrimary: true },
+      data: { isPrimary: false },
+    });
+    expect(prisma.resume.update).toHaveBeenCalledWith({
+      where: { id: 'resume-2' },
+      data: { isPrimary: true },
     });
   });
 
@@ -474,6 +504,150 @@ describe('MypageService account settings', () => {
   });
 });
 
+describe('MypageService job fit analyses', () => {
+  let prisma: {
+    jobFitAnalysis: {
+      findUnique: jest.Mock;
+      findMany: jest.Mock;
+      create: jest.Mock;
+    };
+    resume: {
+      findFirst: jest.Mock;
+    };
+    job: {
+      findFirst: jest.Mock;
+    };
+  };
+  let service: MypageService;
+
+  beforeEach(() => {
+    prisma = {
+      jobFitAnalysis: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        findMany: jest.fn().mockResolvedValue([]),
+        create: jest.fn(),
+      },
+      resume: {
+        findFirst: jest.fn(),
+      },
+      job: {
+        findFirst: jest.fn(),
+      },
+    };
+    service = new MypageService(
+      prisma as unknown as PrismaService,
+      createConfig({}),
+    );
+  });
+
+  it('rejects analyses with resumes owned by another user', async () => {
+    prisma.resume.findFirst.mockResolvedValue(null);
+    prisma.job.findFirst.mockResolvedValue(jobRecord());
+
+    await expect(
+      service.createJobFitAnalysis('user-1', {
+        jobId: 'job-1',
+        resumeId: 'resume-other',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(prisma.resume.findFirst).toHaveBeenCalledWith({
+      where: { id: 'resume-other', userId: 'user-1' },
+      select: { id: true },
+    });
+    expect(prisma.jobFitAnalysis.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects analyses for missing or closed jobs', async () => {
+    prisma.resume.findFirst.mockResolvedValue(resumeRecord());
+    prisma.job.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.createJobFitAnalysis('user-1', {
+        jobId: 'closed-job',
+        resumeId: 'resume-1',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(prisma.job.findFirst).toHaveBeenCalledWith({
+      where: { id: 'closed-job', status: JobStatus.OPEN },
+      select: expect.any(Object),
+    });
+    expect(prisma.jobFitAnalysis.create).not.toHaveBeenCalled();
+  });
+
+  it('returns a seeded mock analysis when the exact combination does not exist', async () => {
+    prisma.resume.findFirst.mockResolvedValue({ id: 'resume-1' });
+    prisma.job.findFirst.mockResolvedValue({ id: 'job-1' });
+    prisma.jobFitAnalysis.findMany.mockResolvedValue([
+      jobFitAnalysisRecord({ id: 'analysis-seed', fitScore: 92 }),
+    ]);
+
+    const result = await service.createJobFitAnalysis('user-1', {
+      jobId: 'job-1',
+      resumeId: 'resume-1',
+    });
+
+    expect(result.reused).toBe(true);
+    expect(result.item.id).toBe('analysis-seed');
+    expect(prisma.jobFitAnalysis.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        fitScore: { gte: 75 },
+      },
+      include: expect.any(Object),
+      orderBy: [{ fitScore: 'desc' }, { createdAt: 'desc' }],
+      take: 5,
+    });
+    expect(prisma.jobFitAnalysis.create).not.toHaveBeenCalled();
+  });
+
+  it('reuses an existing analysis for the same user, job, and resume', async () => {
+    prisma.jobFitAnalysis.findUnique.mockResolvedValue(
+      jobFitAnalysisRecord({ fitScore: 88 }),
+    );
+
+    const result = await service.createJobFitAnalysis('user-1', {
+      jobId: 'job-1',
+      resumeId: 'resume-1',
+    });
+
+    expect(result.reused).toBe(true);
+    expect(result.item.fitScore).toBe(88);
+    expect(prisma.jobFitAnalysis.findUnique).toHaveBeenCalledWith({
+      where: {
+        userId_jobId_resumeId: {
+          userId: 'user-1',
+          jobId: 'job-1',
+          resumeId: 'resume-1',
+        },
+      },
+      include: expect.any(Object),
+    });
+    expect(prisma.jobFitAnalysis.create).not.toHaveBeenCalled();
+  });
+
+  it('lists only high-fit analyses for mypage recommendations', async () => {
+    prisma.jobFitAnalysis.findMany.mockResolvedValue([
+      jobFitAnalysisRecord({ id: 'analysis-1', fitScore: 91 }),
+      jobFitAnalysisRecord({ id: 'analysis-2', fitScore: 78 }),
+    ]);
+
+    const result = await service.listHighFitJobAnalyses('user-1', 5);
+
+    expect(prisma.jobFitAnalysis.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        fitScore: { gte: 75 },
+      },
+      include: expect.any(Object),
+      orderBy: [{ fitScore: 'desc' }, { createdAt: 'desc' }],
+      take: 5,
+    });
+    expect(result.items.map((item) => item.fitScore)).toEqual([91, 78]);
+  });
+});
+
 function resumeRecord(overrides: Record<string, unknown> = {}) {
   return {
     id: 'resume-1',
@@ -482,8 +656,63 @@ function resumeRecord(overrides: Record<string, unknown> = {}) {
     fileUrl: '/mypage/resumes/resume-1/download',
     contentType: 'application/pdf',
     byteSize: 3,
+    isPrimary: false,
     createdAt,
     updatedAt: createdAt,
+    ...overrides,
+  };
+}
+
+function jobRecord(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'job-1',
+    title: 'Audit associate',
+    description: 'Audit work',
+    jobFamily: JobFamily.AUDIT,
+    companyType: 'LOCAL_ACCOUNTING_FIRM',
+    employmentType: 'FULL_TIME',
+    kicpaCondition: KicpaCondition.PREFERRED,
+    traineeStatus: TraineeStatus.AVAILABLE,
+    practicalTrainingInstitution: true,
+    minExperienceYears: 0,
+    maxExperienceYears: 1,
+    location: 'Seoul',
+    deadlineType: 'FIXED_DATE',
+    company: {
+      name: 'Hanbit',
+      type: 'LOCAL_ACCOUNTING_FIRM',
+      tags: ['audit'],
+      description: 'Local accounting firm',
+    },
+    ...overrides,
+  };
+}
+
+function jobFitAnalysisRecord(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'analysis-1',
+    userId: 'user-1',
+    jobId: 'job-1',
+    resumeId: 'resume-1',
+    fitScore: 82,
+    summary: 'Good fit',
+    strengths: ['Audit experience'],
+    companyPriorities: ['Audit readiness'],
+    gaps: ['Clarify projects'],
+    recommendation: 'Apply with a tailored summary.',
+    rawJson: {},
+    createdAt,
+    updatedAt: createdAt,
+    job: {
+      id: 'job-1',
+      title: 'Audit associate',
+      companyId: 'company-1',
+      company: { name: 'Hanbit' },
+    },
+    resume: {
+      id: 'resume-1',
+      fileName: 'audit-resume.pdf',
+    },
     ...overrides,
   };
 }

@@ -148,6 +148,7 @@ model User {
   uploadedAssets                    Asset[]                    @relation("AssetUploader")
   bookmarks                         Bookmark[]
   resumes                           Resume[]
+  jobFitAnalyses                    JobFitAnalysis[]
   personalProfile                    PersonalProfile?
   personalVerificationRequests       PersonalVerificationRequest[] @relation("PersonalVerificationRequestSubmitter")
   reviewedPersonalVerificationRequests PersonalVerificationRequest[] @relation("PersonalVerificationRequestReviewer")
@@ -307,6 +308,7 @@ model Job {
   source             Source          @relation(fields: [sourceId], references: [id])
   labels             JobLabel[]
   aiSuggestions      AiSuggestion[]
+  fitAnalyses        JobFitAnalysis[]
   approvedSubmission JobSubmission?  @relation("ApprovedJobSubmission")
   editSubmissions    JobSubmission[] @relation("TargetJobSubmission")
 
@@ -449,12 +451,39 @@ model Resume {
   fileUrl      String
   contentType  String
   byteSize     Int
+  isPrimary    Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fitAnalyses JobFitAnalysis[]
 
   @@index([userId, createdAt])
+  @@index([userId, isPrimary])
+}
+
+model JobFitAnalysis {
+  id                String   @id @default(uuid())
+  userId            String
+  jobId             String
+  resumeId          String
+  fitScore          Int
+  summary           String
+  strengths         String[] @default([])
+  companyPriorities String[] @default([])
+  gaps              String[] @default([])
+  recommendation    String
+  rawJson           Json
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jobId, resumeId])
+  @@index([userId, fitScore, createdAt])
+  @@index([jobId, createdAt])
 }
 
 model CommunityPost {

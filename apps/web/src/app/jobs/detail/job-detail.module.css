@@ -72,6 +72,199 @@
   color: var(--brand);
 }
 
+.fitAnalysisPanel {
+  display: grid;
+  gap: 0.875rem;
+  border: 1px solid var(--brand-mid);
+  border-left: 3px solid var(--brand);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 240, 245, 0.9), rgba(240, 253, 250, 0.72)),
+    white;
+  padding: 1rem;
+  box-shadow: var(--shadow-xs);
+}
+
+.fitAnalysisHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.fitAnalysisIntro {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.fitEyebrow {
+  color: var(--brand);
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.fitAnalysisIntro h2 {
+  color: var(--gray-900);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.fitAnalysisIntro p {
+  color: var(--gray-600);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.fitControlRow {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.resumeSelect {
+  width: min(20rem, 100%);
+  min-height: 2.25rem;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: white;
+  padding: 0.45rem 0.7rem;
+  color: var(--gray-900);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  outline: none;
+}
+
+.resumeSelect:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(232, 69, 122, 0.12);
+}
+
+.fitError {
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fef2f2;
+  padding: 0.65rem 0.75rem;
+  color: #b91c1c;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.fitResult {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  gap: 0.875rem;
+  align-items: start;
+}
+
+.fitScoreBox {
+  display: grid;
+  min-height: 7.5rem;
+  place-items: center;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: white;
+  padding: 0.85rem;
+  text-align: center;
+}
+
+.fitScoreBox span {
+  color: var(--app-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.fitScoreBox strong {
+  color: var(--brand);
+  font-size: 2rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.fitScoreBox small {
+  color: var(--app-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.fitResultBody {
+  min-width: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.fitSummary {
+  color: var(--gray-800);
+  font-size: 0.9rem;
+  font-weight: 750;
+  line-height: 1.65;
+}
+
+.fitInsightGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.625rem;
+}
+
+.fitInsightList {
+  min-width: 0;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 0.75rem;
+}
+
+.fitInsightList strong {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: var(--gray-900);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.fitInsightList ul {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.fitInsightList li {
+  color: var(--gray-600);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.fitRecommendation,
+.fitEmptyState {
+  border: 1px dashed var(--brand-mid);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 0.75rem;
+}
+
+.fitRecommendation {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.fitRecommendation strong {
+  color: var(--brand);
+  font-size: 0.75rem;
+  font-weight: 950;
+}
+
+.fitRecommendation span,
+.fitEmptyState {
+  color: var(--gray-700);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
 /* ─── AI summary ──────────────────────────────────────────── */
 
 .aiSummary {
@@ -243,4 +436,27 @@
   padding: 0.125rem 0.5rem;
   font-size: 0.75rem;
   color: var(--gray-600);
+}
+
+@media (max-width: 760px) {
+  .fitAnalysisHeader,
+  .fitControlRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .resumeSelect {
+    width: 100%;
+  }
+
+  .fitResult,
+  .fitInsightGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fitScoreBox {
+    min-height: auto;
+    justify-items: start;
+    text-align: left;
+  }
 }

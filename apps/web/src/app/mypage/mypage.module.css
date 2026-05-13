@@ -273,6 +273,18 @@
   color: var(--brand);
 }
 
+.panelTitleGroup {
+  min-width: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.resumeLimitText {
+  color: var(--gray-500);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
 .message {
   border: 1px solid var(--brand-mid);
   border-radius: 8px;
@@ -524,6 +536,100 @@
   line-height: 1.45;
 }
 
+.highFitPanel {
+  border-color: var(--brand-mid);
+  background:
+    linear-gradient(135deg, rgba(255, 240, 245, 0.9), rgba(240, 253, 250, 0.72)),
+    var(--surface);
+}
+
+.highFitList {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.625rem;
+}
+
+.highFitItem {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.65rem;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.75rem;
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.highFitItem:hover {
+  border-color: var(--brand-mid);
+  box-shadow: var(--shadow-xs);
+  transform: translateY(-1px);
+}
+
+.highFitScore {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.highFitScore span {
+  color: var(--brand);
+  font-size: 1.35rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.highFitScore small {
+  color: var(--app-muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.highFitBody {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 0.3rem;
+}
+
+.highFitTitle {
+  min-width: 0;
+  color: var(--gray-900);
+  font-size: 0.875rem;
+  font-weight: 900;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.highFitMeta {
+  min-width: 0;
+  color: var(--app-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.highFitBody p {
+  display: -webkit-box;
+  color: var(--gray-600);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
 .profileForm,
 .passwordForm {
   display: grid;
@@ -686,6 +792,21 @@
   white-space: nowrap;
 }
 
+.primaryResumeBadge {
+  display: inline-flex;
+  min-height: 1.25rem;
+  align-items: center;
+  margin-left: 0.45rem;
+  border: 1px solid var(--brand-mid);
+  border-radius: 999px;
+  background: var(--brand-soft);
+  padding: 0 0.45rem;
+  color: var(--brand);
+  font-size: 0.68rem;
+  font-weight: 950;
+  vertical-align: middle;
+}
+
 .resumeMeta,
 .bookmarkSub,
 .activityMeta {
@@ -731,6 +852,37 @@
 .iconButtonDanger:hover {
   background: #fef2f2;
   color: #dc2626;
+}
+
+.primaryResumeButton {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: white;
+  padding: 0 0.55rem;
+  color: var(--app-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  white-space: nowrap;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.primaryResumeButton:hover,
+.primaryResumeButtonActive {
+  border-color: var(--brand-mid);
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.primaryResumeButton:disabled {
+  cursor: default;
 }
 
 .filterRow {
@@ -1257,6 +1409,10 @@
   .mainGrid {
     grid-template-columns: 1fr;
   }
+
+  .highFitList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
@@ -1343,6 +1499,10 @@
   }
 
   .statGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .highFitList {
     grid-template-columns: 1fr;
   }
 

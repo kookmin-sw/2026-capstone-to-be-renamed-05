@@ -176,6 +176,27 @@ export type SubmissionStatus = (typeof SUBMISSION_STATUSES)[number];
 export const SUBMISSION_TYPES = ["CREATE", "UPDATE"] as const;
 export type SubmissionType = (typeof SUBMISSION_TYPES)[number];
 
+export type CompanyJobAutofillDraft = {
+  title: string;
+  description: string;
+  originalUrl: string | null;
+  jobFamily: JobFamily;
+  employmentType: EmploymentType;
+  kicpaCondition: KicpaCondition;
+  traineeStatus: TraineeStatus;
+  practicalTrainingInstitution: boolean | null;
+  minExperienceYears: number | null;
+  maxExperienceYears: number | null;
+  location: string | null;
+  deadlineType: DeadlineType;
+  deadline: string | null;
+};
+
+export type CompanyJobAutofillResponse = {
+  draft: CompanyJobAutofillDraft;
+  warnings: string[];
+};
+
 export const AI_SUGGESTION_STATUSES = [
   "PENDING",
   "APPROVED",

@@ -1,4 +1,5 @@
 import type {
+  CompanyJobAutofillDraft,
   CompanyManagedJobItem,
   DeadlineType,
   EmploymentType,
@@ -104,6 +105,40 @@ export function toSubmissionForm(submission: JobSubmissionItem): JobForm {
     location: submission.location ?? "",
     deadlineType: submission.deadlineType,
     deadline: submission.deadline ? submission.deadline.slice(0, 10) : "",
+  };
+}
+
+export function applyJobAutofillDraft(
+  form: JobForm,
+  draft: CompanyJobAutofillDraft,
+): JobForm {
+  return {
+    ...form,
+    title: draft.title || form.title,
+    description: draft.description || form.description,
+    originalUrl: draft.originalUrl ?? form.originalUrl,
+    jobFamily: draft.jobFamily,
+    employmentType: draft.employmentType,
+    kicpaCondition: draft.kicpaCondition,
+    traineeStatus: draft.traineeStatus,
+    practicalTrainingInstitution:
+      draft.practicalTrainingInstitution === null
+        ? form.practicalTrainingInstitution
+        : String(draft.practicalTrainingInstitution),
+    minExperienceYears:
+      draft.minExperienceYears === null
+        ? form.minExperienceYears
+        : String(draft.minExperienceYears),
+    maxExperienceYears:
+      draft.maxExperienceYears === null
+        ? form.maxExperienceYears
+        : String(draft.maxExperienceYears),
+    location: draft.location ?? form.location,
+    deadlineType: draft.deadlineType,
+    deadline:
+      draft.deadlineType === "FIXED_DATE"
+        ? draft.deadline ?? form.deadline
+        : "",
   };
 }
 

@@ -6,8 +6,8 @@ import {
   KICPA_CONDITIONS,
   TRAINEE_STATUSES,
 } from "@cpa/shared";
-import { ClipboardList, PencilLine, Send } from "lucide-react";
-import type { FormEvent } from "react";
+import { ClipboardList, PencilLine, Send, Sparkles } from "lucide-react";
+import { type FormEvent, useState } from "react";
 import { Field, SelectField } from "./form-field";
 import { SectionTitle } from "./section-title";
 import type { JobForm } from "../_lib/job-form";
@@ -29,6 +29,9 @@ export function JobSubmissionForm({
   onChange,
   onSubmit,
   onCancelEdit,
+  onAutoFill,
+  autoFillLoading = false,
+  autoFillError,
 }: {
   editingJob: CompanyManagedJobItem | null;
   editingSubmission: JobSubmissionItem | null;
@@ -36,8 +39,14 @@ export function JobSubmissionForm({
   onChange: (form: JobForm) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onCancelEdit: () => void;
+  onAutoFill?: (sourceText: string) => Promise<void>;
+  autoFillLoading?: boolean;
+  autoFillError?: string;
 }) {
   const mode = editingSubmission ? "submission" : editingJob ? "job" : "new";
+  const [sourceText, setSourceText] = useState("");
+  const canAutoFill =
+    Boolean(onAutoFill) && sourceText.trim().length >= 40 && !autoFillLoading;
 
   return (
     <form className={styles.form} onSubmit={onSubmit}>
@@ -76,6 +85,38 @@ export function JobSubmissionForm({
           >
             취소
           </button>
+        </div>
+      ) : null}
+      {onAutoFill ? (
+        <div className={styles.aiDraftPanel}>
+          <div className={styles.aiDraftHeader}>
+            <div>
+              <p className={styles.aiDraftTitle}>AI 자동입력</p>
+              <p className={styles.aiDraftHint}>
+                원문 공고를 붙여넣으면 제출 전 초안을 채웁니다.
+              </p>
+            </div>
+            <ActionButton
+              type="button"
+              variant="outline"
+              size="sm"
+              iconStart={<Sparkles size={15} />}
+              disabled={!canAutoFill}
+              onClick={() => void onAutoFill(sourceText)}
+            >
+              {autoFillLoading ? "생성 중" : "초안 생성"}
+            </ActionButton>
+          </div>
+          <textarea
+            className={cn("form-input", styles.aiDraftTextarea)}
+            maxLength={12_000}
+            placeholder="채용공고 원문을 붙여넣으세요."
+            value={sourceText}
+            onChange={(event) => setSourceText(event.target.value)}
+          />
+          {autoFillError ? (
+            <p className={styles.aiDraftError}>{autoFillError}</p>
+          ) : null}
         </div>
       ) : null}
       <div className={styles.formSection}>

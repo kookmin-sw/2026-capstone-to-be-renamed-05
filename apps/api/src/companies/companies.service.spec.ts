@@ -205,6 +205,70 @@ describe('CompaniesService submission ownership', () => {
     expect(prisma.jobSubmission.create).not.toHaveBeenCalled();
   });
 
+  it('creates an AI draft using only the owned company context', async () => {
+    const autofillService = {
+      generateDraft: jest.fn().mockResolvedValue({
+        draft: {
+          title: '감사본부 수습 CPA 채용',
+          description: '회계감사 보조 업무를 수행합니다.',
+          originalUrl: 'https://example.com/job',
+          jobFamily: JobFamily.AUDIT,
+          employmentType: EmploymentType.FULL_TIME,
+          kicpaCondition: KicpaCondition.PREFERRED,
+          traineeStatus: TraineeStatus.AVAILABLE,
+          practicalTrainingInstitution: true,
+          minExperienceYears: 0,
+          maxExperienceYears: 1,
+          location: '서울',
+          deadlineType: DeadlineType.FIXED_DATE,
+          deadline: '2026-05-31',
+        },
+        warnings: [],
+      }),
+    };
+    service = new CompaniesService(
+      prisma as unknown as PrismaService,
+      undefined,
+      autofillService as never,
+    );
+    prisma.company.findUnique.mockResolvedValue({
+      id: 'company-1',
+      name: '테스트회계법인',
+    });
+
+    const result = await service.createJobAutofillDraft('user-1', {
+      sourceText:
+        '감사본부 수습 CPA 채용 공고입니다. 서울 근무, 회계감사 보조 업무를 수행합니다. 마감일은 2026-05-31입니다.',
+      originalUrl: 'https://example.com/job',
+    });
+
+    expect(autofillService.generateDraft).toHaveBeenCalledWith({
+      companyName: '테스트회계법인',
+      sourceText:
+        '감사본부 수습 CPA 채용 공고입니다. 서울 근무, 회계감사 보조 업무를 수행합니다. 마감일은 2026-05-31입니다.',
+      originalUrl: 'https://example.com/job',
+    });
+    expect(result.draft.title).toBe('감사본부 수습 CPA 채용');
+  });
+
+  it('rejects AI draft generation when the user does not own a company', async () => {
+    const autofillService = { generateDraft: jest.fn() };
+    service = new CompaniesService(
+      prisma as unknown as PrismaService,
+      undefined,
+      autofillService as never,
+    );
+    prisma.company.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.createJobAutofillDraft('user-1', {
+        sourceText:
+          '감사본부 수습 CPA 채용 공고입니다. 서울 근무, 회계감사 보조 업무를 수행합니다. 마감일은 2026-05-31입니다.',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(autofillService.generateDraft).not.toHaveBeenCalled();
+  });
+
   it('rejects empty profile submissions', async () => {
     prisma.company.findUnique.mockResolvedValue({ id: 'company-1' });
 

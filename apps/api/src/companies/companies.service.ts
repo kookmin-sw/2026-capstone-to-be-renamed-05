@@ -10,6 +10,7 @@ import {
   Injectable,
   NotFoundException,
   Optional,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import {
   DeadlineType,
@@ -23,6 +24,8 @@ import {
 } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { CompanyJobAutofillService } from './company-job-autofill.service';
+import { CreateCompanyJobAutofillDto } from './dto/create-company-job-autofill.dto';
 import { CreateCompanyJobSubmissionDto } from './dto/create-company-job-submission.dto';
 import { CreateCompanyProfileSubmissionDto } from './dto/create-company-profile-submission.dto';
 import { ListCompaniesDto } from './dto/list-companies.dto';
@@ -136,6 +139,8 @@ export class CompaniesService {
     private readonly prisma: PrismaService,
     @Optional()
     private readonly notificationsService?: NotificationsService,
+    @Optional()
+    private readonly jobAutofillService?: CompanyJobAutofillService,
   ) {}
 
   async list(query: ListCompaniesDto) {
@@ -331,6 +336,24 @@ export class CompaniesService {
     });
 
     return this.toJobSubmissionItem(submission);
+  }
+
+  async createJobAutofillDraft(
+    userId: string,
+    dto: CreateCompanyJobAutofillDto,
+  ) {
+    const company = await this.getOwnedCompanyOrThrow(userId);
+    if (!this.jobAutofillService) {
+      throw new ServiceUnavailableException(
+        'AI 자동입력 서비스를 사용할 수 없습니다.',
+      );
+    }
+
+    return this.jobAutofillService.generateDraft({
+      companyName: company.name,
+      sourceText: dto.sourceText,
+      originalUrl: dto.originalUrl,
+    });
   }
 
   async listMyJobs(userId: string) {
@@ -779,7 +802,7 @@ export class CompaniesService {
   private async getOwnedCompanyOrThrow(userId: string) {
     const company = await this.prisma.company.findUnique({
       where: { ownerUserId: userId },
-      select: { id: true },
+      select: { id: true, name: true },
     });
     if (!company) {
       throw new ForbiddenException('기업회원 회사 정보를 찾을 수 없습니다.');

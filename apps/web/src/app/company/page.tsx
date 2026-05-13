@@ -16,6 +16,7 @@ import { SectionTitle } from "./_components/section-title";
 import { SubmissionPanel } from "./_components/submission-panel";
 import { fetchCompanyPageData } from "./_lib/company-page-data";
 import {
+  applyJobAutofillDraft,
   emptyJobForm,
   type JobForm,
   toJobForm,
@@ -33,6 +34,7 @@ import { ActionLink } from "@/components/ui/action-button";
 import {
   cancelCompanyJobSubmission,
   deleteCompanyJob,
+  generateCompanyJobDraft,
   submitCompanyJob,
   submitCompanyJobEdit,
   updateCompanyBackground,
@@ -69,6 +71,8 @@ export default function CompanyPage() {
     useState<JobSubmissionItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [jobAutofillLoading, setJobAutofillLoading] = useState(false);
+  const [jobAutofillError, setJobAutofillError] = useState("");
 
   function applyPageData(
     data: Awaited<ReturnType<typeof fetchCompanyPageData>>,
@@ -120,6 +124,37 @@ export default function CompanyPage() {
       ignore = true;
     };
   }, []);
+
+  async function autoFillJob(sourceText: string) {
+    const trimmedSource = sourceText.trim();
+    if (trimmedSource.length < 40) {
+      setJobAutofillError("원문 공고를 40자 이상 입력해 주세요.");
+      return;
+    }
+
+    setJobAutofillLoading(true);
+    setJobAutofillError("");
+    setMessage("");
+    try {
+      const originalUrl = jobForm.originalUrl.trim();
+      const response = await generateCompanyJobDraft({
+        sourceText: trimmedSource,
+        ...(originalUrl ? { originalUrl } : {}),
+      });
+      setJobForm((current) => applyJobAutofillDraft(current, response.draft));
+      setMessage(
+        response.warnings.length
+          ? `AI 초안을 적용했습니다. ${response.warnings.join(" ")}`
+          : "AI 초안을 적용했습니다. 제출 전 내용을 확인해 주세요.",
+      );
+    } catch (error) {
+      setJobAutofillError(
+        error instanceof Error ? error.message : "AI 자동입력에 실패했습니다.",
+      );
+    } finally {
+      setJobAutofillLoading(false);
+    }
+  }
 
   async function submitJob(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -424,6 +459,9 @@ export default function CompanyPage() {
               editingJob={editingJob}
               editingSubmission={editingSubmission}
               form={jobForm}
+              autoFillError={jobAutofillError}
+              autoFillLoading={jobAutofillLoading}
+              onAutoFill={autoFillJob}
               onCancelEdit={cancelEdit}
               onChange={setJobForm}
               onSubmit={submitJob}

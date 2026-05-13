@@ -4,6 +4,7 @@ import type {
   BookmarkTargetType,
   CompanyDashboardResponse,
   CompanyDetailItem,
+  CompanyJobAutofillResponse,
   CompanyListItem,
   CompanyManagedJobItem,
   CompanyProfileSubmissionItem,
@@ -118,6 +119,11 @@ export type CompanyJobSubmissionPayload = {
   location?: string;
   deadlineType: DeadlineType;
   deadline?: string;
+};
+
+export type CompanyJobAutofillPayload = {
+  sourceText: string;
+  originalUrl?: string;
 };
 
 export async function fetchJobs(params: URLSearchParams) {
@@ -617,6 +623,26 @@ export async function submitCompanyJob(payload: CompanyJobSubmissionPayload) {
     );
   }
   return (await response.json()) as JobSubmissionItem;
+}
+
+export async function generateCompanyJobDraft(
+  payload: CompanyJobAutofillPayload,
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/companies/me/job-submissions/ai-draft`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "AI 자동입력에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as CompanyJobAutofillResponse;
 }
 
 export async function fetchCompanyJobSubmissions() {

@@ -9,6 +9,7 @@ import { CompaniesModule } from './companies/companies.module';
 import { CommunityModule } from './community/community.module';
 import { JobsModule } from './jobs/jobs.module';
 import { MypageModule } from './mypage/mypage.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { OpsDeployModule } from './ops/ops-deploy.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
@@ -27,6 +28,7 @@ import { resolveEnvFilePaths } from './config/runtime-environment';
     CommunityModule,
     JobsModule,
     MypageModule,
+    NotificationsModule,
     UsersModule,
     AdminModule,
     OpsDeployModule,

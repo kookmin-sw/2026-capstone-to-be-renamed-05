@@ -53,6 +53,11 @@ export class MypageController {
     return this.mypageService.updateProfile(req.user!.id, dto);
   }
 
+  @Delete('profile/image')
+  deleteProfileImage(@Req() req: RequestWithUser) {
+    return this.mypageService.deleteProfileImage(req.user!.id);
+  }
+
   @Patch('password')
   updatePassword(@Req() req: RequestWithUser, @Body() dto: UpdatePasswordDto) {
     return this.mypageService.updatePassword(req.user!.id, dto);

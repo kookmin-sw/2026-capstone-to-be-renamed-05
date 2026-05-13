@@ -25,12 +25,26 @@ import { CreateCommunityPostDto } from './dto/create-community-post.dto';
 import { ListCommunityPostsDto } from './dto/list-community-posts.dto';
 
 const postInclude = {
-  author: { select: { username: true, displayName: true } },
+  author: {
+    select: {
+      username: true,
+      displayName: true,
+      profileImageUrl: true,
+      profileImageAsset: { select: { publicUrl: true } },
+    },
+  },
   _count: { select: { answers: true } },
 } satisfies Prisma.CommunityPostInclude;
 
 const answerInclude = {
-  author: { select: { username: true, displayName: true } },
+  author: {
+    select: {
+      username: true,
+      displayName: true,
+      profileImageUrl: true,
+      profileImageAsset: { select: { publicUrl: true } },
+    },
+  },
 } satisfies Prisma.CommunityAnswerInclude;
 
 type CommunityPostRecord = Prisma.CommunityPostGetPayload<{
@@ -326,6 +340,11 @@ export class CommunityService {
       authorName: post.isAnonymous
         ? '익명'
         : (post.author.displayName ?? post.author.username),
+      authorProfileImageUrl: post.isAnonymous
+        ? null
+        : (post.author.profileImageAsset?.publicUrl ??
+          post.author.profileImageUrl ??
+          null),
       isAnonymous: post.isAnonymous,
       createdAt: post.createdAt.toISOString(),
       updatedAt: post.updatedAt.toISOString(),
@@ -345,6 +364,11 @@ export class CommunityService {
       authorName: answer.isAnonymous
         ? '익명'
         : (answer.author.displayName ?? answer.author.username),
+      authorProfileImageUrl: answer.isAnonymous
+        ? null
+        : (answer.author.profileImageAsset?.publicUrl ??
+          answer.author.profileImageUrl ??
+          null),
       isAnonymous: answer.isAnonymous,
       createdAt: answer.createdAt.toISOString(),
       updatedAt: answer.updatedAt.toISOString(),

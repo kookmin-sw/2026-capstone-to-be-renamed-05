@@ -1,4 +1,5 @@
 import { Heart } from "lucide-react";
+import { AuthorAvatar } from "../../_components/author-avatar";
 import type { CommunityPost } from "@/lib/community-types";
 import {
   isQABoard,
@@ -27,7 +28,15 @@ export function PostCard({ post, liked, onLike }: PostCardProps) {
           </span>
         </div>
         <div className={styles.postMeta}>
-          <span>{post.authorName}</span>
+          <span className={styles.authorMetaItem}>
+            <AuthorAvatar
+              authorName={post.authorName}
+              imageUrl={post.authorProfileImageUrl}
+              isAnonymous={post.isAnonymous}
+              size="md"
+            />
+            {post.authorName}
+          </span>
           <span className={styles.postMetaDot}>·</span>
           <span>{relativeTime(post.createdAt)}</span>
           <span className={styles.postMetaDot}>·</span>

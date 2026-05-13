@@ -31,11 +31,17 @@ import type {
   KicpaCondition,
   MyProfileResponse,
   MyCommunityActivityListResponse,
+  NotificationItem,
+  NotificationListResponse,
+  NotificationReadAllResponse,
+  NotificationUnreadCountResponse,
   PersonalVerificationRequestItem,
   PersonalVerificationRequestListResponse,
   ReviewPersonalVerificationRequestPayload,
   ResumeItem,
   ResumeListResponse,
+  TagSubscriptionItem,
+  TagSubscriptionListResponse,
   TraineeStatus,
   UserJobPresetItem,
   UserJobPresetListResponse,
@@ -43,6 +49,8 @@ import type {
 import { getApiBaseUrl } from "./runtime-config";
 
 const API_BASE_URL = getApiBaseUrl();
+export const AUTH_USER_CHANGED_EVENT = "accountit:auth-user-changed";
+export const NOTIFICATIONS_CHANGED_EVENT = "cpa:notifications-changed";
 
 export type JobListResponse = {
   items: JobListItem[];
@@ -62,6 +70,7 @@ export type AuthUser = {
   id: string;
   username: string;
   displayName: string | null;
+  profileImageUrl: string | null;
   role: "JOB_SEEKER" | "COMPANY" | "ADMIN";
   companyId: string | null;
 };
@@ -95,6 +104,8 @@ type CompanyLogoAssetResponse = {
 
 type CompanyBackgroundUploadUrlResponse = CompanyLogoUploadUrlResponse;
 type CompanyBackgroundAssetResponse = CompanyLogoAssetResponse;
+type ProfileImageUploadUrlResponse = CompanyLogoUploadUrlResponse;
+type ProfileImageAssetResponse = CompanyLogoAssetResponse;
 
 export type CompanyJobSubmissionPayload = {
   title: string;
@@ -317,6 +328,72 @@ export async function uploadCompanyBackground(file: File) {
   }
   if (!("asset" in completeData)) {
     throw new Error("기업 배경 이미지 업로드 확인에 실패했습니다.");
+  }
+
+  return {
+    assetId: completeData.asset.id,
+    publicUrl: completeData.asset.publicUrl,
+  };
+}
+
+export async function uploadMyProfileImage(file: File) {
+  const uploadUrlResponse = await fetch(
+    `${API_BASE_URL}/assets/profile-image/upload-url`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type,
+        byteSize: file.size,
+      }),
+    },
+  );
+  const uploadUrlData =
+    (await uploadUrlResponse.json()) as ProfileImageUploadUrlResponse & {
+      message?: string | string[];
+    };
+  if (!uploadUrlResponse.ok || !uploadUrlData.uploadUrl) {
+    throw new Error(
+      readMessage(
+        uploadUrlData.message,
+        "프로필 사진 업로드 URL 생성에 실패했습니다.",
+      ),
+    );
+  }
+
+  const uploadResponse = await fetch(uploadUrlData.uploadUrl, {
+    method: uploadUrlData.method,
+    headers: uploadUrlData.headers,
+    credentials: uploadUrlData.requiresCredentials ? "include" : "omit",
+    body: file,
+  });
+  if (!uploadResponse.ok) {
+    throw new Error("프로필 사진을 업로드하지 못했습니다.");
+  }
+
+  const completeResponse = await fetch(
+    `${API_BASE_URL}/assets/${uploadUrlData.assetId}/complete`,
+    {
+      method: "POST",
+      credentials: "include",
+    },
+  );
+  const completeData = (await completeResponse.json()) as
+    | ProfileImageAssetResponse
+    | { message?: string | string[] };
+  if (!completeResponse.ok) {
+    const errorData = completeData as { message?: string | string[] };
+    throw new Error(
+      readMessage(
+        errorData.message,
+        "프로필 사진 업로드 확인에 실패했습니다.",
+      ),
+    );
+  }
+  if (!("asset" in completeData)) {
+    throw new Error("프로필 사진 업로드 확인에 실패했습니다.");
   }
 
   return {
@@ -912,6 +989,125 @@ export async function reviewAdminAiSuggestion(
   return (await response.json()) as AdminAiSuggestion;
 }
 
+// ─── Notifications ──────────────────────────────────────────
+
+export async function fetchNotifications(
+  options: {
+    page?: number;
+    pageSize?: number;
+    unreadOnly?: boolean;
+  } = {},
+) {
+  const params = new URLSearchParams();
+  if (options.page) params.set("page", String(options.page));
+  if (options.pageSize) params.set("pageSize", String(options.pageSize));
+  if (options.unreadOnly) params.set("unreadOnly", "true");
+  const query = params.toString();
+  const response = await fetch(
+    `${API_BASE_URL}/notifications${query ? `?${query}` : ""}`,
+    {
+      credentials: "include",
+      cache: "no-store",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "알림을 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as NotificationListResponse;
+}
+
+export async function fetchNotificationUnreadCount() {
+  const response = await fetch(`${API_BASE_URL}/notifications/unread-count`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (response.status === 401 || response.status === 403) {
+    return { unreadCount: 0 } satisfies NotificationUnreadCountResponse;
+  }
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "알림 개수를 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as NotificationUnreadCountResponse;
+}
+
+export async function markNotificationRead(id: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/notifications/${encodeURIComponent(id)}/read`,
+    {
+      method: "PATCH",
+      credentials: "include",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "알림 읽음 처리에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as NotificationItem;
+}
+
+export async function markAllNotificationsRead() {
+  const response = await fetch(`${API_BASE_URL}/notifications/read-all`, {
+    method: "PATCH",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "알림 전체 읽음 처리에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as NotificationReadAllResponse;
+}
+
+export async function fetchTagSubscriptions() {
+  const response = await fetch(`${API_BASE_URL}/notifications/tag-subscriptions`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "태그 구독 목록을 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as TagSubscriptionListResponse;
+}
+
+export async function subscribeTag(labelId: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/notifications/tag-subscriptions/${encodeURIComponent(labelId)}`,
+    {
+      method: "PUT",
+      credentials: "include",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "태그 구독에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as TagSubscriptionItem;
+}
+
+export async function unsubscribeTag(labelId: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/notifications/tag-subscriptions/${encodeURIComponent(labelId)}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "태그 구독 해제에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as { ok: boolean };
+}
+
 async function readApiError(response: Response, fallback: string) {
   try {
     const data = (await response.json()) as { message?: string | string[] };
@@ -943,6 +1139,7 @@ export async function fetchMyProfile() {
 
 export async function updateMyProfile(data: {
   displayName?: string;
+  profileImageAssetId?: string;
   profileImageUrl?: string | null;
 }) {
   const response = await fetch(`${API_BASE_URL}/mypage/profile`, {
@@ -954,6 +1151,19 @@ export async function updateMyProfile(data: {
   if (!response.ok) {
     throw new Error(
       await readApiError(response, "프로필 수정에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as MyProfileResponse;
+}
+
+export async function deleteMyProfileImage() {
+  const response = await fetch(`${API_BASE_URL}/mypage/profile/image`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "프로필 사진 삭제에 실패했습니다."),
     );
   }
   return (await response.json()) as MyProfileResponse;

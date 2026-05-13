@@ -272,7 +272,7 @@ describe('AdminService review flows', () => {
         companyId: 'company-1',
         status: JobStatus.OPEN,
       },
-      select: { id: true },
+      select: { id: true, status: true, deadlineType: true, deadline: true },
     });
     const updateArg = capturedJobUpdateArg as {
       where: { id: string };

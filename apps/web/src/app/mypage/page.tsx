@@ -7,11 +7,13 @@ import type {
   JobFitAnalysisItem,
   MyCommunityActivityItem,
   MyProfileResponse,
+  NotificationItem,
   PersonalCareerStage,
   ResumeItem,
 } from "@cpa/shared";
 import {
   Award,
+  Bell,
   Bookmark,
   Camera,
   CheckCircle2,
@@ -40,7 +42,9 @@ import {
 import { SiteNav } from "@/components/site-nav";
 import { ActionButton, ActionLink } from "@/components/ui/action-button";
 import {
+  AUTH_USER_CHANGED_EVENT,
   deleteMyBookmark,
+  deleteMyProfileImage,
   deleteMyResume,
   fetchCurrentUser,
   fetchMyBookmarks,
@@ -48,9 +52,13 @@ import {
   fetchMyHighFitJobAnalyses,
   fetchMyProfile,
   fetchMyResumes,
+  fetchNotifications,
   getMyResumeDownloadUrl,
   setMyPrimaryResume,
+  NOTIFICATIONS_CHANGED_EVENT,
   updateMyProfile,
+  updateMyPassword,
+  uploadMyProfileImage,
   uploadMyResume,
 } from "@/lib/api";
 import {
@@ -62,13 +70,18 @@ import styles from "./mypage.module.css";
 
 const RESUME_MAX_BYTES = 10 * 1024 * 1024;
 const RESUME_EXTENSIONS = new Set(["pdf", "doc", "docx", "hwp", "hwpx"]);
-const PROFILE_IMAGE_MAX_BYTES = 1.5 * 1024 * 1024;
+const PROFILE_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+const PROFILE_IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp"]);
 const PROFILE_IMAGE_TYPES = new Set([
   "image/png",
   "image/jpeg",
   "image/webp",
-  "image/gif",
 ]);
+const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_MAX_LENGTH = 128;
+const PASSWORD_LENGTH_TEXT = `${PASSWORD_MIN_LENGTH}자 이상 ${PASSWORD_MAX_LENGTH}자 이하`;
+const PASSWORD_HELP_TEXT = `새 비밀번호는 ${PASSWORD_LENGTH_TEXT}, 현재 비밀번호와 다르게 입력해주세요.`;
+
 const PROFILE_COMPLETION_HIDDEN_UNTIL_STORAGE_KEY =
   "accountit:mypage-profile-completion:hiddenUntil";
 const PROFILE_COMPLETION_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -138,7 +151,11 @@ export default function MyPage() {
   const [communityActivity, setCommunityActivity] = useState<
     MyCommunityActivityItem[]
   >([]);
+  const [notificationPreview, setNotificationPreview] = useState<
+    NotificationItem[]
+  >([]);
   const [communityActivityTotal, setCommunityActivityTotal] = useState(0);
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
   const [bookmarkFilter, setBookmarkFilter] = useState<
     BookmarkTargetType | "ALL"
   >("ALL");
@@ -149,7 +166,11 @@ export default function MyPage() {
   const [uploadingResume, setUploadingResume] = useState(false);
   const [updatingPrimaryResumeId, setUpdatingPrimaryResumeId] = useState("");
   const [updatingProfileImage, setUpdatingProfileImage] = useState(false);
+  const [updatingPassword, setUpdatingPassword] = useState(false);
   const [displayNameInput, setDisplayNameInput] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const [profileCompletionHidden, setProfileCompletionHidden] = useState(false);
   const [profileCompletionModalOpen, setProfileCompletionModalOpen] =
@@ -180,17 +201,24 @@ export default function MyPage() {
         if (!ignore) setAuthorized(true);
 
         const [
+          
           profileResult,
+         
           bookmarkResult,
+         
           resumeResult,
           highFitResult,
+         
           activityResult,
+          notificationResult,
+        ,
         ] = await Promise.allSettled([
           fetchMyProfile(),
           fetchMyBookmarks(),
           fetchMyResumes(),
           fetchMyHighFitJobAnalyses(5),
           fetchMyCommunityActivity(5),
+            fetchNotifications({ page: 1, pageSize: 3 }),
         ]);
 
         if (ignore) return;
@@ -223,8 +251,18 @@ export default function MyPage() {
             ? activityResult.value.items
             : [],
         );
+        setNotificationPreview(
+          notificationResult.status === "fulfilled"
+            ? notificationResult.value.items
+            : [],
+        );
         setCommunityActivityTotal(
           activityResult.status === "fulfilled" ? activityResult.value.total : 0,
+        );
+        setNotificationUnreadCount(
+          notificationResult.status === "fulfilled"
+            ? notificationResult.value.unreadCount
+            : 0,
         );
 
         const sideLoadErrors = [
@@ -232,6 +270,7 @@ export default function MyPage() {
           resumeResult.status === "rejected" ? "이력서" : "",
           highFitResult.status === "rejected" ? "공고 분석" : "",
           activityResult.status === "rejected" ? "커뮤니티 활동" : "",
+          notificationResult.status === "rejected" ? "알림" : "",
         ].filter(Boolean);
 
         if (profileResult.status === "fulfilled" && sideLoadErrors.length > 0) {
@@ -353,6 +392,7 @@ export default function MyPage() {
       });
       setProfile(updated);
       setDisplayNameInput(updated.displayName ?? "");
+      notifyAuthUserChanged();
       setMessage("프로필을 수정했습니다.");
     } catch (error) {
       setMessage(
@@ -377,19 +417,97 @@ export default function MyPage() {
 
     setUpdatingProfileImage(true);
     try {
-      const profileImageUrl = await readFileAsDataUrl(file);
-      const updated = await updateMyProfile({ profileImageUrl });
+      const image = await uploadMyProfileImage(file);
+      const updated = await updateMyProfile({
+        profileImageAssetId: image.assetId,
+      });
       setProfile(updated);
-      setMessage("프로필 사진을 변경했습니다.");
+      notifyAuthUserChanged();
+      setMessage(
+        profile?.profileImageUrl
+          ? "프로필 사진을 변경했습니다."
+          : "프로필 사진을 등록했습니다.",
+      );
     } catch (error) {
       setMessage(
         error instanceof Error
           ? error.message
-          : "프로필 사진 변경에 실패했습니다.",
+          : "프로필 사진 업로드에 실패했습니다.",
       );
     } finally {
       setUpdatingProfileImage(false);
       if (profileImageInputRef.current) profileImageInputRef.current.value = "";
+    }
+  }
+
+  async function handleDeleteProfileImage() {
+    if (!profile?.profileImageUrl) return;
+    if (!window.confirm("프로필 사진을 삭제할까요?")) return;
+    setMessage("");
+    setUpdatingProfileImage(true);
+    try {
+      const updated = await deleteMyProfileImage();
+      setProfile(updated);
+      notifyAuthUserChanged();
+      setMessage("프로필 사진을 삭제했습니다.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "프로필 사진 삭제에 실패했습니다.",
+      );
+    } finally {
+      setUpdatingProfileImage(false);
+    }
+  }
+
+  async function handlePasswordSave(event: FormEvent) {
+    event.preventDefault();
+    setMessage("");
+
+    if (!currentPassword) {
+      setMessage("현재 비밀번호를 입력해주세요.");
+      return;
+    }
+    if (!newPassword) {
+      setMessage("새 비밀번호를 입력해주세요.");
+      return;
+    }
+    if (!newPasswordConfirm) {
+      setMessage("새 비밀번호 확인을 입력해주세요.");
+      return;
+    }
+    if (
+      newPassword.length < PASSWORD_MIN_LENGTH ||
+      newPassword.length > PASSWORD_MAX_LENGTH
+    ) {
+      setMessage(`새 비밀번호는 ${PASSWORD_LENGTH_TEXT}로 입력해주세요.`);
+      return;
+    }
+    if (newPassword !== newPasswordConfirm) {
+      setMessage("새 비밀번호와 확인값이 일치하지 않습니다.");
+      return;
+    }
+    if (currentPassword === newPassword) {
+      setMessage("새 비밀번호는 현재 비밀번호와 다르게 입력해 주세요.");
+      return;
+    }
+
+    setUpdatingPassword(true);
+    try {
+      await updateMyPassword({ currentPassword, newPassword });
+      setCurrentPassword("");
+      setNewPassword("");
+      setNewPasswordConfirm("");
+      setMessage("비밀번호를 변경했습니다.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "비밀번호 변경에 실패했습니다.",
+      );
+    } finally {
+      setUpdatingPassword(false);
     }
   }
 
@@ -398,6 +516,7 @@ export default function MyPage() {
     try {
       await deleteMyBookmark(id);
       setBookmarks((prev) => prev.filter((bm) => bm.id !== id));
+      notifyNotificationsChanged();
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "북마크 삭제에 실패했습니다.",
@@ -666,7 +785,7 @@ export default function MyPage() {
                 <input
                   ref={profileImageInputRef}
                   type="file"
-                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
                   className={styles.hiddenInput}
                   onChange={handleProfileImageUpload}
                 />
@@ -749,6 +868,53 @@ export default function MyPage() {
                 </ActionButton>
               </div>
             </section>
+
+            <section className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <h2>
+                  <Bell size={17} />
+                  알림
+                </h2>
+                <Link href="/mypage/notifications" className={styles.textButton}>
+                  전체 보기
+                </Link>
+              </div>
+              <p className={styles.activityPageSummary}>
+                읽지 않음 {notificationUnreadCount.toLocaleString("ko-KR")}개
+              </p>
+              {notificationPreview.length ? (
+                <div className={styles.notificationList}>
+                  {notificationPreview.map((item) => (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      className={`${styles.notificationItem} ${
+                        item.readAt ? "" : styles.notificationUnread
+                      }`}
+                    >
+                      <div className={styles.notificationMain}>
+                        <div className={styles.notificationTitleRow}>
+                          {!item.readAt && (
+                            <span
+                              className={styles.unreadDot}
+                              aria-hidden="true"
+                            />
+                          )}
+                          <span>{notificationTypeLabel(item.type)}</span>
+                          <strong>{item.title}</strong>
+                        </div>
+                        <p>{item.body}</p>
+                        <time dateTime={item.createdAt}>
+                          {formatDate(item.createdAt)}
+                        </time>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.empty}>표시할 알림이 없습니다.</div>
+              )}
+            </section>
           </div>
 
           <section className={`${styles.panel} ${styles.highFitPanel}`}>
@@ -794,9 +960,37 @@ export default function MyPage() {
           </section>
 
           <div className={styles.mainGrid}>
-            <section className={styles.panel}>
+            <section className={`${styles.panel} ${styles.mainGridFull}`}>
               <div className={styles.panelHeader}>
                 <h2>내 프로필</h2>
+              </div>
+              <div className={styles.profilePhotoActions}>
+                <ActionButton
+                  type="button"
+                  size="sm"
+                  iconStart={<Camera size={14} />}
+                  disabled={updatingProfileImage}
+                  onClick={() => profileImageInputRef.current?.click()}
+                >
+                  {updatingProfileImage
+                    ? "처리 중"
+                    : profile.profileImageUrl
+                      ? "사진 변경"
+                      : "사진 등록"}
+                </ActionButton>
+                {profile.profileImageUrl && (
+                  <ActionButton
+                    type="button"
+                    variant="subtle"
+                    size="sm"
+                    iconStart={<Trash2 size={14} />}
+                    disabled={updatingProfileImage}
+                    onClick={() => void handleDeleteProfileImage()}
+                  >
+                    사진 삭제
+                  </ActionButton>
+                )}
+                <span>PNG, JPG, WEBP · 최대 2MB</span>
               </div>
               <form className={styles.profileForm} onSubmit={handleProfileSave}>
                 <label className={styles.field}>
@@ -825,51 +1019,74 @@ export default function MyPage() {
                 </div>
               </form>
 
-              <div className={styles.passwordForm}>
+              <form
+                className={styles.passwordForm}
+                onSubmit={handlePasswordSave}
+                noValidate
+              >
                 <div className={styles.subsectionTitle}>
                   <KeyRound size={16} />
                   비밀번호
                 </div>
+                <p className={styles.passwordHint}>{PASSWORD_HELP_TEXT}</p>
                 <label className={styles.field}>
-                  현재 비밀번호
+                  <span>현재 비밀번호 <span className={styles.required}>*</span></span>
                   <input
                     className={styles.input}
                     type="password"
+                    placeholder="현재 비밀번호를 입력하세요"
                     autoComplete="current-password"
-                    disabled
+                    value={currentPassword}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                    minLength={PASSWORD_MIN_LENGTH}
+                    maxLength={PASSWORD_MAX_LENGTH}
+                    required
+                    disabled={updatingPassword}
                   />
                 </label>
                 <label className={styles.field}>
-                  새 비밀번호
+                  <span>새 비밀번호 <span className={styles.required}>*</span></span>
                   <input
                     className={styles.input}
                     type="password"
+                    placeholder="새 비밀번호를 입력하세요 (8자 이상)"
                     autoComplete="new-password"
-                    minLength={8}
-                    disabled
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    minLength={PASSWORD_MIN_LENGTH}
+                    maxLength={PASSWORD_MAX_LENGTH}
+                    required
+                    disabled={updatingPassword}
                   />
                 </label>
                 <label className={styles.field}>
-                  새 비밀번호 확인
+                  <span>새 비밀번호 확인 <span className={styles.required}>*</span></span>
                   <input
                     className={styles.input}
                     type="password"
+                    placeholder="새 비밀번호를 다시 입력하세요"
                     autoComplete="new-password"
-                    minLength={8}
-                    disabled
+                    value={newPasswordConfirm}
+                    onChange={(event) =>
+                      setNewPasswordConfirm(event.target.value)
+                    }
+                    minLength={PASSWORD_MIN_LENGTH}
+                    maxLength={PASSWORD_MAX_LENGTH}
+                    required
+                    disabled={updatingPassword}
                   />
                 </label>
                 <div className={styles.formActions}>
                   <ActionButton
-                    type="button"
+                    type="submit"
                     size="sm"
                     variant="outline"
-                    disabled
+                    disabled={updatingPassword}
                   >
-                    비밀번호 변경
+                    {updatingPassword ? "변경 중" : "비밀번호 변경"}
                   </ActionButton>
                 </div>
-              </div>
+              </form>
             </section>
           </div>
 
@@ -1035,7 +1252,7 @@ export default function MyPage() {
             )}
           </section>
 
-          <section className={styles.panel}>
+          <section className={`${styles.panel} ${styles.mainGridFull}`}>
             <div className={styles.panelHeader}>
               <h2>
                 <MessageCircle size={17} />내 커뮤니티 활동
@@ -1542,6 +1759,11 @@ function formatDate(iso: string) {
   return `${year}.${month}.${day}`;
 }
 
+function notificationTypeLabel(type: NotificationItem["type"]) {
+  if (type === "TAG_NEW_JOB") return "태그";
+  return "관심 공고";
+}
+
 function validateResumeFile(file: File) {
   const extension = file.name.split(".").pop()?.toLowerCase();
   if (!extension || !RESUME_EXTENSIONS.has(extension)) {
@@ -1557,31 +1779,26 @@ function validateResumeFile(file: File) {
 }
 
 function validateProfileImage(file: File) {
+  const extension = file.name.split(".").pop()?.toLowerCase();
+  if (!extension || !PROFILE_IMAGE_EXTENSIONS.has(extension)) {
+    return "프로필 사진은 PNG, JPG, WEBP 파일만 업로드할 수 있습니다.";
+  }
   if (!PROFILE_IMAGE_TYPES.has(file.type)) {
-    return "프로필 사진은 PNG, JPG, WEBP, GIF 파일만 업로드할 수 있습니다.";
+    return "프로필 사진 파일 형식이 올바르지 않습니다.";
   }
   if (file.size <= 0) {
     return "빈 이미지 파일은 업로드할 수 없습니다.";
   }
   if (file.size > PROFILE_IMAGE_MAX_BYTES) {
-    return "프로필 사진은 1.5MB 이하로 업로드해주세요.";
+    return "프로필 사진은 2MB 이하로 업로드해주세요.";
   }
   return "";
 }
 
-function readFileAsDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener("load", () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-      } else {
-        reject(new Error("이미지 파일을 읽지 못했습니다."));
-      }
-    });
-    reader.addEventListener("error", () => {
-      reject(new Error("이미지 파일을 읽지 못했습니다."));
-    });
-    reader.readAsDataURL(file);
-  });
+function notifyAuthUserChanged() {
+  window.dispatchEvent(new Event(AUTH_USER_CHANGED_EVENT));
+}
+
+function notifyNotificationsChanged() {
+  window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
 }

@@ -8,6 +8,7 @@ import {
   GraduationCap,
   MapPin,
   UserRound,
+  WalletCards,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -180,6 +181,12 @@ export function JobGridCard({
           <Fact icon={GraduationCap} text={kicpaLabels[job.kicpaCondition]} />
           <Fact icon={UserRound} text={traineeLabels[job.traineeStatus]} />
           <Fact icon={CalendarRange} text={experienceText(job)} />
+          {job.companyAverageSalary !== null && (
+            <Fact
+              icon={WalletCards}
+              text={`평균연봉 ${job.companyAverageSalary.toLocaleString("ko-KR")}만원`}
+            />
+          )}
         </div>
         <div className={styles.gridActions}>
           <button

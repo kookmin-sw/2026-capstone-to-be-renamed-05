@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  AssetPurpose,
+  AssetStatus,
   CpaVerificationStatus,
   CommunityBoardType,
   EmploymentHistoryStatus,
@@ -13,6 +15,7 @@ import {
   KicpaCondition,
   PersonalCareerStage,
   PersonalVerificationRequestStatus,
+  UserRole,
   TraineeStatus,
 } from '@prisma/client';
 import argon2 from 'argon2';
@@ -28,6 +31,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { text } from 'node:stream/consumers';
+import { AssetsService } from '../assets/assets.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { MypageService, RESUME_MAX_BYTES } from './mypage.service';
 
@@ -63,6 +67,7 @@ describe('MypageService resumes', () => {
     };
     $transaction: jest.Mock;
   };
+  let assetsService: { deleteAsset: jest.Mock };
   let service: MypageService;
 
   beforeEach(async () => {
@@ -82,9 +87,11 @@ describe('MypageService resumes', () => {
         callback(prisma),
       ),
     };
+    assetsService = { deleteAsset: jest.fn() };
     service = new MypageService(
       prisma as unknown as PrismaService,
       createConfig({ LOCAL_RESUME_DIR: tempDir }),
+      assetsService as unknown as AssetsService,
     );
   });
 
@@ -173,6 +180,7 @@ describe('MypageService resumes', () => {
         AWS_REGION: 'ap-northeast-2',
         S3_RESUME_BUCKET: 'private-resumes',
       }),
+      assetsService as unknown as AssetsService,
     );
 
     const result = await service.createResume('user-1', {
@@ -209,6 +217,7 @@ describe('MypageService resumes', () => {
         AWS_REGION: 'ap-northeast-2',
         S3_RESUME_BUCKET: 'private-resumes',
       }),
+      assetsService as unknown as AssetsService,
     );
 
     const result = await service.getResumeDownload('user-1', 'resume-1');
@@ -266,6 +275,108 @@ describe('MypageService resumes', () => {
   });
 });
 
+describe('MypageService profile images', () => {
+  let prisma: {
+    user: {
+      findUnique: jest.Mock;
+      update: jest.Mock;
+    };
+    asset: {
+      findFirst: jest.Mock;
+    };
+  };
+  let assetsService: { deleteAsset: jest.Mock };
+  let service: MypageService;
+
+  beforeEach(() => {
+    prisma = {
+      user: {
+        findUnique: jest.fn(),
+        update: jest.fn().mockResolvedValue({ id: 'user-1' }),
+      },
+      asset: {
+        findFirst: jest.fn(),
+      },
+    };
+    assetsService = { deleteAsset: jest.fn().mockResolvedValue({ ok: true }) };
+    service = new MypageService(
+      prisma as unknown as PrismaService,
+      createConfig({}),
+      assetsService as unknown as AssetsService,
+    );
+  });
+
+  it('connects only a ready owned profile image asset and cleans up the previous image', async () => {
+    prisma.asset.findFirst.mockResolvedValue({ id: 'asset-new' });
+    prisma.user.findUnique
+      .mockResolvedValueOnce({ profileImageAssetId: 'asset-old' })
+      .mockResolvedValueOnce(
+        profileUserRecord({
+          profileImageAsset: {
+            id: 'asset-new',
+            publicUrl: 'https://assets.example.com/profile.png',
+          },
+        }),
+      );
+
+    const result = await service.updateProfile('user-1', {
+      profileImageAssetId: ' asset-new ',
+    });
+
+    expect(prisma.asset.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'asset-new',
+        uploadedById: 'user-1',
+        purpose: AssetPurpose.USER_PROFILE_IMAGE,
+        status: AssetStatus.READY,
+      },
+      select: { id: true },
+    });
+    expect(assetsService.deleteAsset).toHaveBeenCalledWith(
+      'user-1',
+      'asset-old',
+      [AssetPurpose.USER_PROFILE_IMAGE],
+    );
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      data: {
+        profileImageAsset: { connect: { id: 'asset-new' } },
+        profileImageUrl: null,
+      },
+    });
+    expect(result.profileImageUrl).toBe(
+      'https://assets.example.com/profile.png',
+    );
+  });
+
+  it('rejects profile image updates for unavailable assets', async () => {
+    prisma.asset.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.updateProfile('user-1', {
+        profileImageAssetId: 'asset-new',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.user.update).not.toHaveBeenCalled();
+    expect(assetsService.deleteAsset).not.toHaveBeenCalled();
+  });
+
+  it('deletes the current profile image asset and returns the refreshed profile', async () => {
+    prisma.user.findUnique
+      .mockResolvedValueOnce({ profileImageAssetId: 'asset-profile-1' })
+      .mockResolvedValueOnce(profileUserRecord({ profileImageAsset: null }));
+
+    const result = await service.deleteProfileImage('user-1');
+
+    expect(assetsService.deleteAsset).toHaveBeenCalledWith(
+      'user-1',
+      'asset-profile-1',
+      [AssetPurpose.USER_PROFILE_IMAGE],
+    );
+    expect(result.profileImageUrl).toBeNull();
+  });
+});
+
 describe('MypageService CPA verification requests', () => {
   let tx: {
     personalProfile: { upsert: jest.Mock };
@@ -295,6 +406,7 @@ describe('MypageService CPA verification requests', () => {
     service = new MypageService(
       prisma as unknown as PrismaService,
       createConfig({}),
+      { deleteAsset: jest.fn() } as unknown as AssetsService,
     );
   });
 
@@ -387,6 +499,7 @@ describe('MypageService account settings', () => {
     service = new MypageService(
       prisma as unknown as PrismaService,
       createConfig({}),
+      { deleteAsset: jest.fn() } as unknown as AssetsService,
     );
   });
 
@@ -659,6 +772,21 @@ function resumeRecord(overrides: Record<string, unknown> = {}) {
     isPrimary: false,
     createdAt,
     updatedAt: createdAt,
+    ...overrides,
+  };
+}
+
+function profileUserRecord(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'user-1',
+    username: 'jobseeker',
+    displayName: '수습 CPA',
+    role: UserRole.JOB_SEEKER,
+    createdAt,
+    personalProfile: null,
+    personalVerificationRequests: [],
+    profileImageAsset: null,
+    profileImageUrl: null,
     ...overrides,
   };
 }

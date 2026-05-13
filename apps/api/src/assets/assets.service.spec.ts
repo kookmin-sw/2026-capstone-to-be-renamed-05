@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AssetPurpose, AssetStatus } from '@prisma/client';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PrismaService } from '../prisma/prisma.service';
@@ -9,6 +9,7 @@ import { AssetsService } from './assets.service';
 import {
   COMPANY_BACKGROUND_MAX_BYTES,
   COMPANY_LOGO_MAX_BYTES,
+  PROFILE_IMAGE_MAX_BYTES,
 } from './logo-asset.constants';
 
 const mockS3Send = jest.fn();
@@ -20,6 +21,7 @@ jest.mock('@aws-sdk/client-s3', () => {
   }
 
   return {
+    DeleteObjectCommand: MockS3Command,
     HeadObjectCommand: MockS3Command,
     PutObjectCommand: MockS3Command,
     S3Client: jest.fn(() => ({ send: mockS3Send })),
@@ -46,6 +48,7 @@ describe('AssetsService', () => {
       create: jest.Mock;
       findFirst: jest.Mock;
       update: jest.Mock;
+      delete: jest.Mock;
     };
   };
   let service: AssetsService;
@@ -57,6 +60,7 @@ describe('AssetsService', () => {
         create: jest.fn(),
         findFirst: jest.fn(),
         update: jest.fn(),
+        delete: jest.fn(),
       },
     };
     mockS3Send.mockReset();
@@ -204,6 +208,67 @@ describe('AssetsService', () => {
         fileName: 'background.png',
         contentType: 'image/png',
         byteSize: COMPANY_BACKGROUND_MAX_BYTES + 1,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.asset.create).not.toHaveBeenCalled();
+  });
+
+  it('creates profile image upload URLs without requiring a company', async () => {
+    let capturedCreateArg: unknown;
+    prisma.asset.create.mockImplementation((args: unknown) => {
+      capturedCreateArg = args;
+      return Promise.resolve({
+        id: 'asset-profile-1',
+        publicUrl:
+          'https://cpa-assets.s3.ap-northeast-2.amazonaws.com/profile-images/user-1/profile.png',
+      });
+    });
+
+    const result = await service.createProfileImageUploadUrl('user-1', {
+      fileName: ' profile.png ',
+      contentType: 'image/png',
+      byteSize: 123,
+    });
+
+    const createArg = capturedCreateArg as {
+      data: Record<string, unknown>;
+    };
+    expect(prisma.company.findUnique).not.toHaveBeenCalled();
+    expect(createArg.data).toMatchObject({
+      purpose: AssetPurpose.USER_PROFILE_IMAGE,
+      status: AssetStatus.PENDING,
+      contentType: 'image/png',
+      byteSize: 123,
+      originalName: 'profile.png',
+      uploadedById: 'user-1',
+      companyId: null,
+    });
+    expect(createArg.data.key).toEqual(
+      expect.stringContaining('profile-images/user-1/'),
+    );
+    expect(result).toMatchObject({
+      assetId: 'asset-profile-1',
+      uploadUrl: 'https://signed.example.com',
+      method: 'PUT',
+      headers: { 'Content-Type': 'image/png' },
+      requiresCredentials: false,
+    });
+  });
+
+  it('rejects invalid profile image content types and oversized files', async () => {
+    await expect(
+      service.createProfileImageUploadUrl('user-1', {
+        fileName: 'profile.gif',
+        contentType: 'image/gif',
+        byteSize: 100,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    await expect(
+      service.createProfileImageUploadUrl('user-1', {
+        fileName: 'profile.png',
+        contentType: 'image/png',
+        byteSize: PROFILE_IMAGE_MAX_BYTES + 1,
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(prisma.asset.create).not.toHaveBeenCalled();
@@ -412,6 +477,46 @@ describe('AssetsService', () => {
       expect(result.asset).toEqual({
         id: 'asset-bg-1',
         publicUrl: asset.publicUrl,
+      });
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it('deletes local profile image objects and asset metadata', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'accountit-assets-'));
+    service = new AssetsService(
+      prisma as unknown as PrismaService,
+      createConfig({
+        ASSET_STORAGE_DRIVER: 'local',
+        LOCAL_ASSET_DIR: tempDir,
+        LOCAL_ASSET_PUBLIC_BASE_URL: 'http://localhost:3000/uploads',
+      }),
+    );
+    const filePath = join(tempDir, 'profile-images', 'user-1', 'profile.png');
+    await mkdir(join(tempDir, 'profile-images', 'user-1'), {
+      recursive: true,
+    });
+    await writeFile(filePath, Buffer.from('png'));
+    prisma.asset.findFirst.mockResolvedValue({
+      id: 'asset-profile-1',
+      purpose: AssetPurpose.USER_PROFILE_IMAGE,
+      bucket: 'local-assets',
+      region: 'local',
+      key: 'profile-images/user-1/profile.png',
+      uploadedById: 'user-1',
+    });
+    prisma.asset.delete.mockResolvedValue({ id: 'asset-profile-1' });
+
+    try {
+      await expect(
+        service.deleteAsset('user-1', 'asset-profile-1', [
+          AssetPurpose.USER_PROFILE_IMAGE,
+        ]),
+      ).resolves.toEqual({ ok: true });
+      await expect(readFile(filePath)).rejects.toThrow();
+      expect(prisma.asset.delete).toHaveBeenCalledWith({
+        where: { id: 'asset-profile-1' },
       });
     } finally {
       await rm(tempDir, { recursive: true, force: true });

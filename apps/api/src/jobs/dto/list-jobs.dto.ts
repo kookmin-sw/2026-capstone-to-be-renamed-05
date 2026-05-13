@@ -18,7 +18,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import type { JobPresetId } from '@cpa/shared';
+import { SALARY_LEVELS, type JobPresetId, type SalaryLevel } from '@cpa/shared';
 
 const toOptionalBoolean = (value: unknown) => {
   if (value === 'true') return true;
@@ -187,6 +187,14 @@ export class ListJobsDto {
   @Min(0)
   @Max(100)
   maxAttritionRate?: number;
+
+  @ApiPropertyOptional({ enum: SALARY_LEVELS })
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    toOptionalCommaStringArray(value),
+  )
+  @IsIn([...SALARY_LEVELS], { each: true })
+  salaryLevel?: SalaryLevel[];
 
   @ApiPropertyOptional({
     enum: ['deadlineAsc', 'latest', 'experienceAsc', 'companyType', 'expired'],

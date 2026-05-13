@@ -17,16 +17,17 @@ import { RolesGuard } from '../auth/roles.guard';
 import { AssetsService } from './assets.service';
 import { CreateCompanyBackgroundUploadUrlDto } from './dto/create-company-background-upload-url.dto';
 import { CreateCompanyLogoUploadUrlDto } from './dto/create-company-logo-upload-url.dto';
+import { CreateProfileImageUploadUrlDto } from './dto/create-profile-image-upload-url.dto';
 import { COMPANY_BACKGROUND_MAX_BYTES } from './logo-asset.constants';
 
 @ApiTags('assets')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.COMPANY)
 @Controller('assets')
 export class AssetsController {
   constructor(private readonly assetsService: AssetsService) {}
 
+  @Roles(UserRole.COMPANY)
   @Post('company-logo/upload-url')
   createCompanyLogoUploadUrl(
     @Req() req: RequestWithUser,
@@ -35,6 +36,7 @@ export class AssetsController {
     return this.assetsService.createCompanyLogoUploadUrl(req.user!.id, dto);
   }
 
+  @Roles(UserRole.COMPANY)
   @Post('company-background/upload-url')
   createCompanyBackgroundUploadUrl(
     @Req() req: RequestWithUser,
@@ -46,11 +48,22 @@ export class AssetsController {
     );
   }
 
+  @Roles(UserRole.JOB_SEEKER)
+  @Post('profile-image/upload-url')
+  createProfileImageUploadUrl(
+    @Req() req: RequestWithUser,
+    @Body() dto: CreateProfileImageUploadUrlDto,
+  ) {
+    return this.assetsService.createProfileImageUploadUrl(req.user!.id, dto);
+  }
+
+  @Roles(UserRole.COMPANY, UserRole.JOB_SEEKER)
   @Post(':id/complete')
   completeUpload(@Req() req: RequestWithUser, @Param('id') id: string) {
     return this.assetsService.completeUpload(req.user!.id, id);
   }
 
+  @Roles(UserRole.COMPANY, UserRole.JOB_SEEKER)
   @Put(':id/local-upload')
   async uploadLocalAsset(@Req() req: RequestWithUser, @Param('id') id: string) {
     const body = await readRequestBody(req, COMPANY_BACKGROUND_MAX_BYTES + 1);

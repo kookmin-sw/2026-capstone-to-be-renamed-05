@@ -1,14 +1,16 @@
 .page {
   min-height: 100vh;
   background: var(--background);
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .container {
   width: min(72rem, 100%);
   margin: 0 auto;
-  padding: 1.75rem 1.25rem 3rem;
+  padding: 1.5rem 1.25rem 3rem;
   display: grid;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .loadingText {
@@ -89,11 +91,22 @@
     0 14px 30px rgba(15, 23, 42, 0.14),
     inset 0 0 0 3px white;
   cursor: pointer;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.avatarButton:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 18px 36px rgba(15, 23, 42, 0.18),
+    inset 0 0 0 3px white;
 }
 
 .avatarButton:disabled {
   cursor: wait;
   opacity: 0.72;
+  transform: none;
 }
 
 .avatarButtonComplete {
@@ -227,7 +240,7 @@
 .summaryGrid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.72fr);
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .summaryGridCompact {
@@ -236,8 +249,12 @@
 
 .mainGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.25rem;
+}
+
+.mainGridFull {
+  grid-column: 1 / -1;
 }
 
 .panel {
@@ -245,7 +262,7 @@
   border: 1px solid var(--app-line);
   border-radius: 8px;
   background: var(--surface);
-  padding: 1rem;
+  padding: 1.25rem;
   box-shadow: var(--shadow-xs);
 }
 
@@ -254,7 +271,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 0.875rem;
+  margin-bottom: 1rem;
 }
 
 .panelHeader h2 {
@@ -285,6 +302,20 @@
   line-height: 1.35;
 }
 
+.profilePhotoActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.profilePhotoActions span {
+  color: var(--app-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
 .message {
   border: 1px solid var(--brand-mid);
   border-radius: 8px;
@@ -307,6 +338,7 @@
   color: var(--app-muted);
   font-size: 0.75rem;
   font-weight: 850;
+  cursor: pointer;
   transition:
     border-color 160ms ease,
     background-color 160ms ease,
@@ -325,7 +357,7 @@
   overflow: hidden;
   border-radius: 999px;
   background: var(--gray-100);
-  margin-bottom: 0.875rem;
+  margin-bottom: 1rem;
 }
 
 .scoreTrack span {
@@ -341,8 +373,8 @@
   border: 1px solid #c7eee7;
   border-radius: 8px;
   background: #f0fdfa;
-  padding: 0.75rem;
-  margin-bottom: 0.875rem;
+  padding: 0.875rem 1rem;
+  margin-bottom: 1rem;
 }
 
 .nextActionBox > span {
@@ -374,6 +406,7 @@
   font-weight: 900;
   text-decoration: none;
   white-space: nowrap;
+  cursor: pointer;
   transition:
     background-color 160ms ease,
     color 160ms ease,
@@ -395,7 +428,7 @@
 
 .completionChecklist {
   display: grid;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .completionStep {
@@ -403,11 +436,11 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.75rem;
   border: 1px solid var(--app-line);
   border-radius: 8px;
   background: white;
-  padding: 0.65rem;
+  padding: 0.75rem;
 }
 
 .completionStepDone {
@@ -471,7 +504,7 @@
 .statGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.625rem;
+  gap: 0.75rem;
 }
 
 .statItem {
@@ -502,14 +535,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.875rem;
-  margin-top: 0.875rem;
+  gap: 1rem;
+  margin-top: 1rem;
   border: 1px solid var(--brand-mid);
   border-radius: 8px;
   background:
     linear-gradient(135deg, rgba(255, 240, 245, 0.9), rgba(240, 253, 250, 0.82)),
     white;
-  padding: 0.8rem 0.875rem;
+  padding: 1rem;
 }
 
 .profileBoostCopy {
@@ -633,12 +666,12 @@
 .profileForm,
 .passwordForm {
   display: grid;
-  gap: 0.875rem;
+  gap: 1rem;
 }
 
 .passwordForm {
-  margin-top: 1.25rem;
-  padding-top: 1.25rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
   border-top: 1px solid var(--app-line);
 }
 
@@ -655,12 +688,30 @@
   color: var(--brand);
 }
 
+.passwordHint {
+  margin: -0.25rem 0 0;
+  color: var(--app-muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
 .field {
   display: grid;
-  gap: 0.375rem;
+  gap: 0.5rem;
   color: var(--gray-700);
   font-size: 0.8125rem;
   font-weight: 750;
+}
+
+.required {
+  color: #dc2626;
+  font-weight: 900;
+  font-size: 1rem;
+  line-height: 1;
+  vertical-align: middle;
+  margin-left: 0.15rem;
+  display: inline;
 }
 
 .input {
@@ -673,6 +724,9 @@
   color: var(--gray-900);
   font-size: 0.875rem;
   outline: none;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease;
@@ -753,7 +807,7 @@
 .bookmarkList,
 .activityList {
   display: grid;
-  gap: 0.625rem;
+  gap: 0.75rem;
 }
 
 .resumeItem,
@@ -766,7 +820,7 @@
   border: 1px solid var(--app-line);
   border-radius: 8px;
   background: white;
-  padding: 0.75rem;
+  padding: 0.875rem 1rem;
 }
 
 .resumeInfo {
@@ -816,10 +870,149 @@
 }
 
 .activityPageSummary {
-  margin: -0.25rem 0 0.875rem;
+  margin: -0.25rem 0 1rem;
   color: var(--app-muted);
   font-size: 0.8125rem;
   font-weight: 700;
+}
+
+.notificationToolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.notificationToolbar .activityPageSummary {
+  margin: 0.4rem 0 0;
+}
+
+.notificationList {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.notificationItem {
+  min-width: 0;
+  display: block;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: white;
+  padding: 1rem;
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.notificationItem:hover {
+  border-color: var(--brand-mid);
+  background: #fff8fa;
+}
+
+.notificationUnread {
+  border-color: var(--brand-mid);
+  background: var(--brand-soft);
+}
+
+.notificationMain {
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.notificationTitleRow {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--gray-900);
+  font-size: 0.875rem;
+  font-weight: 850;
+}
+
+.notificationTitleRow > span:not(.unreadDot) {
+  flex: none;
+  border: 1px solid var(--brand-mid);
+  border-radius: 999px;
+  background: white;
+  padding: 0.15rem 0.45rem;
+  color: var(--brand);
+  font-size: 0.6875rem;
+  font-weight: 900;
+}
+
+.notificationTitleRow strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notificationMain p {
+  color: var(--gray-700);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.notificationMain time {
+  color: var(--app-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.unreadDot {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--brand);
+}
+
+.tagSubscriptionGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tagSubscriptionButton {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--app-line);
+  border-radius: 999px;
+  background: white;
+  padding: 0 0.8rem;
+  color: var(--gray-700);
+  font-size: 0.8125rem;
+  font-weight: 850;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.tagSubscriptionButton:hover,
+.tagSubscriptionButtonActive {
+  border-color: var(--brand-mid);
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.tagSubscriptionButton:disabled {
+  cursor: wait;
+  opacity: 0.66;
+}
+
+.tagColor {
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
 }
 
 .itemActions {
@@ -903,6 +1096,7 @@
   color: var(--app-muted);
   font-size: 0.75rem;
   font-weight: 800;
+  cursor: pointer;
   transition:
     border-color 160ms ease,
     background-color 160ms ease,
@@ -941,7 +1135,7 @@
   border: 1px solid var(--app-line);
   border-radius: 8px;
   background: white;
-  padding: 0.75rem 0.875rem;
+  padding: 0.875rem 1rem;
   color: inherit;
   text-decoration: none;
   transition:
@@ -982,10 +1176,13 @@
   font-weight: 850;
   white-space: nowrap;
   cursor: pointer;
+  transition:
+    color 160ms ease;
 }
 
 .textButton:hover {
   color: var(--brand-strong);
+  text-decoration: underline;
 }
 
 .cpaBadge {
@@ -1150,17 +1347,17 @@
   border: 1px solid rgba(242, 201, 76, 0.42);
   border-radius: 8px;
   background: white;
-  padding: 1.1rem;
+  padding: 1.25rem;
   box-shadow: var(--shadow-lg);
 }
 
 .completionModalHero {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 0.95rem;
+  gap: 1rem;
   align-items: center;
   margin-right: 2.25rem;
-  margin-bottom: 0.9rem;
+  margin-bottom: 1rem;
 }
 
 .completionAvatarPreview {
@@ -1246,14 +1443,14 @@
 .completionModalGrid {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(16rem, 0.8fr);
-  gap: 0.9rem;
+  gap: 1.25rem;
   align-items: start;
 }
 
 .completionModalSection {
   min-width: 0;
   display: grid;
-  gap: 0.65rem;
+  gap: 0.75rem;
 }
 
 .completionModalSection h3 {
@@ -1264,17 +1461,17 @@
 
 .rewardList {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.75rem;
 }
 
 .rewardItem {
   display: flex;
   align-items: flex-start;
-  gap: 0.65rem;
+  gap: 0.75rem;
   border: 1px solid var(--app-line);
   border-radius: 8px;
   background: var(--gray-50);
-  padding: 0.72rem;
+  padding: 0.875rem 1rem;
 }
 
 .rewardItem svg {
@@ -1305,9 +1502,9 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.5rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
-  margin-top: 1rem;
+  margin-top: 1.25rem;
 }
 
 .modalOverlay {
@@ -1327,7 +1524,7 @@
   border: 1px solid var(--app-line);
   border-radius: 8px;
   background: white;
-  padding: 1.25rem;
+  padding: 1.5rem;
   box-shadow: var(--shadow-lg);
 }
 
@@ -1343,6 +1540,9 @@
   border-radius: 8px;
   color: var(--app-muted);
   cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
 }
 
 .modalClose:hover {
@@ -1357,7 +1557,7 @@
 }
 
 .modalTitle {
-  margin: 0.5rem 0 0.875rem;
+  margin: 0.75rem 0 1rem;
   text-align: center;
   color: var(--gray-900);
   font-size: 1.125rem;
@@ -1412,6 +1612,10 @@
 
   .highFitList {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mainGridFull {
+    grid-column: auto;
   }
 }
 
@@ -1494,6 +1698,10 @@
     justify-self: flex-start;
   }
 
+  .notificationToolbar {
+    flex-direction: column;
+  }
+
   .filterRow {
     justify-content: flex-start;
   }
@@ -1525,5 +1733,15 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 0.15rem;
+  }
+
+  .notificationTitleRow {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .notificationTitleRow strong {
+    white-space: normal;
   }
 }

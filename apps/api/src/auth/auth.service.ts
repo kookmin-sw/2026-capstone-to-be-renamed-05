@@ -11,8 +11,21 @@ import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
-type SafeUser = Pick<User, 'id' | 'username' | 'displayName' | 'role'> & {
+type SafeUserRecord = Pick<
+  User,
+  'id' | 'username' | 'displayName' | 'profileImageUrl' | 'role'
+> & {
   ownedCompany?: { id: string } | null;
+  profileImageAsset?: { publicUrl: string } | null;
+};
+
+export type SafeAuthUser = {
+  id: string;
+  username: string;
+  displayName: string | null;
+  profileImageUrl: string | null;
+  role: UserRole;
+  companyId: string | null;
 };
 
 @Injectable()
@@ -88,7 +101,10 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { username: dto.username },
-      include: { ownedCompany: { select: { id: true } } },
+      include: {
+        ownedCompany: { select: { id: true } },
+        profileImageAsset: { select: { publicUrl: true } },
+      },
     });
     if (!user || !(await argon2.verify(user.passwordHash, dto.password))) {
       throw new UnauthorizedException(
@@ -99,35 +115,44 @@ export class AuthService {
     return this.toAuthResponse(user);
   }
 
-  async findSafeUser(userId: string): Promise<SafeUser | null> {
-    return this.prisma.user.findUnique({
+  async findSafeUser(userId: string): Promise<SafeAuthUser | null> {
+    const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
         username: true,
         displayName: true,
+        profileImageUrl: true,
         role: true,
         ownedCompany: { select: { id: true } },
+        profileImageAsset: { select: { publicUrl: true } },
       },
     });
+    return user ? this.toSafeUser(user) : null;
   }
 
-  private toAuthResponse(user: SafeUser) {
-    const companyId = user.ownedCompany?.id ?? null;
-    const safeUser = {
-      id: user.id,
-      username: user.username,
-      displayName: user.displayName,
-      role: user.role,
-      companyId,
-    };
+  private toAuthResponse(user: SafeUserRecord) {
+    const safeUser = this.toSafeUser(user);
     const accessToken = this.jwtService.sign({
-      sub: user.id,
-      username: user.username,
-      role: user.role,
-      companyId,
+      sub: safeUser.id,
+      username: safeUser.username,
+      role: safeUser.role,
+      companyId: safeUser.companyId,
     });
 
     return { user: safeUser, accessToken };
+  }
+
+  private toSafeUser(user: SafeUserRecord): SafeAuthUser {
+    const companyId = user.ownedCompany?.id ?? null;
+    return {
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      profileImageUrl:
+        user.profileImageAsset?.publicUrl ?? user.profileImageUrl ?? null,
+      role: user.role,
+      companyId,
+    };
   }
 }

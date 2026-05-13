@@ -25,6 +25,7 @@ export type JobFilterState = {
   minCompanyAgeYears: string;
   maxCompanyAgeYears: string;
   maxAttritionRate: string;
+  salaryLevel: string;
   sort: string;
 };
 
@@ -49,6 +50,7 @@ export const defaultJobFilters: JobFilterState = {
   minCompanyAgeYears: "",
   maxCompanyAgeYears: "",
   maxAttritionRate: "",
+  salaryLevel: "",
   sort: "deadlineAsc",
 };
 
@@ -113,6 +115,7 @@ const stringParamKeys = [
   "minCompanyAgeYears",
   "maxCompanyAgeYears",
   "maxAttritionRate",
+  "salaryLevel",
   "sort",
 ] as const;
 

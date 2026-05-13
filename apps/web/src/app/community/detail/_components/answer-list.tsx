@@ -1,4 +1,5 @@
 import { ThumbsUp } from "lucide-react";
+import { AuthorAvatar } from "../../_components/author-avatar";
 import type { CommunityAnswer } from "@/lib/community-types";
 import { relativeTime } from "../_lib/community-detail-utils";
 import styles from "../community-detail.module.css";
@@ -40,7 +41,14 @@ export function AnswerList({
               <div className={styles.acceptedBadge}>채택된 답변</div>
             )}
             <div className={styles.answerMeta}>
-              <span className={styles.answerAuthor}>{answer.authorName}</span>
+              <span className={styles.authorMetaItem}>
+                <AuthorAvatar
+                  authorName={answer.authorName}
+                  imageUrl={answer.authorProfileImageUrl}
+                  isAnonymous={answer.isAnonymous}
+                />
+                <span className={styles.answerAuthor}>{answer.authorName}</span>
+              </span>
               <span>·</span>
               <span>{relativeTime(answer.createdAt)}</span>
             </div>

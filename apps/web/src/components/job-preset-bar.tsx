@@ -45,6 +45,14 @@ const careerLevelLabels: Record<string, string> = {
   experienced: "경력",
 };
 
+export const salaryLevelLabels: Record<string, string> = {
+  ABOVE_AVERAGE: "연봉 업계평균이상",
+  TOP_1: "연봉상위1%",
+  TOP_2_5: "연봉상위2~5%",
+  TOP_6_10: "연봉상위6~10%",
+  TOP_11_20: "연봉상위11~20%",
+};
+
 function createPresetDraftName(filter: JobFilterPreference) {
   const parts: string[] = [];
   const location = createLocationLabel(filter.selectedLocations);
@@ -56,6 +64,7 @@ function createPresetDraftName(filter: JobFilterPreference) {
   pushMappedLabel(parts, filter.traineeStatus, traineeLabels);
   pushMappedLabel(parts, filter.kicpaCondition, kicpaLabels);
   pushMappedLabel(parts, filter.employmentType, employmentLabels);
+  pushMappedLabel(parts, filter.salaryLevel, salaryLevelLabels);
   pushDeadlineLabel(parts, filter);
   if (filter.search) parts.push(filter.search);
 

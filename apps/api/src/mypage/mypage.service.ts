@@ -5,6 +5,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
   OnModuleInit,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -15,6 +16,8 @@ import {
   type GetObjectCommandOutput,
 } from '@aws-sdk/client-s3';
 import {
+  AssetPurpose,
+  AssetStatus,
   BookmarkTargetType,
   CpaVerificationStatus,
   EmploymentHistoryStatus,
@@ -52,6 +55,8 @@ import {
   isServerRuntime,
   resolveWorkspaceRoot,
 } from '../config/runtime-environment';
+import { AssetsService } from '../assets/assets.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePersonalVerificationRequestDto } from './dto/create-personal-verification-request.dto';
 
@@ -123,6 +128,7 @@ const verificationRequestInclude = {
 } satisfies Prisma.PersonalVerificationRequestInclude;
 
 const profileInclude = {
+  profileImageAsset: { select: { id: true, publicUrl: true } },
   personalProfile: true,
   personalVerificationRequests: {
     where: { status: PersonalVerificationRequestStatus.PENDING },
@@ -169,6 +175,9 @@ export class MypageService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly assetsService: AssetsService,
+    @Optional()
+    private readonly notificationsService?: NotificationsService,
   ) {}
 
   onModuleInit() {
@@ -188,13 +197,72 @@ export class MypageService implements OnModuleInit {
 
   async updateProfile(
     userId: string,
-    data: { displayName?: string; profileImageUrl?: string | null },
+    data: {
+      displayName?: string;
+      profileImageAssetId?: string;
+      profileImageUrl?: string | null;
+    },
   ): Promise<MyProfileResponse> {
-    const updateData: Record<string, unknown> = {};
+    const updateData: Prisma.UserUpdateInput = {};
     if (data.displayName !== undefined) {
       updateData.displayName = data.displayName.trim() || null;
     }
-    if (data.profileImageUrl !== undefined) {
+
+    if (data.profileImageAssetId !== undefined) {
+      const profileImageAssetId = this.optionalTrimmed(
+        data.profileImageAssetId,
+      );
+      if (!profileImageAssetId) {
+        throw new BadRequestException('프로필 사진 자산 ID가 필요합니다.');
+      }
+
+      const asset = await this.prisma.asset.findFirst({
+        where: {
+          id: profileImageAssetId,
+          uploadedById: userId,
+          purpose: AssetPurpose.USER_PROFILE_IMAGE,
+          status: AssetStatus.READY,
+        },
+        select: { id: true },
+      });
+      if (!asset) {
+        throw new BadRequestException(
+          '사용 가능한 프로필 사진 업로드를 찾을 수 없습니다.',
+        );
+      }
+
+      const current = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { profileImageAssetId: true },
+      });
+      if (
+        current?.profileImageAssetId &&
+        current.profileImageAssetId !== asset.id
+      ) {
+        await this.assetsService.deleteAsset(
+          userId,
+          current.profileImageAssetId,
+          [AssetPurpose.USER_PROFILE_IMAGE],
+        );
+      }
+
+      updateData.profileImageAsset = { connect: { id: asset.id } };
+      updateData.profileImageUrl = null;
+    } else if (data.profileImageUrl !== undefined) {
+      const current = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { profileImageAssetId: true },
+      });
+      if (!current) throw new NotFoundException('User not found.');
+
+      if (current.profileImageAssetId) {
+        await this.assetsService.deleteAsset(
+          userId,
+          current.profileImageAssetId,
+          [AssetPurpose.USER_PROFILE_IMAGE],
+        );
+      }
+
       updateData.profileImageUrl = data.profileImageUrl?.trim() || null;
     }
 
@@ -202,6 +270,29 @@ export class MypageService implements OnModuleInit {
       where: { id: userId },
       data: updateData,
     });
+
+    return this.getProfile(userId);
+  }
+
+  async deleteProfileImage(userId: string): Promise<MyProfileResponse> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { profileImageAssetId: true, profileImageUrl: true },
+    });
+    if (!user) throw new NotFoundException('User not found.');
+
+    if (user.profileImageAssetId) {
+      await this.assetsService.deleteAsset(userId, user.profileImageAssetId, [
+        AssetPurpose.USER_PROFILE_IMAGE,
+      ]);
+    }
+
+    if (user.profileImageUrl) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { profileImageUrl: null },
+      });
+    }
 
     return this.getProfile(userId);
   }
@@ -476,6 +567,13 @@ export class MypageService implements OnModuleInit {
     const bookmark = await this.prisma.bookmark.create({
       data: { userId, targetType, targetId },
     });
+
+    if (targetType === BookmarkTargetType.JOB) {
+      await this.notificationsService?.createDeadlineSoonNotificationForUserJob(
+        userId,
+        targetId,
+      );
+    }
 
     return this.enrichBookmark(bookmark);
   }
@@ -992,6 +1090,10 @@ export class MypageService implements OnModuleInit {
     return client;
   }
 
+  private optionalTrimmed(value: string | undefined) {
+    return value?.trim() || undefined;
+  }
+
   private toProfileResponse(user: ProfileUserRecord): MyProfileResponse {
     const profile = user.personalProfile;
     const pendingRequest = user.personalVerificationRequests[0] ?? null;
@@ -1002,7 +1104,8 @@ export class MypageService implements OnModuleInit {
       id: user.id,
       username: user.username,
       displayName: user.displayName,
-      profileImageUrl: user.profileImageUrl,
+      profileImageUrl:
+        user.profileImageAsset?.publicUrl ?? user.profileImageUrl ?? null,
       role: user.role,
       createdAt: user.createdAt.toISOString(),
       cpaVerificationStatus,

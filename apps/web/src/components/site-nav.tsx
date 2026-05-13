@@ -1,11 +1,19 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import { Bell, LogOut } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ActionButton, ActionLink } from "@/components/ui/action-button";
-import { fetchCurrentUser, logoutRequest, type AuthUser } from "@/lib/api";
+import {
+  AUTH_USER_CHANGED_EVENT,
+  fetchCurrentUser,
+  fetchNotificationUnreadCount,
+  logoutRequest,
+  NOTIFICATIONS_CHANGED_EVENT,
+  type AuthUser,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 import styles from "./site-nav.module.css";
 
@@ -27,23 +35,63 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
 
   useEffect(() => {
     let ignore = false;
-    fetchCurrentUser()
-      .then((currentUser) => {
-        if (!ignore) setUser(currentUser);
-      })
-      .catch(() => {
-        if (!ignore) setUser(null);
-      })
-      .finally(() => {
-        if (!ignore) setAuthReady(true);
-      });
+
+    function loadCurrentUser() {
+      fetchCurrentUser()
+        .then((currentUser) => {
+          if (!ignore) setUser(currentUser);
+        })
+        .catch(() => {
+          if (!ignore) setUser(null);
+        })
+        .finally(() => {
+          if (!ignore) setAuthReady(true);
+        });
+    }
+
+    loadCurrentUser();
+    window.addEventListener(AUTH_USER_CHANGED_EVENT, loadCurrentUser);
     return () => {
       ignore = true;
+      window.removeEventListener(AUTH_USER_CHANGED_EVENT, loadCurrentUser);
     };
   }, [pathname]);
+
+  useEffect(() => {
+    if (user?.role !== "JOB_SEEKER") {
+      return;
+    }
+
+    let ignore = false;
+
+    function loadNotificationCount() {
+      fetchNotificationUnreadCount()
+        .then((result) => {
+          if (!ignore) setNotificationUnreadCount(result.unreadCount);
+        })
+        .catch(() => {
+          if (!ignore) setNotificationUnreadCount(0);
+        });
+    }
+
+    loadNotificationCount();
+    window.addEventListener(
+      NOTIFICATIONS_CHANGED_EVENT,
+      loadNotificationCount,
+    );
+    return () => {
+      ignore = true;
+      window.removeEventListener(
+        NOTIFICATIONS_CHANGED_EVENT,
+        loadNotificationCount,
+      );
+    };
+  }, [pathname, user?.id, user?.role]);
+
   const isLanding = variant === "landing";
 
   function isActive(href: string) {
@@ -115,6 +163,32 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
         <div className={styles.spacer}>
           {!authReady ? null : user ? (
             <div className={styles.userActions}>
+              {user.role === "JOB_SEEKER" && (
+                <Link
+                  href="/mypage/notifications"
+                  className={styles.notificationLink}
+                  aria-label={`알림 ${notificationUnreadCount}개`}
+                >
+                  <Bell size={17} />
+                  {notificationUnreadCount > 0 && (
+                    <span className={styles.notificationBadge}>
+                      {notificationUnreadCount > 99
+                        ? "99+"
+                        : notificationUnreadCount}
+                    </span>
+                  )}
+                </Link>
+              )}
+              {user.profileImageUrl && (
+                <span className={styles.userAvatar}>
+                  <Image
+                    src={user.profileImageUrl}
+                    alt={`${user.displayName ?? user.username} 프로필 사진`}
+                    width={29}
+                    height={29}
+                  />
+                </span>
+              )}
               <span className={styles.userName}>
                 {user.displayName ?? user.username}
               </span>

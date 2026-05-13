@@ -24,6 +24,7 @@ const stringFilterKeys = [
   'minCompanyAgeYears',
   'maxCompanyAgeYears',
   'maxAttritionRate',
+  'salaryLevel',
   'sort',
 ] as const;
 
@@ -87,6 +88,14 @@ const careerLevelLabels: Record<string, string> = {
   entry: '신입',
   junior: '주니어',
   experienced: '경력',
+};
+
+const salaryLevelLabels: Record<string, string> = {
+  ABOVE_AVERAGE: '연봉 업계평균이상',
+  TOP_1: '연봉상위1%',
+  TOP_2_5: '연봉상위2~5%',
+  TOP_6_10: '연봉상위6~10%',
+  TOP_11_20: '연봉상위11~20%',
 };
 
 @Injectable()
@@ -282,6 +291,7 @@ export class UsersService {
     this.pushMappedLabel(parts, filter.traineeStatus, traineeStatusLabels);
     this.pushMappedLabel(parts, filter.kicpaCondition, kicpaConditionLabels);
     this.pushMappedLabel(parts, filter.employmentType, employmentTypeLabels);
+    this.pushMappedLabel(parts, filter.salaryLevel, salaryLevelLabels);
     this.pushDeadlineLabel(parts, filter);
     if (filter.search) parts.push(filter.search);
 

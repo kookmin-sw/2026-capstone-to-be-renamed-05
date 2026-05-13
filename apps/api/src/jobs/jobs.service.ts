@@ -39,6 +39,13 @@ const kstDateFormatter = new Intl.DateTimeFormat('en-US', {
   day: '2-digit',
 });
 
+const salaryLevelRanges = {
+  TOP_1: { previousPercent: 0, endPercent: 1 },
+  TOP_2_5: { previousPercent: 1, endPercent: 5 },
+  TOP_6_10: { previousPercent: 5, endPercent: 10 },
+  TOP_11_20: { previousPercent: 10, endPercent: 20 },
+} as const;
+
 @Injectable()
 export class JobsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -292,6 +299,7 @@ export class JobsService {
       title: job.title,
       companyId: job.companyId,
       companyName: job.company.name,
+      companyAverageSalary: job.company.averageSalary,
       companyLogoUrl: job.company.logoAsset?.publicUrl ?? null,
       companyBackgroundUrl: job.company.backgroundAsset?.publicUrl ?? null,
       companyType: job.companyType,
@@ -404,8 +412,8 @@ export class JobsService {
       });
     }
 
-    const companyWhere = this.buildCompanyWhere(query);
-    if (Object.keys(companyWhere).length > 0) {
+    const companyWhere = await this.buildCompanyWhere(query);
+    if (companyWhere) {
       and.push({ company: companyWhere });
     }
 
@@ -454,29 +462,95 @@ export class JobsService {
     };
   }
 
-  private buildCompanyWhere(query: ListJobsDto): Prisma.CompanyWhereInput {
+  private async buildCompanyWhere(
+    query: ListJobsDto,
+  ): Promise<Prisma.CompanyWhereInput | null> {
     const currentYear = new Date().getFullYear();
-    const companyWhere: Prisma.CompanyWhereInput = {};
+    const conditions: Prisma.CompanyWhereInput[] = [];
 
     if (
       query.minCompanyAgeYears !== undefined ||
       query.maxCompanyAgeYears !== undefined
     ) {
-      companyWhere.foundedYear = {
-        ...(query.minCompanyAgeYears !== undefined && {
-          lte: currentYear - query.minCompanyAgeYears + 1,
-        }),
-        ...(query.maxCompanyAgeYears !== undefined && {
-          gte: currentYear - query.maxCompanyAgeYears + 1,
-        }),
-      };
+      conditions.push({
+        foundedYear: {
+          ...(query.minCompanyAgeYears !== undefined && {
+            lte: currentYear - query.minCompanyAgeYears + 1,
+          }),
+          ...(query.maxCompanyAgeYears !== undefined && {
+            gte: currentYear - query.maxCompanyAgeYears + 1,
+          }),
+        },
+      });
     }
 
     if (query.maxAttritionRate !== undefined) {
-      companyWhere.recentAttritionRate = { lte: query.maxAttritionRate };
+      conditions.push({
+        recentAttritionRate: { lte: query.maxAttritionRate },
+      });
     }
 
-    return companyWhere;
+    const salaryWhere = await this.buildSalaryCompanyWhere(query.salaryLevel);
+    if (salaryWhere) {
+      conditions.push(salaryWhere);
+    }
+
+    if (conditions.length === 0) return null;
+    if (conditions.length === 1) return conditions[0];
+    return { AND: conditions };
+  }
+
+  private async buildSalaryCompanyWhere(
+    salaryLevel: ListJobsDto['salaryLevel'],
+  ): Promise<Prisma.CompanyWhereInput | null> {
+    if (!salaryLevel?.length) return null;
+
+    const conditions = await Promise.all(
+      salaryLevel.map((level) => this.buildSingleSalaryCompanyWhere(level)),
+    );
+    if (conditions.length === 1) return conditions[0];
+    return { OR: conditions };
+  }
+
+  private async buildSingleSalaryCompanyWhere(
+    salaryLevel: NonNullable<ListJobsDto['salaryLevel']>[number],
+  ): Promise<Prisma.CompanyWhereInput> {
+    const salaryKnownWhere = { averageSalary: { not: null } };
+
+    if (salaryLevel === 'ABOVE_AVERAGE') {
+      const aggregate = await this.prisma.company.aggregate({
+        where: salaryKnownWhere,
+        _avg: { averageSalary: true },
+      });
+      const averageSalary = aggregate._avg.averageSalary;
+      if (averageSalary === null) return { id: { in: [] } };
+      return {
+        averageSalary: {
+          gte: Math.ceil(averageSalary),
+        },
+      };
+    }
+
+    const range = salaryLevelRanges[salaryLevel];
+    const total = await this.prisma.company.count({
+      where: salaryKnownWhere,
+    });
+    if (total === 0) return { id: { in: [] } };
+
+    const skip = Math.ceil((total * range.previousPercent) / 100);
+    const end = Math.ceil((total * range.endPercent) / 100);
+    const take = Math.max(0, end - skip);
+    if (take === 0) return { id: { in: [] } };
+
+    const companies = await this.prisma.company.findMany({
+      where: salaryKnownWhere,
+      select: { id: true },
+      orderBy: [{ averageSalary: 'desc' }, { id: 'asc' }],
+      skip,
+      take,
+    });
+
+    return { id: { in: companies.map((company) => company.id) } };
   }
 
   private async buildCalendarWhere(

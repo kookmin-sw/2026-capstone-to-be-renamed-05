@@ -48,6 +48,7 @@ import {
   fetchMyResumes,
   getMyResumeDownloadUrl,
   updateMyProfile,
+  updateMyPassword,
   uploadMyProfileImage,
   uploadMyResume,
 } from "@/lib/api";
@@ -67,6 +68,11 @@ const PROFILE_IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/webp",
 ]);
+const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_MAX_LENGTH = 128;
+const PASSWORD_LENGTH_TEXT = `${PASSWORD_MIN_LENGTH}자 이상 ${PASSWORD_MAX_LENGTH}자 이하`;
+const PASSWORD_HELP_TEXT = `새 비밀번호는 ${PASSWORD_LENGTH_TEXT}, 현재 비밀번호와 다르게 입력해주세요.`;
+
 const PROFILE_COMPLETION_HIDDEN_UNTIL_STORAGE_KEY =
   "accountit:mypage-profile-completion:hiddenUntil";
 const PROFILE_COMPLETION_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -143,7 +149,11 @@ export default function MyPage() {
   const [message, setMessage] = useState("");
   const [uploadingResume, setUploadingResume] = useState(false);
   const [updatingProfileImage, setUpdatingProfileImage] = useState(false);
+  const [updatingPassword, setUpdatingPassword] = useState(false);
   const [displayNameInput, setDisplayNameInput] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const [profileCompletionHidden, setProfileCompletionHidden] = useState(false);
   const [profileCompletionModalOpen, setProfileCompletionModalOpen] =
@@ -403,6 +413,56 @@ export default function MyPage() {
       );
     } finally {
       setUpdatingProfileImage(false);
+    }
+  }
+
+  async function handlePasswordSave(event: FormEvent) {
+    event.preventDefault();
+    setMessage("");
+
+    if (!currentPassword) {
+      setMessage("현재 비밀번호를 입력해주세요.");
+      return;
+    }
+    if (!newPassword) {
+      setMessage("새 비밀번호를 입력해주세요.");
+      return;
+    }
+    if (!newPasswordConfirm) {
+      setMessage("새 비밀번호 확인을 입력해주세요.");
+      return;
+    }
+    if (
+      newPassword.length < PASSWORD_MIN_LENGTH ||
+      newPassword.length > PASSWORD_MAX_LENGTH
+    ) {
+      setMessage(`새 비밀번호는 ${PASSWORD_LENGTH_TEXT}로 입력해주세요.`);
+      return;
+    }
+    if (newPassword !== newPasswordConfirm) {
+      setMessage("새 비밀번호와 확인값이 일치하지 않습니다.");
+      return;
+    }
+    if (currentPassword === newPassword) {
+      setMessage("새 비밀번호는 현재 비밀번호와 다르게 입력해 주세요.");
+      return;
+    }
+
+    setUpdatingPassword(true);
+    try {
+      await updateMyPassword({ currentPassword, newPassword });
+      setCurrentPassword("");
+      setNewPassword("");
+      setNewPasswordConfirm("");
+      setMessage("비밀번호를 변경했습니다.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "비밀번호 변경에 실패했습니다.",
+      );
+    } finally {
+      setUpdatingPassword(false);
     }
   }
 
@@ -782,18 +842,28 @@ export default function MyPage() {
                 </div>
               </form>
 
-              <div className={styles.passwordForm}>
+              <form
+                className={styles.passwordForm}
+                onSubmit={handlePasswordSave}
+                noValidate
+              >
                 <div className={styles.subsectionTitle}>
                   <KeyRound size={16} />
                   비밀번호
                 </div>
+                <p className={styles.passwordHint}>{PASSWORD_HELP_TEXT}</p>
                 <label className={styles.field}>
                   현재 비밀번호
                   <input
                     className={styles.input}
                     type="password"
                     autoComplete="current-password"
-                    disabled
+                    value={currentPassword}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                    minLength={PASSWORD_MIN_LENGTH}
+                    maxLength={PASSWORD_MAX_LENGTH}
+                    required
+                    disabled={updatingPassword}
                   />
                 </label>
                 <label className={styles.field}>
@@ -801,9 +871,14 @@ export default function MyPage() {
                   <input
                     className={styles.input}
                     type="password"
+                    placeholder={PASSWORD_LENGTH_TEXT}
                     autoComplete="new-password"
-                    minLength={8}
-                    disabled
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    minLength={PASSWORD_MIN_LENGTH}
+                    maxLength={PASSWORD_MAX_LENGTH}
+                    required
+                    disabled={updatingPassword}
                   />
                 </label>
                 <label className={styles.field}>
@@ -811,22 +886,29 @@ export default function MyPage() {
                   <input
                     className={styles.input}
                     type="password"
+                    placeholder={PASSWORD_LENGTH_TEXT}
                     autoComplete="new-password"
-                    minLength={8}
-                    disabled
+                    value={newPasswordConfirm}
+                    onChange={(event) =>
+                      setNewPasswordConfirm(event.target.value)
+                    }
+                    minLength={PASSWORD_MIN_LENGTH}
+                    maxLength={PASSWORD_MAX_LENGTH}
+                    required
+                    disabled={updatingPassword}
                   />
                 </label>
                 <div className={styles.formActions}>
                   <ActionButton
-                    type="button"
+                    type="submit"
                     size="sm"
                     variant="outline"
-                    disabled
+                    disabled={updatingPassword}
                   >
-                    비밀번호 변경
+                    {updatingPassword ? "변경 중" : "비밀번호 변경"}
                   </ActionButton>
                 </div>
-              </div>
+              </form>
             </section>
           </div>
 

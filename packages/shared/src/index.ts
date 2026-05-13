@@ -495,6 +495,7 @@ export type CommunityPostItem = {
   status: CommunityPostStatus;
   tags: string[];
   authorName: string;
+  authorProfileImageUrl: string | null;
   isAnonymous: boolean;
   createdAt: string;
   updatedAt: string;
@@ -510,6 +511,7 @@ export type CommunityAnswerItem = {
   postId: string;
   content: string;
   authorName: string;
+  authorProfileImageUrl: string | null;
   isAnonymous: boolean;
   createdAt: string;
   updatedAt: string;

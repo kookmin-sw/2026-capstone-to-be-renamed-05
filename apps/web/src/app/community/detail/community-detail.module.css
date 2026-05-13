@@ -97,6 +97,14 @@
   color: var(--app-muted);
 }
 
+.authorMetaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--gray-700);
+  font-weight: 700;
+}
+
 .postMetaDot {
   color: var(--app-line);
 }

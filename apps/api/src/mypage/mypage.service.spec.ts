@@ -1,3 +1,5 @@
+/// <reference types="jest" />
+
 import {
   BadRequestException,
   ConflictException,
@@ -650,6 +652,7 @@ describe('MypageService job fit analyses', () => {
     service = new MypageService(
       prisma as unknown as PrismaService,
       createConfig({}),
+      { deleteAsset: jest.fn() } as unknown as AssetsService,
     );
   });
 

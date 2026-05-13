@@ -65,6 +65,27 @@ function LoginPageContent() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
+
+    // 필수 입력 검증
+    if (!username.trim()) {
+      window.alert("아이디를 입력해주세요.");
+      return;
+    }
+    if (!password.trim()) {
+      window.alert("비밀번호를 입력해주세요.");
+      return;
+    }
+    if (mode === "register") {
+      if (!displayName.trim()) {
+        window.alert("표시 이름을 입력해주세요.");
+        return;
+      }
+      if (role === "COMPANY" && !companyName.trim()) {
+        window.alert("회사명을 입력해주세요.");
+        return;
+      }
+    }
+
     try {
       const payload: Record<string, string> = { username, password };
       if (mode === "register") {
@@ -76,6 +97,13 @@ function LoginPageContent() {
         }
       }
       const user = await authRequest(mode, payload);
+
+      if (mode === "register") {
+        window.alert(
+          "회원가입 완료! 관리자 승인 후 이용 가능하며, 승인은 2-3영업일 내로 이루어집니다.",
+        );
+      }
+
       setMessage(`${user?.username} 계정으로 로그인되었습니다.`);
       router.replace(nextPath ?? nextPathForRole(user));
     } catch (error) {
@@ -125,27 +153,29 @@ function LoginPageContent() {
 
           <form className="grid gap-4" onSubmit={submit}>
             <label className="text-sm font-semibold text-gray-700">
-              아이디
+              아이디 <span className="text-red-500">*</span>
               <input
                 className="mt-2 w-full rounded-xl border border-[var(--app-line)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
+                placeholder="아이디를 입력하세요"
               />
             </label>
             <label className="text-sm font-semibold text-gray-700">
-              비밀번호
+              비밀번호 <span className="text-red-500">*</span>
               <input
                 className="mt-2 w-full rounded-xl border border-[var(--app-line)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]"
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                placeholder="비밀번호를 입력하세요"
               />
             </label>
 
             {mode === "register" && (
               <>
                 <label className="text-sm font-semibold text-gray-700">
-                  회원 유형
+                  회원 유형 <span className="text-red-500">*</span>
                   <select
                     ref={roleSelectRef}
                     className="mt-2 w-full rounded-xl border border-[var(--app-line)] px-3 py-2.5 text-sm outline-none"
@@ -159,17 +189,18 @@ function LoginPageContent() {
                   </select>
                 </label>
                 <label className="text-sm font-semibold text-gray-700">
-                  표시 이름
+                  표시 이름 <span className="text-red-500">*</span>
                   <input
                     className="mt-2 w-full rounded-xl border border-[var(--app-line)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]"
                     value={displayName}
                     onChange={(event) => setDisplayName(event.target.value)}
+                    placeholder="닉네임을 입력하세요"
                   />
                 </label>
                 {role === "COMPANY" && (
                   <>
                     <label className="text-sm font-semibold text-gray-700">
-                      회사명
+                      회사명 <span className="text-red-500">*</span>
                       <input
                         className="mt-2 w-full rounded-xl border border-[var(--app-line)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]"
                         value={companyName}
@@ -178,7 +209,7 @@ function LoginPageContent() {
                       />
                     </label>
                     <label className="text-sm font-semibold text-gray-700">
-                      회사 유형
+                      회사 유형 <span className="text-red-500">*</span>
                       <select
                         className="mt-2 w-full rounded-xl border border-[var(--app-line)] px-3 py-2.5 text-sm outline-none"
                         value={companyType}

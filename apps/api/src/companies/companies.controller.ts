@@ -44,6 +44,14 @@ export class CompaniesController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.COMPANY)
+  @Get('me/analytics')
+  analytics(@Req() req: RequestWithUser) {
+    return this.companiesService.analytics(req.user!.id);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.COMPANY)
   @Post('me/profile-submissions')
   createProfileSubmission(
     @Req() req: RequestWithUser,

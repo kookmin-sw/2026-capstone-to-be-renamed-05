@@ -101,6 +101,15 @@ export type DeadlineType = (typeof DEADLINE_TYPES)[number];
 export const JOB_STATUSES = ["OPEN", "CLOSED", "DRAFT"] as const;
 export type JobStatus = (typeof JOB_STATUSES)[number];
 
+export const JOB_ENGAGEMENT_EVENT_TYPES = [
+  "DETAIL_VIEW",
+  "ORIGINAL_CLICK",
+  "BOOKMARK_ADDED",
+  "BOOKMARK_REMOVED",
+] as const;
+export type JobEngagementEventType =
+  (typeof JOB_ENGAGEMENT_EVENT_TYPES)[number];
+
 export const SALARY_LEVELS = [
   "ABOVE_AVERAGE",
   "TOP_1",
@@ -389,6 +398,50 @@ export type CompanyManagedJobItem = JobListItem & {
 export type CompanyDashboardResponse = {
   company: CompanyDetailItem;
   pendingProfileSubmission: CompanyProfileSubmissionItem | null;
+};
+
+export type CompanyAnalyticsPeriod = {
+  from: string;
+  to: string;
+  days: number;
+};
+
+export type CompanyAnalyticsSummary = {
+  detailViews: number;
+  originalClicks: number;
+  bookmarkAdds: number;
+  bookmarkRemoves: number;
+  currentBookmarks: number;
+  originalClickRate: number;
+  bookmarkConversionRate: number;
+};
+
+export type CompanyAnalyticsDailyPoint = {
+  date: string;
+  detailViews: number;
+  originalClicks: number;
+  bookmarkAdds: number;
+};
+
+export type CompanyAnalyticsJobItem = {
+  jobId: string;
+  title: string;
+  status: JobStatus;
+  detailViews: number;
+  originalClicks: number;
+  bookmarkAdds: number;
+  bookmarkRemoves: number;
+  currentBookmarks: number;
+  originalClickRate: number;
+  bookmarkConversionRate: number;
+};
+
+export type CompanyAnalyticsDashboardResponse = {
+  period: CompanyAnalyticsPeriod;
+  summary: CompanyAnalyticsSummary;
+  daily: CompanyAnalyticsDailyPoint[];
+  jobs: CompanyAnalyticsJobItem[];
+  generatedAt: string;
 };
 
 // ─── Mypage ──────────────────────────────────────────────────

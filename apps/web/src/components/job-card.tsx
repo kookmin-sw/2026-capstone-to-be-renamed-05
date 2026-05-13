@@ -21,6 +21,7 @@ import {
 } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 import { actionButtonClassName } from "@/components/ui/action-button";
+import { recordJobEngagement } from "@/lib/api";
 import { jobDetailHref } from "@/lib/routes";
 import styles from "./job-card.module.css";
 
@@ -46,6 +47,7 @@ export function JobCard({ job }: { job: JobListItem }) {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              trackOriginalClick(job.id);
               window.open(job.originalUrl, "_blank", "noreferrer");
             }}
             className={actionButtonClassName({ variant: "outline", size: "sm" })}
@@ -194,6 +196,7 @@ export function JobGridCard({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              trackOriginalClick(job.id);
               window.open(job.originalUrl, "_blank", "noreferrer");
             }}
             className={actionButtonClassName({
@@ -208,6 +211,10 @@ export function JobGridCard({
       </div>
     </Link>
   );
+}
+
+function trackOriginalClick(jobId: string) {
+  void recordJobEngagement(jobId, "ORIGINAL_CLICK").catch(() => {});
 }
 
 function dDayToneClassName(dDay: number | null) {

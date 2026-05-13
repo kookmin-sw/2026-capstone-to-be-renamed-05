@@ -7,9 +7,11 @@ import { ConfigService } from '@nestjs/config';
 import {
   AssetPurpose,
   AssetStatus,
+  BookmarkTargetType,
   CpaVerificationStatus,
   CommunityBoardType,
   EmploymentHistoryStatus,
+  JobEngagementEventType,
   PersonalCareerStage,
   PersonalVerificationRequestStatus,
   UserRole,
@@ -584,6 +586,143 @@ describe('MypageService account settings', () => {
       pageSize: 10,
       total: 12,
     });
+  });
+});
+
+describe('MypageService bookmark engagement analytics', () => {
+  let prisma: {
+    bookmark: {
+      findUnique: jest.Mock;
+      create: jest.Mock;
+      findFirst: jest.Mock;
+      delete: jest.Mock;
+    };
+    job: {
+      findUnique: jest.Mock;
+    };
+    company: {
+      findUnique: jest.Mock;
+    };
+    jobEngagementEvent: {
+      create: jest.Mock;
+    };
+  };
+  let service: MypageService;
+
+  beforeEach(() => {
+    prisma = {
+      bookmark: {
+        findUnique: jest.fn(),
+        create: jest.fn(),
+        findFirst: jest.fn(),
+        delete: jest.fn(),
+      },
+      job: {
+        findUnique: jest.fn(),
+      },
+      company: {
+        findUnique: jest.fn(),
+      },
+      jobEngagementEvent: {
+        create: jest.fn(),
+      },
+    };
+    service = new MypageService(
+      prisma as unknown as PrismaService,
+      createConfig({}),
+      { deleteAsset: jest.fn() } as unknown as AssetsService,
+    );
+  });
+
+  it('records a bookmark-added event for job bookmarks without exposing it in the response', async () => {
+    prisma.bookmark.findUnique.mockResolvedValue(null);
+    prisma.bookmark.create.mockResolvedValue({
+      id: 'bookmark-1',
+      targetType: BookmarkTargetType.JOB,
+      targetId: 'job-1',
+      createdAt,
+    });
+    prisma.job.findUnique
+      .mockResolvedValueOnce({ id: 'job-1' })
+      .mockResolvedValueOnce({ id: 'job-1', companyId: 'company-1' })
+      .mockResolvedValueOnce({
+        title: '감사 공고',
+        company: { name: '테스트회계법인' },
+      });
+
+    const result = await service.createBookmark(
+      'user-1',
+      BookmarkTargetType.JOB,
+      'job-1',
+    );
+
+    expect(prisma.jobEngagementEvent.create).toHaveBeenCalledWith({
+      data: {
+        jobId: 'job-1',
+        companyId: 'company-1',
+        type: JobEngagementEventType.BOOKMARK_ADDED,
+        actorUserId: 'user-1',
+      },
+    });
+    expect(result).toEqual({
+      id: 'bookmark-1',
+      targetType: BookmarkTargetType.JOB,
+      targetId: 'job-1',
+      targetTitle: '감사 공고',
+      targetSubtitle: '테스트회계법인',
+      createdAt: createdAt.toISOString(),
+    });
+  });
+
+  it('records a bookmark-removed event for job bookmarks only', async () => {
+    prisma.bookmark.findFirst.mockResolvedValue({
+      id: 'bookmark-1',
+      targetType: BookmarkTargetType.JOB,
+      targetId: 'job-1',
+      createdAt,
+    });
+    prisma.bookmark.delete.mockResolvedValue({ id: 'bookmark-1' });
+    prisma.job.findUnique.mockResolvedValue({
+      id: 'job-1',
+      companyId: 'company-1',
+    });
+
+    await expect(
+      service.deleteBookmark('user-1', 'bookmark-1'),
+    ).resolves.toEqual({ ok: true });
+
+    expect(prisma.jobEngagementEvent.create).toHaveBeenCalledWith({
+      data: {
+        jobId: 'job-1',
+        companyId: 'company-1',
+        type: JobEngagementEventType.BOOKMARK_REMOVED,
+        actorUserId: 'user-1',
+      },
+    });
+  });
+
+  it('does not record engagement events for company bookmarks', async () => {
+    prisma.bookmark.findUnique.mockResolvedValue(null);
+    prisma.bookmark.create.mockResolvedValue({
+      id: 'bookmark-company-1',
+      targetType: BookmarkTargetType.COMPANY,
+      targetId: 'company-1',
+      createdAt,
+    });
+    prisma.company.findUnique
+      .mockResolvedValueOnce({ id: 'company-1' })
+      .mockResolvedValueOnce({
+        name: '테스트회계법인',
+        type: 'LOCAL_ACCOUNTING_FIRM',
+      });
+
+    await service.createBookmark(
+      'user-1',
+      BookmarkTargetType.COMPANY,
+      'company-1',
+    );
+
+    expect(prisma.jobEngagementEvent.create).not.toHaveBeenCalled();
   });
 });
 

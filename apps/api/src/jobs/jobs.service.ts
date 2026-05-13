@@ -3,7 +3,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DeadlineType, Job, JobStatus, Prisma } from '@prisma/client';
+import {
+  DeadlineType,
+  Job,
+  JobEngagementEventType,
+  JobStatus,
+  Prisma,
+} from '@prisma/client';
 import type {
   JobCalendarEvent,
   JobCalendarRange,
@@ -208,6 +214,38 @@ export class JobsService {
       location: job.location,
       aiSuggestion: job.aiSuggestions[0] ?? null,
     };
+  }
+
+  async recordEngagement(
+    id: string,
+    type: JobEngagementEventType,
+    actorUserId?: string | null,
+  ) {
+    if (
+      type !== JobEngagementEventType.DETAIL_VIEW &&
+      type !== JobEngagementEventType.ORIGINAL_CLICK
+    ) {
+      throw new BadRequestException('기록할 수 없는 공고 행동 유형입니다.');
+    }
+
+    const job = await this.prisma.job.findFirst({
+      where: { id, status: JobStatus.OPEN },
+      select: { id: true, companyId: true },
+    });
+    if (!job) {
+      throw new NotFoundException('공고를 찾을 수 없습니다.');
+    }
+
+    await this.prisma.jobEngagementEvent.create({
+      data: {
+        jobId: job.id,
+        companyId: job.companyId,
+        type,
+        actorUserId: actorUserId ?? null,
+      },
+    });
+
+    return { ok: true };
   }
 
   async calendar(query: ListJobCalendarDto) {

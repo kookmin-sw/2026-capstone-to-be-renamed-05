@@ -62,6 +62,13 @@ enum JobStatus {
   DRAFT
 }
 
+enum JobEngagementEventType {
+  DETAIL_VIEW
+  ORIGINAL_CLICK
+  BOOKMARK_ADDED
+  BOOKMARK_REMOVED
+}
+
 enum SubmissionStatus {
   PENDING
   APPROVED
@@ -150,6 +157,7 @@ model User {
   reviewedCompanyProfileSubmissions CompanyProfileSubmission[] @relation("CompanyProfileSubmissionReviewer")
   uploadedAssets                    Asset[]                    @relation("AssetUploader")
   bookmarks                         Bookmark[]
+  jobEngagementEvents               JobEngagementEvent[]      @relation("JobEngagementEventActor")
   resumes                           Resume[]
   personalProfile                    PersonalProfile?
   personalVerificationRequests       PersonalVerificationRequest[] @relation("PersonalVerificationRequestSubmitter")
@@ -223,6 +231,7 @@ model Company {
   jobs               Job[]
   jobSubmissions     JobSubmission[]
   profileSubmissions CompanyProfileSubmission[]
+  jobEngagementEvents JobEngagementEvent[]
 
   @@index([averageSalary])
 }
@@ -315,6 +324,7 @@ model Job {
   aiSuggestions      AiSuggestion[]
   approvedSubmission JobSubmission?  @relation("ApprovedJobSubmission")
   editSubmissions    JobSubmission[] @relation("TargetJobSubmission")
+  engagementEvents   JobEngagementEvent[]
 
   @@index([status, deadline])
   @@index([jobFamily])
@@ -447,6 +457,23 @@ model Bookmark {
 
   @@unique([userId, targetType, targetId])
   @@index([userId, targetType, createdAt])
+}
+
+model JobEngagementEvent {
+  id          String                 @id @default(uuid())
+  jobId       String
+  companyId   String
+  type        JobEngagementEventType
+  actorUserId String?
+  createdAt   DateTime               @default(now())
+
+  job       Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  actorUser User?   @relation("JobEngagementEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, createdAt])
+  @@index([jobId, type, createdAt])
+  @@index([actorUserId, createdAt])
 }
 
 model Resume {

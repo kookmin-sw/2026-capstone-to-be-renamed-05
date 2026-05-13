@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { type CSSProperties, useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { ChipGroup } from "./_components/chip-group";
 import {
   formatDeadlineDisplay,
@@ -24,7 +24,7 @@ import { SiteNav } from "@/components/site-nav";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { InfoItem } from "@/components/ui/info-item";
 import { actionButtonClassName } from "@/components/ui/action-button";
-import { fetchJobDetail } from "@/lib/api";
+import { fetchJobDetail, recordJobEngagement } from "@/lib/api";
 import {
   companyTypeLabels,
   deadlineTypeLabels,
@@ -43,6 +43,7 @@ export function JobDetailClient() {
   const [job, setJob] = useState<JobDetailItem | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const recordedDetailJobId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -53,6 +54,10 @@ export function JobDetailClient() {
         if (!ignore) {
           setJob(data);
           setError("");
+          if (recordedDetailJobId.current !== data.id) {
+            recordedDetailJobId.current = data.id;
+            void recordJobEngagement(data.id, "DETAIL_VIEW").catch(() => {});
+          }
         }
       })
       .catch((caught: Error) => {
@@ -143,6 +148,9 @@ function JobDetail({ job }: { job: JobDetailItem }) {
     job.minExperienceYears,
     job.maxExperienceYears,
   );
+  const trackOriginalClick = () => {
+    void recordJobEngagement(job.id, "ORIGINAL_CLICK").catch(() => {});
+  };
 
   return (
     <main className="min-h-screen bg-[var(--background)]">
@@ -207,6 +215,7 @@ function JobDetail({ job }: { job: JobDetailItem }) {
               target="_blank"
               rel="noreferrer"
               className={actionButtonClassName({ size: "md" })}
+              onClick={trackOriginalClick}
             >
               원문에서 지원
               <ExternalLink size={15} />
@@ -277,6 +286,7 @@ function JobDetail({ job }: { job: JobDetailItem }) {
             target="_blank"
             rel="noreferrer"
             className={styles.externalLink}
+            onClick={trackOriginalClick}
           >
             원문 링크 열기
             <ExternalLink size={14} />

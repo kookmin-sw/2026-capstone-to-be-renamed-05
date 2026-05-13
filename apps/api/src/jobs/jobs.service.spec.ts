@@ -1,5 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
-import { JobStatus, type Prisma } from '@prisma/client';
+import { JobEngagementEventType, JobStatus, type Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { JobsService } from './jobs.service';
 
@@ -18,6 +18,9 @@ describe('JobsService', () => {
     };
     companyMetadata: {
       findMany: jest.Mock;
+    };
+    jobEngagementEvent: {
+      create: jest.Mock;
     };
     $transaction: jest.Mock;
   };
@@ -41,6 +44,9 @@ describe('JobsService', () => {
       companyMetadata: {
         findMany: jest.fn().mockResolvedValue([]),
       },
+      jobEngagementEvent: {
+        create: jest.fn(),
+      },
       $transaction: jest.fn().mockResolvedValue([[], 0]),
     };
     service = new JobsService(prisma as unknown as PrismaService);
@@ -57,6 +63,46 @@ describe('JobsService', () => {
         where: { id: 'job-1', status: JobStatus.OPEN },
       }),
     );
+  });
+
+  it('records public engagement events for open jobs without returning actor data', async () => {
+    prisma.job.findFirst.mockResolvedValue({
+      id: 'job-1',
+      companyId: 'company-1',
+    });
+    prisma.jobEngagementEvent.create.mockResolvedValue({ id: 'event-1' });
+
+    const result = await service.recordEngagement(
+      'job-1',
+      JobEngagementEventType.ORIGINAL_CLICK,
+      'user-1',
+    );
+
+    expect(prisma.job.findFirst).toHaveBeenCalledWith({
+      where: { id: 'job-1', status: JobStatus.OPEN },
+      select: { id: true, companyId: true },
+    });
+    expect(prisma.jobEngagementEvent.create).toHaveBeenCalledWith({
+      data: {
+        jobId: 'job-1',
+        companyId: 'company-1',
+        type: JobEngagementEventType.ORIGINAL_CLICK,
+        actorUserId: 'user-1',
+      },
+    });
+    expect(result).toEqual({ ok: true });
+  });
+
+  it('rejects engagement recording for missing public jobs', async () => {
+    prisma.job.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.recordEngagement(
+        'job-missing',
+        JobEngagementEventType.DETAIL_VIEW,
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.jobEngagementEvent.create).not.toHaveBeenCalled();
   });
 
   it('filters active-hiring by companies with at least five open jobs', async () => {

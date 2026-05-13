@@ -194,6 +194,147 @@
   line-height: 1.3;
 }
 
+/* ─── Analytics ───────────────────────────────────────────── */
+
+.analyticsPanel {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid var(--app-line);
+  background: var(--surface);
+  border-radius: 0.625rem;
+  padding: 1.25rem;
+}
+
+.analyticsMetricGrid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.analyticsGrid {
+  display: grid;
+  gap: 1rem;
+}
+
+.analyticsCard {
+  min-width: 0;
+  border: 1px solid var(--app-line);
+  border-radius: var(--radius-md);
+  background: #fafafa;
+  padding: 1rem;
+}
+
+.analyticsCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.875rem;
+}
+
+.analyticsCardHeader h3 {
+  color: var(--gray-900);
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.analyticsCardHeader span {
+  color: var(--app-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.trendList {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.trendRow {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr) 2.5rem;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 1.6rem;
+}
+
+.trendRow time,
+.trendRow strong {
+  color: var(--gray-700);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.trendRow strong {
+  text-align: right;
+}
+
+.trendBarTrack {
+  overflow: hidden;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: #e5e7eb;
+}
+
+.trendBar {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--proto-brand);
+}
+
+.analyticsTable {
+  overflow-x: auto;
+  border: 1px solid var(--app-line);
+  border-radius: var(--radius-md);
+  background: white;
+}
+
+.analyticsTableHead,
+.analyticsTableRow {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) repeat(4, minmax(4.5rem, 0.36fr));
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 42rem;
+  padding: 0.75rem 0.875rem;
+}
+
+.analyticsTableHead {
+  border-bottom: 1px solid var(--app-line);
+  color: var(--app-muted);
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+}
+
+.analyticsTableRow {
+  color: var(--gray-800);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.analyticsTableRow + .analyticsTableRow {
+  border-top: 1px solid var(--app-line);
+}
+
+.analyticsJobCell {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.analyticsJobCell strong {
+  overflow: hidden;
+  color: var(--gray-900);
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.analyticsJobCell span {
+  color: var(--app-muted);
+  font-size: 0.72rem;
+}
+
 /* ─── Section Stack & Item List ───────────────────────────── */
 
 .sectionStack {
@@ -587,6 +728,10 @@
   .metricGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .analyticsMetricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 768px) {
@@ -606,6 +751,14 @@
 @media (min-width: 1024px) {
   .managementGrid {
     grid-template-columns: minmax(0, 1fr) 22rem;
+  }
+
+  .analyticsGrid {
+    grid-template-columns: 0.9fr 1.1fr;
+  }
+
+  .analyticsMetricGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 

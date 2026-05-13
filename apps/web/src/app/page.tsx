@@ -2,14 +2,11 @@ import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowRight,
-  BriefcaseBusiness,
-  Building2,
   CalendarClock,
   CheckCircle2,
   ClipboardList,
   SlidersHorizontal,
   Target,
-  UserRound,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -66,10 +63,10 @@ const solutionItems = [
   },
 ];
 
-const stats: Array<{ icon: LucideIcon; value: string; label: string }> = [
-  { icon: BriefcaseBusiness, value: '10,000+', label: '누적 채용공고' },
-  { icon: UserRound, value: '5,000+', label: '회계사 회원' },
-  { icon: Building2, value: '300+', label: '제휴 기업' },
+const stats: Array<{ value: string; label: string }> = [
+  { value: '10,000+', label: '누적 채용공고' },
+  { value: '5,000+', label: '회계사 회원' },
+  { value: '300+', label: '제휴 기업' },
 ];
 
 function IconTrainee() {
@@ -88,7 +85,6 @@ function IconEntry() {
     <svg width="72" height="72" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="28" cy="17" r="10" fill="#E8457A" />
       <path d="M6 51C6 38.85 15.85 29 28 29C40.15 29 50 38.85 50 51" fill="#FFD6E5" />
-      {/* sparkle accent */}
       <circle cx="44" cy="12" r="2.5" fill="#60A5FA" />
       <line x1="44" y1="7" x2="44" y2="9" stroke="#60A5FA" strokeWidth="2" strokeLinecap="round" />
       <line x1="44" y1="15" x2="44" y2="17" stroke="#60A5FA" strokeWidth="2" strokeLinecap="round" />
@@ -105,7 +101,6 @@ function IconExperienced() {
       <path d="M20 24V18C20 15.791 21.791 14 24 14H32C34.209 14 36 15.791 36 18V24" stroke="#D03368" strokeWidth="3" strokeLinecap="round" />
       <rect x="6" y="24" width="44" height="8" rx="4" fill="#D03368" opacity="0.2" />
       <rect x="24.5" y="29" width="7" height="7" rx="2" fill="#D03368" />
-      {/* accent dot */}
       <circle cx="46" cy="14" r="5" fill="#818CF8" />
       <line x1="46" y1="11.5" x2="46" y2="16.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
       <line x1="43.5" y1="14" x2="48.5" y2="14" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
@@ -123,7 +118,6 @@ function IconDeadlineSoon() {
       <circle cx="28" cy="32" r="2.5" fill="#D03368" />
       <path d="M13 18C11 16 10.5 13 13 11" stroke="#FFD6E5" strokeWidth="3" strokeLinecap="round" />
       <path d="M43 18C45 16 45.5 13 43 11" stroke="#FFD6E5" strokeWidth="3" strokeLinecap="round" />
-      {/* urgent accent */}
       <circle cx="44" cy="10" r="5" fill="#FBBF24" />
       <line x1="44" y1="7.5" x2="44" y2="11" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
       <circle cx="44" cy="12.5" r="1" fill="white" />
@@ -176,7 +170,7 @@ export default function Home() {
               width={1680}
               height={936}
               priority
-              sizes="(max-width: 900px) 100vw, 58vw"
+              sizes="58vw"
             />
           </div>
         </div>
@@ -247,12 +241,30 @@ export default function Home() {
           <br />더 <span>든든하게</span> 함께합니다
         </h2>
         <div className={styles.statsGrid}>
-          {stats.map(({ icon: Icon, value, label }) => (
+          {stats.map(({ value, label }) => (
             <div className={styles.statCard} key={label}>
               <strong>{value}</strong>
               <span>{label}</span>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className={styles.ctaSection} aria-labelledby="cta-title">
+        <div className={styles.ctaInner}>
+          <h2 id="cta-title">
+            공고를 찾는 순간부터 마감 관리까지
+            <br />
+            <span>Accountit에서 이어가세요</span>
+          </h2>
+          <div className={styles.ctaActions}>
+            <ActionLink href="/jobs" size="lg" iconEnd={<ArrowRight size={17} />}>
+              채용공고 탐색하기
+            </ActionLink>
+            <ActionLink href="/community" size="lg" variant="subtle">
+              커뮤니티 둘러보기
+            </ActionLink>
+          </div>
         </div>
       </section>
     </main>

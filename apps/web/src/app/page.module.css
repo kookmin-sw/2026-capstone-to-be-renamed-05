@@ -115,7 +115,8 @@
 .problemSection,
 .solutionSection,
 .outroSection,
-.quickSection {
+.quickSection,
+.ctaSection {
   max-width: 80rem;
   margin: 0 auto;
   padding-right: 1.5rem;
@@ -289,7 +290,8 @@
 }
 
 .solutionCopy h2 span,
-.outroSection h2 span {
+.outroSection h2 span,
+.ctaInner h2 span {
   color: var(--brand);
 }
 
@@ -395,48 +397,38 @@
   font-weight: 600;
 }
 
-/* ── Responsive ───────────────────────────────────── */
-@media (max-width: 1080px) {
-  .heroInner {
-    grid-template-columns: 1fr;
-    min-height: auto;
-    padding-top: 4.5rem;
-    padding-bottom: 3.5rem;
-    text-align: center;
-  }
+/* ── CTA ──────────────────────────────────────────── */
+.ctaSection {
+  padding-top: 0;
+  padding-bottom: 8rem;
+}
 
-  .heroCopy,
-  .description {
-    margin-right: auto;
-    margin-left: auto;
-  }
+.ctaInner {
+  display: grid;
+  justify-items: center;
+  gap: 1.6rem;
+  border: 1px solid rgba(232, 69, 122, 0.16);
+  border-radius: 0.75rem;
+  background:
+    linear-gradient(180deg, rgba(255, 240, 245, 0.9), rgba(255, 255, 255, 0.96)),
+    #ffffff;
+  padding: clamp(2rem, 5vw, 4rem) 1.5rem;
+  text-align: center;
+}
 
-  .headline {
-    max-width: 100%;
-    font-size: 3.25rem;
-  }
+.ctaInner h2 {
+  color: #202738;
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.35;
+  word-break: keep-all;
+}
 
-  .heroImage {
-    width: min(52rem, 100%);
-    margin: 0 auto;
-  }
-
-  .problemGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .quickRow {
-    gap: 3rem;
-    flex-wrap: wrap;
-  }
-
-  .solutionPanel {
-    grid-template-columns: 1fr;
-    padding: 2.5rem;
-    gap: 2.5rem;
-  }
-
-  .statsGrid {
-    max-width: 100%;
-  }
+.ctaActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: center;
 }

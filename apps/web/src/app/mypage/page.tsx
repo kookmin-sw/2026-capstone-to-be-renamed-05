@@ -70,6 +70,8 @@ const PROFILE_IMAGE_TYPES = new Set([
 ]);
 const PASSWORD_MIN_LENGTH = 8;
 const PASSWORD_MAX_LENGTH = 128;
+const PASSWORD_LENGTH_TEXT = `${PASSWORD_MIN_LENGTH}자 이상 ${PASSWORD_MAX_LENGTH}자 이하`;
+const PASSWORD_HELP_TEXT = `새 비밀번호는 ${PASSWORD_LENGTH_TEXT}, 현재 비밀번호와 다르게 입력해주세요.`;
 
 const careerStageLabels: Record<PersonalCareerStage, string> = {
   CPA_UNPLACED: "CPA 취득, 수습처 미확정",
@@ -335,9 +337,7 @@ export default function MyPage() {
       newPassword.length < PASSWORD_MIN_LENGTH ||
       newPassword.length > PASSWORD_MAX_LENGTH
     ) {
-      setMessage(
-        `새 비밀번호는 ${PASSWORD_MIN_LENGTH}자 이상 ${PASSWORD_MAX_LENGTH}자 이하로 입력해주세요.`,
-      );
+      setMessage(`새 비밀번호는 ${PASSWORD_LENGTH_TEXT}로 입력해주세요.`);
       return;
     }
     if (newPassword !== newPasswordConfirm) {
@@ -680,6 +680,7 @@ export default function MyPage() {
                   <KeyRound size={16} />
                   비밀번호
                 </div>
+                <p className={styles.passwordHint}>{PASSWORD_HELP_TEXT}</p>
                 <label className={styles.field}>
                   현재 비밀번호
                   <input
@@ -699,6 +700,7 @@ export default function MyPage() {
                   <input
                     className={styles.input}
                     type="password"
+                    placeholder={PASSWORD_LENGTH_TEXT}
                     autoComplete="new-password"
                     value={newPassword}
                     onChange={(event) => setNewPassword(event.target.value)}
@@ -713,6 +715,7 @@ export default function MyPage() {
                   <input
                     className={styles.input}
                     type="password"
+                    placeholder={PASSWORD_LENGTH_TEXT}
                     autoComplete="new-password"
                     value={newPasswordConfirm}
                     onChange={(event) =>

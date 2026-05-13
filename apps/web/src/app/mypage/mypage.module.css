@@ -204,6 +204,26 @@
   white-space: nowrap;
 }
 
+.equippedRewardRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.equippedRewardRow span {
+  display: inline-flex;
+  min-height: 1.55rem;
+  align-items: center;
+  border: 1px solid rgba(242, 201, 76, 0.7);
+  border-radius: 999px;
+  background: rgba(255, 247, 214, 0.86);
+  padding: 0 0.55rem;
+  color: #854d0e;
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
 .summaryGrid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.72fr);
@@ -262,28 +282,6 @@
   font-size: 0.875rem;
 }
 
-.completionPanelActions {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-}
-
-.completionHeaderScore {
-  display: inline-flex;
-  min-height: 2rem;
-  align-items: center;
-  border: 1px solid var(--brand-mid);
-  border-radius: 999px;
-  background: var(--brand-soft);
-  padding: 0 0.75rem;
-  color: var(--brand);
-  font-size: 0.75rem;
-  font-weight: 900;
-}
-
 .snoozeButton {
   display: inline-flex;
   min-height: 2rem;
@@ -308,63 +306,6 @@
   border-color: var(--brand-mid);
   background: var(--brand-soft);
   color: var(--brand);
-}
-
-.completionScoreRow {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  margin-bottom: 0.875rem;
-}
-
-.scoreCircle {
-  flex: none;
-  display: flex;
-  width: 5rem;
-  height: 5rem;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #b7ead5;
-  border-radius: 999px;
-  background: #f0fdf7;
-  color: #047857;
-}
-
-.scoreCircle strong {
-  font-size: 1.65rem;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.scoreCircle span {
-  margin-top: 0.1rem;
-  font-size: 0.75rem;
-  font-weight: 800;
-}
-
-.scoreCircleComplete {
-  border-color: #f2c94c;
-  background: linear-gradient(135deg, #fff7d6, #ecfeff);
-  color: #854d0e;
-}
-
-.completionCopy {
-  min-width: 0;
-}
-
-.completionCopy p {
-  color: var(--gray-900);
-  font-size: 1rem;
-  font-weight: 850;
-}
-
-.completionCopy span {
-  display: block;
-  margin-top: 0.25rem;
-  color: var(--app-muted);
-  font-size: 0.8125rem;
-  line-height: 1.5;
 }
 
 .scoreTrack {
@@ -515,10 +456,6 @@
   color: var(--brand-strong);
 }
 
-.restoreProfileScoreAction {
-  margin-top: 0.875rem;
-}
-
 .statGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -547,6 +484,44 @@
   font-size: 0.95rem;
   font-weight: 850;
   overflow-wrap: anywhere;
+}
+
+.profileBoostStrip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.875rem;
+  margin-top: 0.875rem;
+  border: 1px solid var(--brand-mid);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 240, 245, 0.9), rgba(240, 253, 250, 0.82)),
+    white;
+  padding: 0.8rem 0.875rem;
+}
+
+.profileBoostCopy {
+  min-width: 0;
+  display: grid;
+  gap: 0.16rem;
+}
+
+.profileBoostCopy span {
+  color: var(--brand);
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.profileBoostCopy strong {
+  color: var(--gray-900);
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+.profileBoostCopy p {
+  color: var(--app-muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
 }
 
 .profileForm,
@@ -1004,6 +979,185 @@
   height: 1.15rem;
 }
 
+.completionModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(17, 24, 39, 0.42);
+  padding: 1rem;
+}
+
+.completionModal {
+  position: relative;
+  width: min(48rem, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  border: 1px solid rgba(242, 201, 76, 0.42);
+  border-radius: 8px;
+  background: white;
+  padding: 1.1rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.completionModalHero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.95rem;
+  align-items: center;
+  margin-right: 2.25rem;
+  margin-bottom: 0.9rem;
+}
+
+.completionAvatarPreview {
+  position: relative;
+  display: flex;
+  width: 5.25rem;
+  height: 5.25rem;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 4px solid white;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fff7ed, #fff0f5 58%, #eef7ff);
+  color: var(--brand);
+  font-size: 1.45rem;
+  font-weight: 950;
+  box-shadow:
+    0 16px 30px rgba(15, 23, 42, 0.14),
+    0 0 0 4px rgba(232, 69, 122, 0.12);
+}
+
+.completionAvatarPreviewComplete {
+  box-shadow:
+    0 16px 30px rgba(15, 23, 42, 0.14),
+    0 0 0 4px rgba(242, 201, 76, 0.25),
+    0 0 0 8px rgba(20, 184, 166, 0.12);
+}
+
+.completionAvatarImage {
+  object-fit: cover;
+}
+
+.completionHeroCopy {
+  min-width: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.completionEyebrow {
+  color: var(--brand);
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.completionHeroCopy h2 {
+  color: var(--gray-900);
+  font-size: 1.25rem;
+  font-weight: 950;
+  line-height: 1.25;
+}
+
+.completionHeroCopy p {
+  color: var(--app-muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.completionScorePill {
+  display: grid;
+  min-width: 5.2rem;
+  justify-items: center;
+  border: 1px solid var(--brand-mid);
+  border-radius: 8px;
+  background: var(--brand-soft);
+  padding: 0.65rem 0.75rem;
+}
+
+.completionScorePill strong {
+  color: var(--brand);
+  font-size: 1.35rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.completionScorePill span {
+  margin-top: 0.2rem;
+  color: var(--gray-700);
+  font-size: 0.72rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.completionModalGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(16rem, 0.8fr);
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.completionModalSection {
+  min-width: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.completionModalSection h3 {
+  color: var(--gray-900);
+  font-size: 0.9rem;
+  font-weight: 950;
+}
+
+.rewardList {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.rewardItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: var(--gray-50);
+  padding: 0.72rem;
+}
+
+.rewardItem svg {
+  flex: none;
+  color: var(--brand);
+  margin-top: 0.1rem;
+}
+
+.rewardItem div {
+  min-width: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.rewardItem strong {
+  color: var(--gray-900);
+  font-size: 0.8125rem;
+  font-weight: 900;
+}
+
+.rewardItem span {
+  color: var(--app-muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.completionModalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
 .modalOverlay {
   position: fixed;
   inset: 0;
@@ -1151,22 +1305,27 @@
     flex-direction: column;
   }
 
-  .completionPanelActions {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .completionScoreRow {
+  .profileBoostStrip {
     align-items: flex-start;
+    flex-direction: column;
   }
 
-  .scoreCircle {
-    width: 4.25rem;
-    height: 4.25rem;
+  .completionModal {
+    padding: 0.95rem;
   }
 
-  .scoreCircle strong {
-    font-size: 1.35rem;
+  .completionModalHero {
+    grid-template-columns: auto minmax(0, 1fr);
+    margin-right: 2.25rem;
+  }
+
+  .completionScorePill {
+    grid-column: 1 / -1;
+    justify-items: start;
+  }
+
+  .completionModalGrid {
+    grid-template-columns: 1fr;
   }
 
   .completionStep {

@@ -13,15 +13,12 @@ import {
   Award,
   Bookmark,
   Camera,
-  ChevronDown,
-  ChevronUp,
   CheckCircle2,
   Download,
   EyeOff,
   FileText,
   KeyRound,
   MessageCircle,
-  RotateCcw,
   Sparkles,
   Trash2,
   Upload,
@@ -34,7 +31,6 @@ import {
   type FormEvent,
   type ReactNode,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -68,11 +64,10 @@ const PROFILE_IMAGE_TYPES = new Set([
   "image/webp",
   "image/gif",
 ]);
-const PROFILE_COMPLETION_COLLAPSED_STORAGE_KEY =
-  "accountit:mypage-profile-completion:collapsed";
 const PROFILE_COMPLETION_HIDDEN_UNTIL_STORAGE_KEY =
   "accountit:mypage-profile-completion:hiddenUntil";
 const PROFILE_COMPLETION_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
+const PROFILE_COMPLETION_NEW_USER_MS = 30 * 24 * 60 * 60 * 1000;
 
 type ProfileCompletionAction =
   | "profileImage"
@@ -147,9 +142,11 @@ export default function MyPage() {
   const [updatingProfileImage, setUpdatingProfileImage] = useState(false);
   const [displayNameInput, setDisplayNameInput] = useState("");
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
-  const [profileCompletionCollapsed, setProfileCompletionCollapsed] =
-    useState(false);
   const [profileCompletionHidden, setProfileCompletionHidden] = useState(false);
+  const [profileCompletionModalOpen, setProfileCompletionModalOpen] =
+    useState(false);
+  const [profileCompletionDismissed, setProfileCompletionDismissed] =
+    useState(false);
 
   const resumeFileInputRef = useRef<HTMLInputElement>(null);
   const profileImageInputRef = useRef<HTMLInputElement>(null);
@@ -259,12 +256,6 @@ export default function MyPage() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       try {
-        setProfileCompletionCollapsed(
-          window.localStorage.getItem(
-            PROFILE_COMPLETION_COLLAPSED_STORAGE_KEY,
-          ) === "true",
-        );
-
         const hiddenUntil = Number(
           window.localStorage.getItem(
             PROFILE_COMPLETION_HIDDEN_UNTIL_STORAGE_KEY,
@@ -291,15 +282,47 @@ export default function MyPage() {
       ? bookmarks
       : bookmarks.filter((bm) => bm.targetType === bookmarkFilter);
 
-  const profileCompletion = useMemo(() => {
-    if (!profile) return null;
-    return calculateProfileCompletion(
-      profile,
-      resumes.length,
-      bookmarks.length,
-      communityActivityTotal,
-    );
-  }, [profile, resumes.length, bookmarks.length, communityActivityTotal]);
+  const profileCompletion = profile
+    ? calculateProfileCompletion(
+        profile,
+        resumes.length,
+        bookmarks.length,
+        communityActivityTotal,
+      )
+    : null;
+  const profileCompletionScore = profileCompletion?.score ?? null;
+  const profileCreatedAt = profile?.createdAt ?? null;
+
+  useEffect(() => {
+    if (
+      !profileCreatedAt ||
+      profileCompletionScore === null ||
+      profileCompletionHidden ||
+      profileCompletionDismissed ||
+      profileCompletionModalOpen ||
+      profileCompletionScore === 100
+    ) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      const createdAt = new Date(profileCreatedAt).getTime();
+      const isNewMember =
+        Number.isFinite(createdAt) &&
+        Date.now() - createdAt <= PROFILE_COMPLETION_NEW_USER_MS;
+      if (isNewMember || profileCompletionScore < 60) {
+        setProfileCompletionModalOpen(true);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    profileCreatedAt,
+    profileCompletionScore,
+    profileCompletionHidden,
+    profileCompletionDismissed,
+    profileCompletionModalOpen,
+  ]);
 
   async function handleProfileSave(event: FormEvent) {
     event.preventDefault();
@@ -406,6 +429,9 @@ export default function MyPage() {
   }
 
   function handleProfileCompletionAction(action: ProfileCompletionAction) {
+    setProfileCompletionModalOpen(false);
+    setProfileCompletionDismissed(true);
+
     if (action === "profileImage") {
       profileImageInputRef.current?.click();
       return;
@@ -432,24 +458,11 @@ export default function MyPage() {
     }
   }
 
-  function toggleProfileCompletionCollapsed() {
-    setProfileCompletionCollapsed((prev) => {
-      const next = !prev;
-      try {
-        window.localStorage.setItem(
-          PROFILE_COMPLETION_COLLAPSED_STORAGE_KEY,
-          String(next),
-        );
-      } catch {
-        // Ignore storage failures; the in-memory state still updates.
-      }
-      return next;
-    });
-  }
-
   function hideProfileCompletionForWeek() {
     const hiddenUntil = Date.now() + PROFILE_COMPLETION_SNOOZE_MS;
     setProfileCompletionHidden(true);
+    setProfileCompletionModalOpen(false);
+    setProfileCompletionDismissed(true);
     try {
       window.localStorage.setItem(
         PROFILE_COMPLETION_HIDDEN_UNTIL_STORAGE_KEY,
@@ -460,20 +473,22 @@ export default function MyPage() {
     }
   }
 
-  function restoreProfileCompletionCard() {
+  function openProfileCompletionModal() {
     setProfileCompletionHidden(false);
-    setProfileCompletionCollapsed(false);
+    setProfileCompletionDismissed(false);
+    setProfileCompletionModalOpen(true);
     try {
       window.localStorage.removeItem(
         PROFILE_COMPLETION_HIDDEN_UNTIL_STORAGE_KEY,
       );
-      window.localStorage.setItem(
-        PROFILE_COMPLETION_COLLAPSED_STORAGE_KEY,
-        "false",
-      );
     } catch {
-      // Ignore storage failures; the in-memory state still restores the card.
+      // Ignore storage failures; the in-memory state still opens the modal.
     }
+  }
+
+  function closeProfileCompletionModal() {
+    setProfileCompletionModalOpen(false);
+    setProfileCompletionDismissed(true);
   }
 
   if (loading) {
@@ -600,6 +615,12 @@ export default function MyPage() {
                   <p>
                     @{profile.username} · 가입일 {formatDate(profile.createdAt)}
                   </p>
+                  {profileComplete && (
+                    <div className={styles.equippedRewardRow}>
+                      <span>골드 포커스 프레임 착용 중</span>
+                      <span>완성 프로필 이름표</span>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className={styles.heroBadgeArea}>
@@ -625,119 +646,7 @@ export default function MyPage() {
 
           {message && <div className={styles.message}>{message}</div>}
 
-          <div
-            className={`${styles.summaryGrid} ${
-              profileCompletionHidden ? styles.summaryGridCompact : ""
-            }`}
-          >
-            {!profileCompletionHidden && (
-              <section className={styles.panel}>
-                <div className={styles.panelHeader}>
-                  <h2>
-                    <Sparkles size={17} />
-                    프로필 꾸미기 점수
-                  </h2>
-                  <div className={styles.completionPanelActions}>
-                    <span className={styles.completionHeaderScore}>
-                      {profileCompletion.score}%
-                    </span>
-                    <button
-                      type="button"
-                      className={styles.iconButton}
-                      onClick={toggleProfileCompletionCollapsed}
-                      aria-label={
-                        profileCompletionCollapsed
-                          ? "프로필 꾸미기 점수 펼치기"
-                          : "프로필 꾸미기 점수 접기"
-                      }
-                    >
-                      {profileCompletionCollapsed ? (
-                        <ChevronDown size={15} />
-                      ) : (
-                        <ChevronUp size={15} />
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.snoozeButton}
-                      onClick={hideProfileCompletionForWeek}
-                    >
-                      <EyeOff size={14} />
-                      일주일간 보지 않기
-                    </button>
-                  </div>
-                </div>
-
-                {!profileCompletionCollapsed && (
-                  <>
-                    <div className={styles.completionScoreRow}>
-                      <div
-                        className={`${styles.scoreCircle} ${
-                          profileComplete ? styles.scoreCircleComplete : ""
-                        }`}
-                      >
-                        <strong>{profileCompletion.score}</strong>
-                        <span>%</span>
-                      </div>
-                      <div className={styles.completionCopy}>
-                        <p>{profileCompletion.level}</p>
-                        <span>{profileCompletion.reason}</span>
-                      </div>
-                    </div>
-                    <div
-                      className={styles.scoreTrack}
-                      aria-label={`프로필 꾸미기 점수 ${profileCompletion.score}%`}
-                    >
-                      <span style={{ width: `${profileCompletion.score}%` }} />
-                    </div>
-
-                    {profileCompletion.nextStep && (
-                      <div className={styles.nextActionBox}>
-                        <span>다음 추천</span>
-                        <strong>{profileCompletion.nextStep.label}</strong>
-                        <p>{profileCompletion.nextStep.description}</p>
-                        <CompletionAction
-                          step={profileCompletion.nextStep}
-                          className={styles.nextActionButton}
-                          onAction={handleProfileCompletionAction}
-                        />
-                      </div>
-                    )}
-
-                    <div className={styles.completionChecklist}>
-                      {profileCompletion.steps.map((step) => (
-                        <div
-                          key={step.id}
-                          className={`${styles.completionStep} ${
-                            step.completed ? styles.completionStepDone : ""
-                          }`}
-                        >
-                          <span
-                            className={styles.stepCheck}
-                            aria-hidden="true"
-                          >
-                            <CheckCircle2 size={14} />
-                          </span>
-                          <div className={styles.stepCopy}>
-                            <strong>{step.label}</strong>
-                            <span>{step.description}</span>
-                          </div>
-                          <span className={styles.stepPoints}>
-                            {step.earned}/{step.points}
-                          </span>
-                          <CompletionAction
-                            step={step}
-                            className={styles.stepAction}
-                            onAction={handleProfileCompletionAction}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </section>
-            )}
-
+          <div className={`${styles.summaryGrid} ${styles.summaryGridCompact}`}>
             <section className={styles.panel}>
               <div className={styles.panelHeader}>
                 <h2>
@@ -756,19 +665,28 @@ export default function MyPage() {
                   value={`${communityActivityTotal}개`}
                 />
               </div>
-              {profileCompletionHidden && (
-                <div className={styles.restoreProfileScoreAction}>
-                  <ActionButton
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    iconStart={<RotateCcw size={14} />}
-                    onClick={restoreProfileCompletionCard}
-                  >
-                    프로필 점수 다시 보기
-                  </ActionButton>
+              <div className={styles.profileBoostStrip}>
+                <div className={styles.profileBoostCopy}>
+                  <span>프로필 부스트</span>
+                  <strong>
+                    {profileCompletion.score}% · {profileCompletion.level}
+                  </strong>
+                  <p>
+                    {profileComplete
+                      ? "골드 프레임과 완성 프로필 아이템이 활성화됐습니다."
+                      : "초기 세팅은 팝업에서 가볍게 관리하세요."}
+                  </p>
                 </div>
-              )}
+                <ActionButton
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  iconStart={<Sparkles size={14} />}
+                  onClick={openProfileCompletionModal}
+                >
+                  {profileComplete ? "보상 보기" : "관리"}
+                </ActionButton>
+              </div>
             </section>
           </div>
 
@@ -1026,6 +944,167 @@ export default function MyPage() {
         </div>
       </main>
 
+      {profileCompletionModalOpen && (
+        <div
+          className={styles.completionModalOverlay}
+          role="presentation"
+          onMouseDown={closeProfileCompletionModal}
+        >
+          <div
+            className={styles.completionModal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="profile-completion-modal-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className={styles.modalClose}
+              onClick={closeProfileCompletionModal}
+              aria-label="닫기"
+            >
+              <X size={18} />
+            </button>
+
+            <div className={styles.completionModalHero}>
+              <div
+                className={`${styles.completionAvatarPreview} ${
+                  profileComplete ? styles.completionAvatarPreviewComplete : ""
+                }`}
+              >
+                {profile.profileImageUrl ? (
+                  <Image
+                    src={profile.profileImageUrl}
+                    alt={`${displayName} 프로필 사진`}
+                    fill
+                    sizes="84px"
+                    className={styles.completionAvatarImage}
+                    unoptimized
+                  />
+                ) : (
+                  <span>{displayName.slice(0, 1).toUpperCase()}</span>
+                )}
+              </div>
+              <div className={styles.completionHeroCopy}>
+                <span className={styles.completionEyebrow}>
+                  신규 프로필 부스트
+                </span>
+                <h2 id="profile-completion-modal-title">
+                  초반 세팅만 끝내면 프로필이 더 눈에 띄어요
+                </h2>
+                <p>
+                  완성 미터는 필요한 순간에만 보여주고, 완성 후에는 프레임과
+                  이름표 아이템으로 남깁니다.
+                </p>
+              </div>
+              <div className={styles.completionScorePill}>
+                <strong>{profileCompletion.score}%</strong>
+                <span>{profileCompletion.level}</span>
+              </div>
+            </div>
+
+            <div
+              className={styles.scoreTrack}
+              aria-label={`프로필 꾸미기 점수 ${profileCompletion.score}%`}
+            >
+              <span style={{ width: `${profileCompletion.score}%` }} />
+            </div>
+
+            {profileCompletion.nextStep && (
+              <div className={styles.nextActionBox}>
+                <span>다음 추천</span>
+                <strong>{profileCompletion.nextStep.label}</strong>
+                <p>{profileCompletion.nextStep.description}</p>
+                <CompletionAction
+                  step={profileCompletion.nextStep}
+                  className={styles.nextActionButton}
+                  onAction={handleProfileCompletionAction}
+                />
+              </div>
+            )}
+
+            <div className={styles.completionModalGrid}>
+              <section className={styles.completionModalSection}>
+                <h3>완성 체크리스트</h3>
+                <div className={styles.completionChecklist}>
+                  {profileCompletion.steps.map((step) => (
+                    <div
+                      key={step.id}
+                      className={`${styles.completionStep} ${
+                        step.completed ? styles.completionStepDone : ""
+                      }`}
+                    >
+                      <span className={styles.stepCheck} aria-hidden="true">
+                        <CheckCircle2 size={14} />
+                      </span>
+                      <div className={styles.stepCopy}>
+                        <strong>{step.label}</strong>
+                        <span>{step.description}</span>
+                      </div>
+                      <span className={styles.stepPoints}>
+                        {step.earned}/{step.points}
+                      </span>
+                      <CompletionAction
+                        step={step}
+                        className={styles.stepAction}
+                        onAction={handleProfileCompletionAction}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section className={styles.completionModalSection}>
+                <h3>100% 보상 아이템</h3>
+                <div className={styles.rewardList}>
+                  <div className={styles.rewardItem}>
+                    <Award size={17} />
+                    <div>
+                      <strong>골드 포커스 프레임</strong>
+                      <span>프로필 사진 외곽에 완성 전용 프레임을 착용합니다.</span>
+                    </div>
+                  </div>
+                  <div className={styles.rewardItem}>
+                    <Sparkles size={17} />
+                    <div>
+                      <strong>완성 프로필 이름표</strong>
+                      <span>마이페이지에서 신뢰 신호를 한눈에 보여줍니다.</span>
+                    </div>
+                  </div>
+                  <div className={styles.rewardItem}>
+                    <MessageCircle size={17} />
+                    <div>
+                      <strong>커뮤니티 이름표 후보</strong>
+                      <span>
+                        다음 단계에서 글쓴이 옆에 붙일 수 있는 보상으로 확장합니다.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div className={styles.completionModalFooter}>
+              <button
+                type="button"
+                className={styles.snoozeButton}
+                onClick={hideProfileCompletionForWeek}
+              >
+                <EyeOff size={14} />
+                일주일간 보지 않기
+              </button>
+              <ActionButton
+                type="button"
+                size="sm"
+                onClick={closeProfileCompletionModal}
+              >
+                닫기
+              </ActionButton>
+            </div>
+          </div>
+        </div>
+      )}
+
       {verificationModalOpen && (
         <div
           className={styles.modalOverlay}
@@ -1178,7 +1257,11 @@ function CompletionAction({
 }) {
   if (step.href) {
     return (
-      <Link href={step.href} className={className}>
+      <Link
+        href={step.href}
+        className={className}
+        onClick={() => onAction(step.action)}
+      >
         {step.actionLabel}
       </Link>
     );

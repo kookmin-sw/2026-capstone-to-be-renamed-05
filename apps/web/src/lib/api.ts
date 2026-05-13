@@ -28,11 +28,17 @@ import type {
   KicpaCondition,
   MyProfileResponse,
   MyCommunityActivityListResponse,
+  NotificationItem,
+  NotificationListResponse,
+  NotificationReadAllResponse,
+  NotificationUnreadCountResponse,
   PersonalVerificationRequestItem,
   PersonalVerificationRequestListResponse,
   ReviewPersonalVerificationRequestPayload,
   ResumeItem,
   ResumeListResponse,
+  TagSubscriptionItem,
+  TagSubscriptionListResponse,
   TraineeStatus,
   UserJobPresetItem,
   UserJobPresetListResponse,
@@ -41,6 +47,7 @@ import { getApiBaseUrl } from "./runtime-config";
 
 const API_BASE_URL = getApiBaseUrl();
 export const AUTH_USER_CHANGED_EVENT = "accountit:auth-user-changed";
+export const NOTIFICATIONS_CHANGED_EVENT = "cpa:notifications-changed";
 
 export type JobListResponse = {
   items: JobListItem[];
@@ -977,6 +984,125 @@ export async function reviewAdminAiSuggestion(
     );
   }
   return (await response.json()) as AdminAiSuggestion;
+}
+
+// ─── Notifications ──────────────────────────────────────────
+
+export async function fetchNotifications(
+  options: {
+    page?: number;
+    pageSize?: number;
+    unreadOnly?: boolean;
+  } = {},
+) {
+  const params = new URLSearchParams();
+  if (options.page) params.set("page", String(options.page));
+  if (options.pageSize) params.set("pageSize", String(options.pageSize));
+  if (options.unreadOnly) params.set("unreadOnly", "true");
+  const query = params.toString();
+  const response = await fetch(
+    `${API_BASE_URL}/notifications${query ? `?${query}` : ""}`,
+    {
+      credentials: "include",
+      cache: "no-store",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "알림을 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as NotificationListResponse;
+}
+
+export async function fetchNotificationUnreadCount() {
+  const response = await fetch(`${API_BASE_URL}/notifications/unread-count`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (response.status === 401 || response.status === 403) {
+    return { unreadCount: 0 } satisfies NotificationUnreadCountResponse;
+  }
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "알림 개수를 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as NotificationUnreadCountResponse;
+}
+
+export async function markNotificationRead(id: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/notifications/${encodeURIComponent(id)}/read`,
+    {
+      method: "PATCH",
+      credentials: "include",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "알림 읽음 처리에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as NotificationItem;
+}
+
+export async function markAllNotificationsRead() {
+  const response = await fetch(`${API_BASE_URL}/notifications/read-all`, {
+    method: "PATCH",
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "알림 전체 읽음 처리에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as NotificationReadAllResponse;
+}
+
+export async function fetchTagSubscriptions() {
+  const response = await fetch(`${API_BASE_URL}/notifications/tag-subscriptions`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "태그 구독 목록을 불러오지 못했습니다."),
+    );
+  }
+  return (await response.json()) as TagSubscriptionListResponse;
+}
+
+export async function subscribeTag(labelId: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/notifications/tag-subscriptions/${encodeURIComponent(labelId)}`,
+    {
+      method: "PUT",
+      credentials: "include",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "태그 구독에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as TagSubscriptionItem;
+}
+
+export async function unsubscribeTag(labelId: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/notifications/tag-subscriptions/${encodeURIComponent(labelId)}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await readApiError(response, "태그 구독 해제에 실패했습니다."),
+    );
+  }
+  return (await response.json()) as { ok: boolean };
 }
 
 async function readApiError(response: Response, fallback: string) {

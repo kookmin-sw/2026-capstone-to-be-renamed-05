@@ -5,6 +5,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
   OnModuleInit,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -51,6 +52,7 @@ import {
   resolveWorkspaceRoot,
 } from '../config/runtime-environment';
 import { AssetsService } from '../assets/assets.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePersonalVerificationRequestDto } from './dto/create-personal-verification-request.dto';
 
@@ -153,6 +155,8 @@ export class MypageService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly assetsService: AssetsService,
+    @Optional()
+    private readonly notificationsService?: NotificationsService,
   ) {}
 
   onModuleInit() {
@@ -447,6 +451,13 @@ export class MypageService implements OnModuleInit {
     const bookmark = await this.prisma.bookmark.create({
       data: { userId, targetType, targetId },
     });
+
+    if (targetType === BookmarkTargetType.JOB) {
+      await this.notificationsService?.createDeadlineSoonNotificationForUserJob(
+        userId,
+        targetId,
+      );
+    }
 
     return this.enrichBookmark(bookmark);
   }

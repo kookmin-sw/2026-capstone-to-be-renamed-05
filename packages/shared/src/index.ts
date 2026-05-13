@@ -396,6 +396,13 @@ export type CompanyDashboardResponse = {
 export const BOOKMARK_TARGET_TYPES = ["JOB", "COMPANY"] as const;
 export type BookmarkTargetType = (typeof BOOKMARK_TARGET_TYPES)[number];
 
+export const NOTIFICATION_TYPES = [
+  "BOOKMARK_DEADLINE_SOON",
+  "BOOKMARK_STATUS_CHANGED",
+  "TAG_NEW_JOB",
+] as const;
+export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
+
 export type BookmarkItem = {
   id: string;
   targetType: BookmarkTargetType;
@@ -407,6 +414,47 @@ export type BookmarkItem = {
 
 export type BookmarkListResponse = {
   items: BookmarkItem[];
+};
+
+export type NotificationItem = {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  href: string;
+  jobId: string | null;
+  labelId: string | null;
+  metadata: Record<string, unknown> | null;
+  readAt: string | null;
+  createdAt: string;
+};
+
+export type NotificationListResponse = {
+  items: NotificationItem[];
+  page: number;
+  pageSize: number;
+  total: number;
+  unreadCount: number;
+};
+
+export type NotificationUnreadCountResponse = {
+  unreadCount: number;
+};
+
+export type NotificationReadAllResponse = {
+  updatedCount: number;
+  unreadCount: number;
+};
+
+export type TagSubscriptionItem = {
+  id: string;
+  name: string;
+  color: string | null;
+  subscribed: boolean;
+};
+
+export type TagSubscriptionListResponse = {
+  items: TagSubscriptionItem[];
 };
 
 export type ResumeItem = {

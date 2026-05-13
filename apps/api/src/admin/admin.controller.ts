@@ -15,7 +15,6 @@ import type { RequestWithUser } from '../auth/auth.types';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
-import { PrismaService } from '../prisma/prisma.service';
 import { AdminService } from './admin.service';
 import { CreateJobDto } from './dto/create-job.dto';
 import { ReviewSubmissionDto } from './dto/review-submission.dto';
@@ -26,10 +25,7 @@ import { ReviewSubmissionDto } from './dto/review-submission.dto';
 @Roles(UserRole.ADMIN)
 @Controller('admin')
 export class AdminController {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly adminService: AdminService,
-  ) {}
+  constructor(private readonly adminService: AdminService) {}
 
   @Get('health')
   health() {
@@ -68,10 +64,7 @@ export class AdminController {
 
   @Patch('jobs/:id/close')
   closeJob(@Param('id') id: string) {
-    return this.prisma.job.update({
-      where: { id },
-      data: { status: JobStatus.CLOSED },
-    });
+    return this.adminService.closeJob(id);
   }
 
   @Patch('jobs/:id/status')

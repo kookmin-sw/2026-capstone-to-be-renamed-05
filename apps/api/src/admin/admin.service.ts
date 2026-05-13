@@ -7,10 +7,12 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   CompanyType,
   CpaVerificationStatus,
+  DeadlineType,
   EmploymentHistoryStatus,
   JobStatus,
   PersonalCareerStage,
@@ -20,6 +22,7 @@ import {
   SubmissionType,
   UserRole,
 } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateJobDto } from './dto/create-job.dto';
 
@@ -76,7 +79,11 @@ type AdminCompanyRecord = Prisma.CompanyGetPayload<{
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional()
+    private readonly notificationsService?: NotificationsService,
+  ) {}
 
   async dashboard() {
     const [
@@ -171,14 +178,29 @@ export class AdminService {
       data: this.toJobWriteData(dto),
       include: adminJobInclude,
     });
+    if (job.status === JobStatus.OPEN) {
+      await this.notificationsService?.notifyTagSubscribersForNewJob(job.id);
+    }
     return this.toAdminJob(job);
   }
 
   async updateJob(id: string, dto: CreateJobDto) {
+    const previous = await this.prisma.job.findUnique({
+      where: { id },
+      select: { status: true, deadlineType: true, deadline: true },
+    });
+    if (!previous) throw new NotFoundException('Job not found.');
+
     const job = await this.prisma.job.update({
       where: { id },
       data: this.toJobWriteData(dto),
       include: adminJobInclude,
+    });
+    await this.emitJobNotifications(id, previous, {
+      status: job.status,
+      deadlineType: job.deadlineType,
+      deadline: job.deadline,
+      updatedAt: job.updatedAt,
     });
     return this.toAdminJob(job);
   }
@@ -188,12 +210,28 @@ export class AdminService {
       throw new BadRequestException('Valid job status is required.');
     }
 
+    const previous = await this.prisma.job.findUnique({
+      where: { id },
+      select: { status: true, deadlineType: true, deadline: true },
+    });
+    if (!previous) throw new NotFoundException('Job not found.');
+
     const job = await this.prisma.job.update({
       where: { id },
       data: { status },
       include: adminJobInclude,
     });
+    await this.emitJobNotifications(id, previous, {
+      status: job.status,
+      deadlineType: job.deadlineType,
+      deadline: job.deadline,
+      updatedAt: job.updatedAt,
+    });
     return this.toAdminJob(job);
+  }
+
+  async closeJob(id: string) {
+    return this.updateJobStatus(id, JobStatus.CLOSED);
   }
 
   async refreshJobCheckedAt(id: string) {
@@ -507,7 +545,7 @@ export class AdminService {
     adminUserId: string,
     adminNote?: string,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    const outcome = await this.prisma.$transaction(async (tx) => {
       const submission = await tx.jobSubmission.findUnique({
         where: { id },
         include: jobSubmissionInclude,
@@ -533,13 +571,18 @@ export class AdminService {
             companyId: submission.companyId,
             status: JobStatus.OPEN,
           },
-          select: { id: true },
+          select: {
+            id: true,
+            status: true,
+            deadlineType: true,
+            deadline: true,
+          },
         });
         if (!targetJob) {
           throw new ConflictException('수정 대상 공고가 공개 상태가 아닙니다.');
         }
 
-        await tx.job.update({
+        const updatedJob = await tx.job.update({
           where: { id: targetJob.id },
           data: {
             title: submission.title,
@@ -559,6 +602,12 @@ export class AdminService {
             deadline: submission.deadline,
             lastCheckedAt: new Date(),
           },
+          select: {
+            status: true,
+            deadlineType: true,
+            deadline: true,
+            updatedAt: true,
+          },
         });
 
         const reviewed = await tx.jobSubmission.update({
@@ -572,7 +621,17 @@ export class AdminService {
           include: jobSubmissionInclude,
         });
 
-        return this.toJobSubmissionItem(reviewed);
+        return {
+          kind: 'updated' as const,
+          item: this.toJobSubmissionItem(reviewed),
+          updatedJobId: targetJob.id,
+          previousJob: {
+            status: targetJob.status,
+            deadlineType: targetJob.deadlineType,
+            deadline: targetJob.deadline,
+          },
+          currentJob: updatedJob,
+        };
       }
 
       const source = await tx.source.upsert({
@@ -605,6 +664,7 @@ export class AdminService {
           status: JobStatus.OPEN,
           lastCheckedAt: new Date(),
         },
+        select: { id: true },
       });
 
       const reviewed = await tx.jobSubmission.update({
@@ -619,8 +679,27 @@ export class AdminService {
         include: jobSubmissionInclude,
       });
 
-      return this.toJobSubmissionItem(reviewed);
+      return {
+        kind: 'created' as const,
+        item: this.toJobSubmissionItem(reviewed),
+        createdJobId: job.id,
+      };
     });
+
+    if (outcome.kind === 'created') {
+      await this.notificationsService?.notifyTagSubscribersForNewJob(
+        outcome.createdJobId,
+      );
+    }
+    if (outcome.kind === 'updated') {
+      await this.emitJobNotifications(
+        outcome.updatedJobId,
+        outcome.previousJob,
+        outcome.currentJob,
+      );
+    }
+
+    return outcome.item;
   }
 
   async rejectJobSubmission(
@@ -735,6 +814,44 @@ export class AdminService {
     });
 
     return this.toProfileSubmissionItem(reviewed);
+  }
+
+  private async emitJobNotifications(
+    jobId: string,
+    previous: {
+      status: JobStatus;
+      deadlineType: DeadlineType;
+      deadline: Date | null;
+    },
+    current: {
+      status: JobStatus;
+      deadlineType: DeadlineType;
+      deadline: Date | null;
+      updatedAt: Date;
+    },
+  ) {
+    if (previous.status !== current.status) {
+      await this.notificationsService?.notifyBookmarkStatusChanged(
+        jobId,
+        current.status,
+        current.updatedAt,
+      );
+    }
+
+    if (
+      previous.status !== JobStatus.OPEN &&
+      current.status === JobStatus.OPEN
+    ) {
+      await this.notificationsService?.notifyTagSubscribersForNewJob(jobId);
+    }
+
+    if (
+      current.status === JobStatus.OPEN &&
+      (previous.deadlineType !== current.deadlineType ||
+        previous.deadline?.getTime() !== current.deadline?.getTime())
+    ) {
+      await this.notificationsService?.notifyBookmarkDeadlineSoonForJob(jobId);
+    }
   }
 
   private assertPending(status: SubmissionStatus) {

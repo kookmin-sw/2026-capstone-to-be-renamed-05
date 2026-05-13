@@ -62,6 +62,12 @@ enum JobStatus {
   DRAFT
 }
 
+enum NotificationType {
+  BOOKMARK_DEADLINE_SOON
+  BOOKMARK_STATUS_CHANGED
+  TAG_NEW_JOB
+}
+
 enum SubmissionStatus {
   PENDING
   APPROVED
@@ -141,31 +147,33 @@ model User {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  ownedCompany                      Company?                   @relation("CompanyOwner")
-  profileImageAsset                  Asset?                     @relation("UserProfileImageAsset", fields: [profileImageAssetId], references: [id], onDelete: SetNull)
-  jobPresets                        UserJobPreset[]
-  jobSubmissions                    JobSubmission[]            @relation("JobSubmissionSubmitter")
-  reviewedJobSubmissions            JobSubmission[]            @relation("JobSubmissionReviewer")
-  companyProfileSubmissions         CompanyProfileSubmission[] @relation("CompanyProfileSubmissionSubmitter")
-  reviewedCompanyProfileSubmissions CompanyProfileSubmission[] @relation("CompanyProfileSubmissionReviewer")
-  uploadedAssets                    Asset[]                    @relation("AssetUploader")
-  bookmarks                         Bookmark[]
-  resumes                           Resume[]
-  personalProfile                    PersonalProfile?
-  personalVerificationRequests       PersonalVerificationRequest[] @relation("PersonalVerificationRequestSubmitter")
+  ownedCompany                         Company?                      @relation("CompanyOwner")
+  profileImageAsset                    Asset?                        @relation("UserProfileImageAsset", fields: [profileImageAssetId], references: [id], onDelete: SetNull)
+  jobPresets                           UserJobPreset[]
+  jobSubmissions                       JobSubmission[]               @relation("JobSubmissionSubmitter")
+  reviewedJobSubmissions               JobSubmission[]               @relation("JobSubmissionReviewer")
+  companyProfileSubmissions            CompanyProfileSubmission[]    @relation("CompanyProfileSubmissionSubmitter")
+  reviewedCompanyProfileSubmissions    CompanyProfileSubmission[]    @relation("CompanyProfileSubmissionReviewer")
+  uploadedAssets                       Asset[]                       @relation("AssetUploader")
+  bookmarks                            Bookmark[]
+  notifications                        Notification[]
+  tagSubscriptions                     JobTagSubscription[]
+  resumes                              Resume[]
+  personalProfile                      PersonalProfile?
+  personalVerificationRequests         PersonalVerificationRequest[] @relation("PersonalVerificationRequestSubmitter")
   reviewedPersonalVerificationRequests PersonalVerificationRequest[] @relation("PersonalVerificationRequestReviewer")
-  communityPosts                     CommunityPost[] @relation("CommunityPostAuthor")
-  communityAnswers                   CommunityAnswer[] @relation("CommunityAnswerAuthor")
+  communityPosts                       CommunityPost[]               @relation("CommunityPostAuthor")
+  communityAnswers                     CommunityAnswer[]             @relation("CommunityAnswerAuthor")
 }
 
 model PersonalProfile {
-  userId                  String                    @id
-  cpaVerificationStatus   CpaVerificationStatus     @default(UNVERIFIED)
+  userId                  String                  @id
+  cpaVerificationStatus   CpaVerificationStatus   @default(UNVERIFIED)
   careerStage             PersonalCareerStage?
-  employmentHistoryStatus EmploymentHistoryStatus   @default(UNKNOWN)
+  employmentHistoryStatus EmploymentHistoryStatus @default(UNKNOWN)
   verifiedAt              DateTime?
-  createdAt               DateTime                  @default(now())
-  updatedAt               DateTime                  @updatedAt
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -244,11 +252,11 @@ model Asset {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  uploadedBy     User     @relation("AssetUploader", fields: [uploadedById], references: [id])
-  company        Company? @relation("CompanyAssets", fields: [companyId], references: [id], onDelete: Cascade)
-  logoForCompany Company? @relation("CompanyLogoAsset")
+  uploadedBy           User     @relation("AssetUploader", fields: [uploadedById], references: [id])
+  company              Company? @relation("CompanyAssets", fields: [companyId], references: [id], onDelete: Cascade)
+  logoForCompany       Company? @relation("CompanyLogoAsset")
   backgroundForCompany Company? @relation("CompanyBackgroundAsset")
-  profileImageForUser User? @relation("UserProfileImageAsset")
+  profileImageForUser  User?    @relation("UserProfileImageAsset")
 
   @@index([companyId, purpose, status])
   @@index([uploadedById, status])
@@ -283,7 +291,9 @@ model Label {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  jobs JobLabel[]
+  jobs             JobLabel[]
+  notifications    Notification[]
+  tagSubscriptions JobTagSubscription[]
 }
 
 model Job {
@@ -313,6 +323,7 @@ model Job {
   source             Source          @relation(fields: [sourceId], references: [id])
   labels             JobLabel[]
   aiSuggestions      AiSuggestion[]
+  notifications      Notification[]
   approvedSubmission JobSubmission?  @relation("ApprovedJobSubmission")
   editSubmissions    JobSubmission[] @relation("TargetJobSubmission")
 
@@ -449,15 +460,53 @@ model Bookmark {
   @@index([userId, targetType, createdAt])
 }
 
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  href      String
+  jobId     String?
+  labelId   String?
+  metadata  Json?
+  dedupeKey String
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job   Job?   @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  label Label? @relation(fields: [labelId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt, createdAt])
+  @@index([jobId])
+  @@index([labelId])
+}
+
+model JobTagSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  labelId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, labelId])
+  @@index([userId, createdAt])
+  @@index([labelId])
+}
+
 model Resume {
-  id           String   @id @default(uuid())
-  userId       String
-  fileName     String
-  fileUrl      String
-  contentType  String
-  byteSize     Int
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(uuid())
+  userId      String
+  fileName    String
+  fileUrl     String
+  contentType String
+  byteSize    Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

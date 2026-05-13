@@ -6,11 +6,13 @@ import type {
   CommunityBoardType,
   MyCommunityActivityItem,
   MyProfileResponse,
+  NotificationItem,
   PersonalCareerStage,
   ResumeItem,
 } from "@cpa/shared";
 import {
   Award,
+  Bell,
   Bookmark,
   Camera,
   CheckCircle2,
@@ -46,7 +48,9 @@ import {
   fetchMyCommunityActivity,
   fetchMyProfile,
   fetchMyResumes,
+  fetchNotifications,
   getMyResumeDownloadUrl,
+  NOTIFICATIONS_CHANGED_EVENT,
   updateMyProfile,
   updateMyPassword,
   uploadMyProfileImage,
@@ -139,7 +143,11 @@ export default function MyPage() {
   const [communityActivity, setCommunityActivity] = useState<
     MyCommunityActivityItem[]
   >([]);
+  const [notificationPreview, setNotificationPreview] = useState<
+    NotificationItem[]
+  >([]);
   const [communityActivityTotal, setCommunityActivityTotal] = useState(0);
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
   const [bookmarkFilter, setBookmarkFilter] = useState<
     BookmarkTargetType | "ALL"
   >("ALL");
@@ -183,12 +191,19 @@ export default function MyPage() {
 
         if (!ignore) setAuthorized(true);
 
-        const [profileResult, bookmarkResult, resumeResult, activityResult] =
+        const [
+          profileResult,
+          bookmarkResult,
+          resumeResult,
+          activityResult,
+          notificationResult,
+        ] =
           await Promise.allSettled([
             fetchMyProfile(),
             fetchMyBookmarks(),
             fetchMyResumes(),
             fetchMyCommunityActivity(5),
+            fetchNotifications({ page: 1, pageSize: 3 }),
           ]);
 
         if (ignore) return;
@@ -218,14 +233,25 @@ export default function MyPage() {
             ? activityResult.value.items
             : [],
         );
+        setNotificationPreview(
+          notificationResult.status === "fulfilled"
+            ? notificationResult.value.items
+            : [],
+        );
         setCommunityActivityTotal(
           activityResult.status === "fulfilled" ? activityResult.value.total : 0,
+        );
+        setNotificationUnreadCount(
+          notificationResult.status === "fulfilled"
+            ? notificationResult.value.unreadCount
+            : 0,
         );
 
         const sideLoadErrors = [
           bookmarkResult.status === "rejected" ? "북마크" : "",
           resumeResult.status === "rejected" ? "이력서" : "",
           activityResult.status === "rejected" ? "커뮤니티 활동" : "",
+          notificationResult.status === "rejected" ? "알림" : "",
         ].filter(Boolean);
 
         if (profileResult.status === "fulfilled" && sideLoadErrors.length > 0) {
@@ -471,6 +497,7 @@ export default function MyPage() {
     try {
       await deleteMyBookmark(id);
       setBookmarks((prev) => prev.filter((bm) => bm.id !== id));
+      notifyNotificationsChanged();
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "북마크 삭제에 실패했습니다.",
@@ -779,6 +806,53 @@ export default function MyPage() {
                   {profileComplete ? "보상 보기" : "관리"}
                 </ActionButton>
               </div>
+            </section>
+
+            <section className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <h2>
+                  <Bell size={17} />
+                  알림
+                </h2>
+                <Link href="/mypage/notifications" className={styles.textButton}>
+                  전체 보기
+                </Link>
+              </div>
+              <p className={styles.activityPageSummary}>
+                읽지 않음 {notificationUnreadCount.toLocaleString("ko-KR")}개
+              </p>
+              {notificationPreview.length ? (
+                <div className={styles.notificationList}>
+                  {notificationPreview.map((item) => (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      className={`${styles.notificationItem} ${
+                        item.readAt ? "" : styles.notificationUnread
+                      }`}
+                    >
+                      <div className={styles.notificationMain}>
+                        <div className={styles.notificationTitleRow}>
+                          {!item.readAt && (
+                            <span
+                              className={styles.unreadDot}
+                              aria-hidden="true"
+                            />
+                          )}
+                          <span>{notificationTypeLabel(item.type)}</span>
+                          <strong>{item.title}</strong>
+                        </div>
+                        <p>{item.body}</p>
+                        <time dateTime={item.createdAt}>
+                          {formatDate(item.createdAt)}
+                        </time>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.empty}>표시할 알림이 없습니다.</div>
+              )}
             </section>
           </div>
 
@@ -1556,6 +1630,11 @@ function formatDate(iso: string) {
   return `${year}.${month}.${day}`;
 }
 
+function notificationTypeLabel(type: NotificationItem["type"]) {
+  if (type === "TAG_NEW_JOB") return "태그";
+  return "관심 공고";
+}
+
 function validateResumeFile(file: File) {
   const extension = file.name.split(".").pop()?.toLowerCase();
   if (!extension || !RESUME_EXTENSIONS.has(extension)) {
@@ -1589,4 +1668,8 @@ function validateProfileImage(file: File) {
 
 function notifyAuthUserChanged() {
   window.dispatchEvent(new Event(AUTH_USER_CHANGED_EVENT));
+}
+
+function notifyNotificationsChanged() {
+  window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
 }

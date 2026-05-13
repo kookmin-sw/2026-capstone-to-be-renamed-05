@@ -9,6 +9,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   DeadlineType,
@@ -20,6 +21,7 @@ import {
   SubmissionStatus,
   SubmissionType,
 } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCompanyJobSubmissionDto } from './dto/create-company-job-submission.dto';
 import { CreateCompanyProfileSubmissionDto } from './dto/create-company-profile-submission.dto';
@@ -130,7 +132,11 @@ type ManagedJobRecord = Job &
 
 @Injectable()
 export class CompaniesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional()
+    private readonly notificationsService?: NotificationsService,
+  ) {}
 
   async list(query: ListCompaniesDto) {
     const where = this.buildWhere(query);
@@ -424,6 +430,12 @@ export class CompaniesService {
       data: { status: JobStatus.CLOSED },
       include: managedJobInclude,
     });
+
+    await this.notificationsService?.notifyBookmarkStatusChanged(
+      closed.id,
+      closed.status,
+      closed.updatedAt,
+    );
 
     return this.toManagedJobItem(closed);
   }

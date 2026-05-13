@@ -723,6 +723,145 @@
   font-weight: 700;
 }
 
+.notificationToolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.875rem;
+}
+
+.notificationToolbar .activityPageSummary {
+  margin: 0.4rem 0 0;
+}
+
+.notificationList {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.notificationItem {
+  min-width: 0;
+  display: block;
+  border: 1px solid var(--app-line);
+  border-radius: 8px;
+  background: white;
+  padding: 0.875rem;
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.notificationItem:hover {
+  border-color: var(--brand-mid);
+  background: #fff8fa;
+}
+
+.notificationUnread {
+  border-color: var(--brand-mid);
+  background: var(--brand-soft);
+}
+
+.notificationMain {
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.notificationTitleRow {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--gray-900);
+  font-size: 0.875rem;
+  font-weight: 850;
+}
+
+.notificationTitleRow > span:not(.unreadDot) {
+  flex: none;
+  border: 1px solid var(--brand-mid);
+  border-radius: 999px;
+  background: white;
+  padding: 0.15rem 0.45rem;
+  color: var(--brand);
+  font-size: 0.6875rem;
+  font-weight: 900;
+}
+
+.notificationTitleRow strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notificationMain p {
+  color: var(--gray-700);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.notificationMain time {
+  color: var(--app-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.unreadDot {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--brand);
+}
+
+.tagSubscriptionGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tagSubscriptionButton {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--app-line);
+  border-radius: 999px;
+  background: white;
+  padding: 0 0.8rem;
+  color: var(--gray-700);
+  font-size: 0.8125rem;
+  font-weight: 850;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.tagSubscriptionButton:hover,
+.tagSubscriptionButtonActive {
+  border-color: var(--brand-mid);
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.tagSubscriptionButton:disabled {
+  cursor: wait;
+  opacity: 0.66;
+}
+
+.tagColor {
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+}
+
 .itemActions {
   flex: none;
   display: flex;
@@ -1360,6 +1499,10 @@
     justify-self: flex-start;
   }
 
+  .notificationToolbar {
+    flex-direction: column;
+  }
+
   .filterRow {
     justify-content: flex-start;
   }
@@ -1387,5 +1530,15 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 0.15rem;
+  }
+
+  .notificationTitleRow {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .notificationTitleRow strong {
+    white-space: normal;
   }
 }

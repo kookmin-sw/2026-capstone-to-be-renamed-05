@@ -27,6 +27,7 @@ import {
   createMyBookmark,
   deleteMyBookmark,
   fetchCurrentUser,
+  NOTIFICATIONS_CHANGED_EVENT,
 } from "@/lib/api";
 import { calendarDaysToMap, jobsBetween } from "@/lib/calendar-data";
 import {
@@ -63,6 +64,10 @@ function getSundayFirstGrid(monthDate: Date): Date[] {
     cursor.setDate(cursor.getDate() + 1);
   }
   return days;
+}
+
+function notifyNotificationsChanged() {
+  window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
 }
 
 const WEEK_LABELS = ["일", "월", "화", "수", "목", "금", "토"] as const;
@@ -483,12 +488,14 @@ export default function JobsPage() {
             next.delete(jobId);
             return next;
           });
+          notifyNotificationsChanged();
         }
       } catch {}
     } else {
       try {
         await createMyBookmark("JOB", jobId);
         setBookmarkedJobIds((prev) => new Set(prev).add(jobId));
+        notifyNotificationsChanged();
       } catch {}
     }
   }

@@ -19,6 +19,7 @@ var/uploads/
 !.env.example
 
 *.log
+var/*.err
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

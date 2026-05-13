@@ -1,14 +1,16 @@
 'use client';
 
-import { LockKeyhole, MessageCircle, PenSquare, Search } from 'lucide-react';
+import { Eye, LockKeyhole, MessageCircle, PenSquare, Search } from 'lucide-react';
 import Link from 'next/link';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SiteNav } from '@/components/site-nav';
 import { ActionLink } from '@/components/ui/action-button';
 import { FilterSelect } from '@/components/ui/filter-select';
+import { Pagination } from '@/components/ui/pagination';
 import { fetchCurrentUser } from '@/lib/api';
-import { AuthorAvatar } from './_components/author-avatar';
+import { CommunityHero } from './_components/community-hero';
+import { PostListItem } from './_components/post-list-item';
 import { getPosts, getTrendingPosts } from '@/lib/community-api';
 import {
   BOARD_TYPES,
@@ -31,55 +33,7 @@ function relativeTime(iso: string): string {
   return `${d}일 전`;
 }
 
-function statusBadgeClass(status: CommunityPost['status']): string {
-  if (status === 'ANSWERED') return styles.badgeAnswered;
-  if (status === 'INFO') return styles.badgeInfo;
-  if (status === 'FREE') return styles.badgeFree;
-  return styles.badgeQuestion;
-}
-
-function statusLabel(status: CommunityPost['status']): string {
-  if (status === 'ANSWERED') return '답변완료';
-  if (status === 'INFO') return '정보';
-  if (status === 'FREE') return '자유';
-  return '질문';
-}
-
-function PostRow({ post }: { post: CommunityPost }) {
-  return (
-    <Link href={communityDetailHref(post.id)} className={styles.postRow}>
-      <span className={`${styles.badge} ${statusBadgeClass(post.status)}`}>{statusLabel(post.status)}</span>
-      <div className={styles.postBody}>
-        <p className={styles.postTitle}>{post.title}</p>
-        {post.tags.length > 0 && (
-          <div className={styles.postTags}>
-            {post.tags.slice(0, 3).map((tag) => (
-              <span key={tag} className={styles.tag}>
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-      <div className={styles.postMeta}>
-        <span className={`${styles.metaItem} ${styles.authorMetaItem}`}>
-          <AuthorAvatar
-            authorName={post.authorName}
-            imageUrl={post.authorProfileImageUrl}
-            isAnonymous={post.isAnonymous}
-          />
-          {post.authorName}
-        </span>
-        <span className={styles.metaItem}>{relativeTime(post.createdAt)}</span>
-        <span className={styles.metaItem}>조회 {post.viewCount}</span>
-        <span className={`${styles.metaItem} ${post.commentCount > 0 ? styles.metaComment : ''}`}>
-          <MessageCircle size={12} />
-          {post.commentCount}
-        </span>
-      </div>
-    </Link>
-  );
-}
+const POSTS_PER_PAGE = 10;
 
 function CommunityPageContent() {
   const searchParams = useSearchParams();
@@ -95,6 +49,11 @@ function CommunityPageContent() {
   const [sort, setSort] = useState<SortOrder>('latest');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeBoard, search, sort, mineOnly]);
 
   useEffect(() => {
     let ignore = false;
@@ -147,6 +106,12 @@ function CommunityPageContent() {
     };
   }, []);
 
+  const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
+  const paginatedPosts = useMemo(
+    () => posts.slice((page - 1) * POSTS_PER_PAGE, page * POSTS_PER_PAGE),
+    [posts, page],
+  );
+
   function handleSearch() {
     setSearch(searchInput.trim());
   }
@@ -175,14 +140,9 @@ function CommunityPageContent() {
     <main className="min-h-screen bg-[var(--background)]">
       <SiteNav />
 
-      <div className="border-b border-[var(--app-line)] bg-[var(--background)]">
-        <div className="mx-auto max-w-7xl px-6 pt-6 pb-4">
-          <h1 className="text-2xl font-semibold text-gray-900">커뮤니티</h1>
-          <p className="mt-1 text-sm leading-relaxed text-gray-500">
-            CPA 준비생부터 현직 회계사까지, 경험과 정보를 나누는 공간입니다.
-          </p>
-        </div>
+      <CommunityHero />
 
+      <div className="border-b border-[var(--app-line)] bg-white">
         <div className="mx-auto max-w-7xl px-6">
           <div className={styles.boardTabBar}>
             {BOARD_TYPES.map((board) => (
@@ -239,7 +199,7 @@ function CommunityPageContent() {
                   className={styles.searchInput}
                 />
                 <button type="submit" className={styles.searchSubmitButton} aria-label="검색">
-                  <Search size={15} />
+                  <Search size={14} />
                 </button>
               </form>
               {traineeLocked ? (
@@ -268,8 +228,8 @@ function CommunityPageContent() {
                 </div>
               ) : error ? (
                 <div className={styles.emptyState}>{error}</div>
-              ) : posts.length > 0 ? (
-                posts.map((post) => <PostRow key={post.id} post={post} />)
+              ) : paginatedPosts.length > 0 ? (
+                paginatedPosts.map((post) => <PostListItem key={post.id} post={post} />)
               ) : (
                 <div className={styles.emptyState}>
                   {search
@@ -278,27 +238,41 @@ function CommunityPageContent() {
                       : `"${search}"에 해당하는 게시글이 없습니다.`
                     : mineOnly
                       ? '이 게시판에 내가 쓴 글이 없습니다.'
-                    : '아직 게시글이 없습니다. 첫 번째 글을 작성해보세요.'}
+                      : '아직 게시글이 없습니다. 첫 번째 글을 작성해보세요.'}
                 </div>
               )}
             </div>
+
+            {!loading && !error && totalPages > 1 && (
+              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+            )}
           </div>
 
           <aside className={styles.sidebar}>
             <div className={styles.sidebarCard}>
-              <p className={styles.sidebarCardTitle}>실시간 인기 글</p>
+              <p className={styles.sidebarCardTitle}>실시간 인기글</p>
               <div className={styles.trendingList}>
-                {trendingPosts.map((post, i) => (
-                  <Link key={post.id} href={communityDetailHref(post.id)} className={styles.trendingItem}>
-                    <span className={styles.trendingRank}>{i + 1}</span>
-                    <span className={styles.trendingTitle}>{post.title}</span>
-                    <span className={styles.trendingMeta}>
-                      <MessageCircle size={10} />
-                      {post.commentCount}
-                    </span>
-                  </Link>
-                ))}
-                {!trendingPosts.length && <span className={styles.trendingTitle}>아직 인기 글이 없습니다.</span>}
+                {trendingPosts.length > 0 ? (
+                  trendingPosts.map((post, i) => (
+                    <Link key={post.id} href={communityDetailHref(post.id)} className={styles.trendingItem}>
+                      <span className={i < 3 ? styles.trendingRankTop : styles.trendingRankRest}>
+                        {i + 1}
+                      </span>
+                      <span className={styles.trendingBody}>
+                        <span className={styles.trendingTitle}>{post.title}</span>
+                        <span className={styles.trendingMeta}>
+                          <MessageCircle size={10} />
+                          {post.commentCount}
+                          <Eye size={10} />
+                          {post.viewCount.toLocaleString('ko-KR')}
+                          · {relativeTime(post.createdAt)}
+                        </span>
+                      </span>
+                    </Link>
+                  ))
+                ) : (
+                  <span className={styles.trendingTitle}>아직 인기글이 없습니다.</span>
+                )}
               </div>
             </div>
           </aside>

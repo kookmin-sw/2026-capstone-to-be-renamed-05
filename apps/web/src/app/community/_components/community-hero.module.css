@@ -1,7 +1,7 @@
 .hero {
   position: relative;
   overflow: hidden;
-  background-color: #fff5f8;
+  background-color: #faf6ff;
 }
 
 .hero::before {
@@ -12,7 +12,7 @@
   background-size: auto 100%;
   background-position: right center;
   background-repeat: no-repeat;
-  opacity: 0.78;
+  opacity: 0.82;
   pointer-events: none;
 }
 
@@ -23,14 +23,14 @@
   background:
     linear-gradient(
       to right,
-      rgba(255, 245, 250, 0.68) 0%,
-      rgba(255, 245, 250, 0.12) 50%,
-      transparent 72%
+      rgba(250, 246, 255, 0.72) 0%,
+      rgba(250, 246, 255, 0.18) 52%,
+      transparent 76%
     ),
     linear-gradient(
       180deg,
       transparent 0%,
-      rgba(255, 245, 250, 0.38) 68%,
+      rgba(250, 246, 255, 0.34) 70%,
       #ffffff 100%
     );
   pointer-events: none;
@@ -62,7 +62,6 @@
   line-height: 1.65;
 }
 
-/* 기존 배경 장식 제거 */
 .bgDecoration {
   display: none;
 }

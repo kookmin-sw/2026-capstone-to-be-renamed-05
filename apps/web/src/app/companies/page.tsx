@@ -56,7 +56,6 @@ export default function CompaniesPage() {
   const [companyTotal, setCompanyTotal] = useState(0);
   const [companyOpenTotal, setCompanyOpenTotal] = useState(0);
   const [companyNoJobTotal, setCompanyNoJobTotal] = useState(0);
-  const [filterOpen, setFilterOpen] = useState(false);
   const [companyPage, setCompanyPage] = useState(1);
   const [bookmarkedCompanyIds, setBookmarkedCompanyIds] = useState<
     Set<string>
@@ -218,47 +217,35 @@ export default function CompaniesPage() {
         <div className="mx-auto max-w-7xl px-6 pb-4">
           <div className="rounded-2xl border border-[var(--app-line)] bg-white">
             {/* 필터 헤더 */}
-            <div className="flex items-center justify-between px-5 py-3">
+            <div className={styles.filterHeader}>
+              <div className={styles.filterTitle}>
+                <SlidersHorizontal size={15} />
+                필터
+              </div>
               <ActionButton
                 type="button"
-                onClick={() => setFilterOpen((prev) => !prev)}
+                onClick={() => {
+                  setCompanyListType("");
+                  setCompanyTag("");
+                  setHasOpenJobs("");
+                  setMinEmployeeCount("");
+                  setMaxEmployeeCount("");
+                  setMinAverageSalary("");
+                  setMaxAverageSalary("");
+                  setCompanyMinAgeYears("");
+                  setCompanyMaxAgeYears("");
+                  setCompanyMaxAttritionRate("");
+                }}
                 variant="ghost"
                 size="sm"
-                className={styles.filterHeaderButton}
-                iconStart={<SlidersHorizontal size={15} />}
+                iconStart={<RefreshCw size={12} />}
               >
-                필터
-                <span className="text-xs font-medium text-gray-400">
-                  {filterOpen ? "닫기 ∧" : "열기 ∨"}
-                </span>
+                필터 초기화
               </ActionButton>
-              {filterOpen && (
-                <ActionButton
-                  type="button"
-                  onClick={() => {
-                    setCompanyListType("");
-                    setCompanyTag("");
-                    setHasOpenJobs("");
-                    setMinEmployeeCount("");
-                    setMaxEmployeeCount("");
-                    setMinAverageSalary("");
-                    setMaxAverageSalary("");
-                    setCompanyMinAgeYears("");
-                    setCompanyMaxAgeYears("");
-                    setCompanyMaxAttritionRate("");
-                  }}
-                  variant="ghost"
-                  size="sm"
-                  iconStart={<RefreshCw size={12} />}
-                >
-                  필터 초기화
-                </ActionButton>
-              )}
             </div>
 
             {/* 체크박스 필터 컬럼들 */}
-            {filterOpen && (
-              <div className="overflow-x-auto border-t border-[var(--app-line)] px-5 py-4">
+            <div className="overflow-x-auto border-t border-[var(--app-line)] px-5 py-4">
                 <div className="flex gap-5">
                   {/* 회사 유형 */}
                   <div className="min-w-[120px]">
@@ -410,10 +397,9 @@ export default function CompaniesPage() {
                       { label: "20% 이하", value: "20" },
                     ]}
                     onChange={setCompanyMaxAttritionRate}
-                  />
-                </div>
+                />
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>

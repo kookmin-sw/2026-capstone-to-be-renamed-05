@@ -168,11 +168,6 @@ export function JobSearchFilters({
                 }
               >
                 고급 필터
-                <span className={styles.filterHeaderMeta}>
-                  {advancedFilterCount
-                    ? `${advancedFilterCount}개 적용`
-                    : "상세 조건"}
-                </span>
               </ActionButton>
               {filterOpen && (
                 <ActionButton

@@ -11,12 +11,6 @@
   gap: 0.75rem;
 }
 
-.inlinePresetBar {
-  min-width: 0;
-  flex: 1;
-  margin-top: 0;
-}
-
 .calendarShell {
   display: grid;
   gap: 1rem;

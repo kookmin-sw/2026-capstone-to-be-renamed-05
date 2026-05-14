@@ -630,6 +630,8 @@ export default function JobsPage() {
               검색
             </ActionButton>
           </div>
+
+          <JobPresetBar filters={filters} onChange={setFilters} />
         </div>
 
         {/* 필터 카드 */}
@@ -650,13 +652,6 @@ export default function JobsPage() {
                     {filterOpen ? "닫기 ∧" : "열기 ∨"}
                   </span>
                 </ActionButton>
-                {!filterOpen && (
-                  <JobPresetBar
-                    filters={filters}
-                    onChange={setFilters}
-                    className={styles.inlinePresetBar}
-                  />
-                )}
               </div>
               {filterOpen && (
                 <ActionButton

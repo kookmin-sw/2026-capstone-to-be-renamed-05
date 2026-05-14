@@ -544,37 +544,36 @@ export default function Home() {
         </div>
       </section>
 
-      <section className={styles.outroSection} aria-label="서비스 지표">
-        <h2>
-          회계사를 위한 모든 여정을
-          <br />더 <span>든든하게</span> 함께합니다
-        </h2>
-        <div className={styles.statsGrid}>
-          {stats.map(({ value, label }) => (
-            <div className={styles.statCard} key={label}>
-              <strong>{value}</strong>
-              <span>{label}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className={styles.ctaSection} aria-labelledby="cta-title">
-        <div className={styles.ctaInner}>
-          <h2 id="cta-title">
-            공고를 찾는 순간부터 마감 관리까지
-            <br />
-            <span>Accountit에서 이어가세요</span>
+      <section className={styles.closingBand} aria-label="서비스 지표와 시작 안내">
+        <section className={styles.outroSection} aria-label="서비스 지표">
+          <h2>
+            회계사를 위한 모든 여정을
+            <br />더 <span>든든하게</span> 함께합니다
           </h2>
-          <div className={styles.ctaActions}>
-            <ActionLink href="/jobs" size="lg" iconEnd={<ArrowRight size={17} />}>
-              채용공고 탐색하기
-            </ActionLink>
-            <ActionLink href="/community" size="lg" variant="subtle">
-              커뮤니티 둘러보기
-            </ActionLink>
+          <div className={styles.statsGrid}>
+            {stats.map(({ value, label }) => (
+              <div className={styles.statCard} key={label}>
+                <strong>{value}</strong>
+                <span>{label}</span>
+              </div>
+            ))}
           </div>
-        </div>
+        </section>
+
+        <section className={styles.ctaSection} aria-labelledby="cta-title">
+          <div className={styles.ctaInner}>
+            <h2 id="cta-title">
+              공고를 찾는 순간부터 마감 관리까지
+              <br />
+              <span>Accountit에서 이어가세요</span>
+            </h2>
+            <div className={styles.ctaActions}>
+              <ActionLink href="/jobs" size="lg" iconEnd={<ArrowRight size={17} />}>
+                서비스 이용해보기
+              </ActionLink>
+            </div>
+          </div>
+        </section>
       </section>
     </main>
   );

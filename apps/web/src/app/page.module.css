@@ -126,8 +126,8 @@
 
 /* ── Quick nav ────────────────────────────────────── */
 .quickSection {
-  padding-top: 7rem;
-  padding-bottom: 7rem;
+  padding-top: 2rem;
+  padding-bottom: 4rem;
 }
 
 .quickRow {
@@ -551,7 +551,7 @@
 .communitySection {
   max-width: 80rem;
   padding-top: 0.5rem;
-  padding-bottom: 5.5rem;
+  padding-bottom: 6.75rem;
 }
 
 .communityPanel {
@@ -790,10 +790,47 @@
   color: var(--brand);
 }
 
+/* ── Closing band ─────────────────────────────────── */
+.closingBand {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #ffffff 14%, rgba(255, 255, 255, 0.92) 22%, rgba(255, 247, 250, 0.72) 36%, rgba(255, 240, 245, 0.68) 48%, rgba(255, 255, 255, 0.96) 68%, rgba(255, 247, 250, 0.92) 100%),
+    radial-gradient(circle at 14% 28%, rgba(232, 69, 122, 0.07), transparent 19rem),
+    radial-gradient(circle at 86% 72%, rgba(255, 214, 229, 0.62), transparent 20rem);
+  box-shadow: 0 -5rem 7rem rgba(255, 240, 245, 0.14);
+}
+
+.closingBand::before {
+  position: absolute;
+  top: 5rem;
+  left: 5vw;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 999px;
+  background: rgba(232, 69, 122, 0.045);
+  content: '';
+}
+
+.closingBand::after {
+  position: absolute;
+  right: 6vw;
+  bottom: 5.5rem;
+  width: 8rem;
+  height: 8rem;
+  border-radius: 999px;
+  background-image: radial-gradient(rgba(232, 69, 122, 0.12) 1.5px, transparent 1.5px);
+  background-size: 1rem 1rem;
+  content: '';
+  opacity: 0.58;
+}
+
 /* ── Outro / stats ────────────────────────────────── */
 .outroSection {
-  padding-top: 5rem;
-  padding-bottom: 10rem;
+  position: relative;
+  z-index: 1;
+  padding-top: 7rem;
+  padding-bottom: 4.5rem;
   text-align: center;
 }
 
@@ -820,7 +857,7 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.5rem;
   max-width: 70rem;
-  margin: 5.5rem auto 0;
+  margin: 4.25rem auto 0;
 }
 
 .statCard {
@@ -850,20 +887,20 @@
 
 /* ── CTA ──────────────────────────────────────────── */
 .ctaSection {
+  position: relative;
+  z-index: 1;
   padding-top: 0;
-  padding-bottom: 8rem;
+  padding-bottom: 7rem;
 }
 
 .ctaInner {
   display: grid;
   justify-items: center;
   gap: 1.6rem;
-  border: 1px solid rgba(232, 69, 122, 0.16);
-  border-radius: 0.75rem;
-  background:
-    linear-gradient(180deg, rgba(255, 240, 245, 0.9), rgba(255, 255, 255, 0.96)),
-    #ffffff;
-  padding: clamp(2rem, 5vw, 4rem) 1.5rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 2.25rem 1.5rem 0;
   text-align: center;
 }
 

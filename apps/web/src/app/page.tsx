@@ -2,14 +2,16 @@ import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowRight,
-  BellRing,
+  BarChart3,
   CalendarClock,
   CheckCircle2,
   ClipboardList,
-  FileSearch,
-  ShieldCheck,
+  Building2,
   SlidersHorizontal,
+  Sparkles,
   Target,
+  TrendingUp,
+  Upload,
   UsersRound,
 } from 'lucide-react';
 import Image from 'next/image';
@@ -52,61 +54,104 @@ const problemCards: Array<{
   },
 ];
 
-const solutionItems = [
-  {
-    title: '모든 공고를 한 곳에',
-    description: '다양한 채용 채널의 공고를 한 곳에서 확인',
-  },
-  {
-    title: '정확한 조건 필터링',
-    description: '수습·KICPA·직무·연차·마감일로 정교하게 필터링',
-  },
-  {
-    title: '한눈에 비교 분석',
-    description: '카드 형태로 빠른 비교와 의사결정 지원',
-  },
-  {
-    title: '마감일 캘린더',
-    description: '달력으로 마감일을 한눈에 확인',
-  },
-];
-
 const stats: Array<{ value: string; label: string }> = [
   { value: '10,000+', label: '누적 채용공고' },
   { value: '5,000+', label: '회계사 회원' },
   { value: '300+', label: '제휴 기업' },
 ];
 
-const differentiatorCards: Array<{
+
+const intelligenceSections: Array<{
   icon: LucideIcon;
-  title: string;
+  eyebrow: string;
+  title: React.ReactNode;
   description: string;
+  points: Array<{ icon: LucideIcon; title: string; description: string }>;
+  primaryAction: { label: string; href: string };
+  secondaryAction: { label: string; href: string };
+  visual: {
+    label: string;
+    value: string;
+    detail: string;
+    chips: string[];
+  };
 }> = [
   {
-    icon: SlidersHorizontal,
-    title: 'CPA 조건까지 비교',
+    icon: Sparkles,
+    eyebrow: 'AI Resume Fit',
+    title: (
+      <>
+        이력서를 올리면,
+        <br />
+        <span>공고별 적합도</span>까지 분석합니다
+      </>
+    ),
     description:
-      '수습 가능 여부, KICPA 조건, 실무수습기관, 직무와 경력 조건을 공고 탐색 기준으로 함께 제공합니다.',
+      '대표 이력서를 등록하면 Accountit AI가 채용공고의 직무, 경력, KICPA 조건, 기업 우선순위와 비교해 강점과 보완 포인트를 정리합니다.',
+    points: [
+      {
+        icon: Upload,
+        title: '이력서 업로드',
+        description: '마이페이지에서 이력서를 등록하고 대표 이력서로 설정',
+      },
+      {
+        icon: Target,
+        title: '공고별 매칭',
+        description: '각 공고가 요구하는 조건과 내 이력서의 연결점 분석',
+      },
+      {
+        icon: CheckCircle2,
+        title: '지원 판단 정리',
+        description: '강점, 감점 요인, 기업이 보는 포인트를 한 화면에 표시',
+      },
+    ],
+    primaryAction: { label: '이력서 등록하기', href: '/mypage' },
+    secondaryAction: { label: '채용공고에서 확인하기', href: '/jobs' },
+    visual: {
+      label: 'AI 적합도 분석',
+      value: 'Fit 86%',
+      detail: '감사 직무 · 신입 가능 · 수습 조건 일치',
+      chips: ['강점 4개', '보완 2개', '기업 우선순위'],
+    },
   },
   {
-    icon: FileSearch,
-    title: 'AI 적합도와 맞춤 탐색',
+    icon: BarChart3,
+    eyebrow: 'Company Insight',
+    title: (
+      <>
+        기업회원에게는
+        <br />
+        <span>지원자 관심 데이터</span>를 제공합니다
+      </>
+    ),
     description:
-      '이력서 기반 적합도와 빠른 필터, 저장한 프리셋으로 나에게 맞는 공고를 더 빠르게 좁힙니다.',
+      '공고 조회, 북마크, 지원 관심 흐름을 모아 기업회원이 어떤 조건과 포지션에 반응이 높은지 데이터로 확인할 수 있게 돕습니다.',
+    points: [
+      {
+        icon: UsersRound,
+        title: '관심 흐름 수집',
+        description: '공고별 조회와 북마크 등 지원자 반응을 한눈에 확인',
+      },
+      {
+        icon: TrendingUp,
+        title: '성과 지표 분석',
+        description: '최근 기간별 추이와 공고별 관심도를 대시보드로 제공',
+      },
+      {
+        icon: Building2,
+        title: '채용 전략 보완',
+        description: '지원자가 많이 보는 조건을 바탕으로 공고 운영 방향 점검',
+      },
+    ],
+    primaryAction: { label: '기업회원 가입하기', href: '/login?mode=register' },
+    secondaryAction: { label: '기업 대시보드 보기', href: '/company' },
+    visual: {
+      label: '지원자 관심 분석',
+      value: '+38%',
+      detail: '최근 30일 북마크 증가 · 마감 임박 공고 반응 상승',
+      chips: ['조회 추이', '공고별 관심도', '북마크 흐름'],
+    },
   },
-  {
-    icon: CalendarClock,
-    title: '마감과 기업 정보를 함께',
-    description:
-      '마감 캘린더, D-day, 평균 연봉, 회사 유형, 직원 흐름까지 지원 판단에 필요한 정보를 연결합니다.',
-  },
-];
-
-const trustPoints: Array<{ icon: LucideIcon; label: string }> = [
-  { icon: ShieldCheck, label: '출처 표시' },
-  { icon: CheckCircle2, label: '마지막 확인 시간' },
-  { icon: BellRing, label: '북마크·알림' },
-  { icon: UsersRound, label: '회계사 커뮤니티' },
 ];
 
 type HomeQuickFilterId =
@@ -370,63 +415,77 @@ export default function Home() {
         </div>
       </section>
 
-      <section className={styles.differentiatorSection} aria-labelledby="differentiator-title">
-        <div className={styles.differentiatorHeader}>
-          <span className={styles.differentiatorEyebrow}>Why Accountit</span>
-          <h2 id="differentiator-title">Accountit이 다른 이유</h2>
-          <p>
-            일반 채용 사이트의 키워드 검색을 넘어, 회계사 커리어에서 실제로
-            비교해야 하는 조건을 공고와 함께 정리합니다.
-          </p>
-        </div>
-
-        <div className={styles.differentiatorGrid}>
-          {differentiatorCards.map(({ icon: Icon, title, description }) => (
-            <article className={styles.differentiatorCard} key={title}>
-              <span className={styles.differentiatorIcon} aria-hidden="true">
-                <Icon size={20} />
+      <section className={styles.intelligenceSection} aria-label="AI와 기업회원 분석 기능">
+        {intelligenceSections.map(({ icon: Icon, ...section }, index) => (
+          <article className={styles.intelligencePanel} key={section.eyebrow}>
+            <div className={styles.intelligenceCopy}>
+              <span className={styles.intelligenceEyebrow}>
+                <Icon size={15} aria-hidden="true" />
+                {section.eyebrow}
               </span>
-              <h3>{title}</h3>
-              <p>{description}</p>
-            </article>
-          ))}
-        </div>
+              <h2>{section.title}</h2>
+              <p>{section.description}</p>
 
-        <div className={styles.trustBar} aria-label="서비스 신뢰 정보">
-          {trustPoints.map(({ icon: Icon, label }) => (
-            <div className={styles.trustItem} key={label}>
-              <Icon size={16} aria-hidden="true" />
-              <span>{label}</span>
+              <div className={styles.intelligencePointGrid}>
+                {section.points.map(({ icon: PointIcon, title, description }) => (
+                  <div className={styles.intelligencePoint} key={title}>
+                    <PointIcon size={17} aria-hidden="true" />
+                    <div>
+                      <h3>{title}</h3>
+                      <p>{description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className={styles.intelligenceActions}>
+                <ActionLink
+                  className={index % 2 === 1 ? styles.intelligenceActionPurple : undefined}
+                  href={section.primaryAction.href}
+                  size="md"
+                  iconEnd={<ArrowRight size={15} />}
+                >
+                  {section.primaryAction.label}
+                </ActionLink>
+                <ActionLink
+                  className={index % 2 === 1 ? styles.intelligenceSubtlePurple : undefined}
+                  href={section.secondaryAction.href}
+                  size="md"
+                  variant="subtle"
+                >
+                  {section.secondaryAction.label}
+                </ActionLink>
+              </div>
             </div>
-          ))}
-        </div>
-      </section>
 
-      <section className={styles.solutionSection} aria-labelledby="solution-title">
-        <div className={styles.solutionPanel}>
-          <div className={styles.solutionCopy}>
-            <span className={styles.solutionEyebrow}>Accountit가 해결해 드립니다</span>
-            <h2 id="solution-title">
-              필요한 공고만,
-              <br />
-              <span>한눈에</span>
-            </h2>
-            <p>
-              핵심 조건을 기반으로 나에게 맞는 공고를 빠르게 제공합니다.
-            </p>
-          </div>
-          <div className={styles.solutionList}>
-            {solutionItems.map((item) => (
-              <div className={styles.solutionItem} key={item.title}>
-                <CheckCircle2 size={18} />
-                <div>
-                  <h3>{item.title}</h3>
-                  <p>{item.description}</p>
+            <div
+              className={`${styles.intelligenceVisual} ${
+                index % 2 === 1 ? styles.intelligenceVisualCompany : ''
+              }`}
+              aria-hidden="true"
+            >
+              <div className={styles.visualCard}>
+                <div className={styles.visualCardHeader}>
+                  <span>{section.visual.label}</span>
+                  <span className={styles.visualBadge}>Live</span>
+                </div>
+                <strong>{section.visual.value}</strong>
+                <p>{section.visual.detail}</p>
+                <div className={styles.visualBars}>
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </div>
+                <div className={styles.visualChips}>
+                  {section.visual.chips.map((chip) => (
+                    <span key={chip}>{chip}</span>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          </article>
+        ))}
       </section>
 
       <section className={styles.outroSection} aria-label="서비스 지표">

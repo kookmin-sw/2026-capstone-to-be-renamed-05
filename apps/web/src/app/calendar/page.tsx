@@ -5,7 +5,7 @@ import type {
   JobCalendarEvent,
   JobCalendarRange,
 } from "@cpa/shared";
-import { useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import {
   FullDeadlineCalendar,
   ScrollableDeadlineCalendar,

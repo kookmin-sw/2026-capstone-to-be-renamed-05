@@ -49,11 +49,14 @@ function CommunityPageContent() {
   const [sort, setSort] = useState<SortOrder>('latest');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ key: '', page: 1 });
 
-  useEffect(() => {
-    setPage(1);
-  }, [activeBoard, search, sort, mineOnly]);
+  const paginationKey = `${activeBoard}:${search}:${sort}:${mineOnly}`;
+  const page = pagination.key === paginationKey ? pagination.page : 1;
+
+  function setPage(nextPage: number) {
+    setPagination({ key: paginationKey, page: nextPage });
+  }
 
   useEffect(() => {
     let ignore = false;

@@ -3,7 +3,7 @@
 import type { JobCalendarDay, JobListItem } from '@cpa/shared';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { JobGridCard } from '@/components/job-card';
 import { jobSortLabels } from '@/components/job-filter-panel';
 import { JobSearchFilters } from '@/components/job-search-filters';

@@ -13,6 +13,7 @@ import {
   EmploymentType,
   Job,
   JobFamily,
+  JobEngagementEventType,
   JobStatus,
   KicpaCondition,
   Label,
@@ -42,6 +43,9 @@ for (const envFilePath of resolveEnvFilePaths()) {
 const TARGET_COMPANY_COUNT = 75;
 const TARGET_JOB_COUNT = 300;
 const MOCK_PASSWORD = "password123";
+const ANALYTICS_SEED_DAYS = 30;
+const MOCK_ENGAGEMENT_EVENT_ID_PREFIX = "mock-engagement-";
+const MOCK_CREATE_MANY_CHUNK_SIZE = 1000;
 const jobSeekerMockUsers = [
   {
     username: "test002",
@@ -1597,6 +1601,323 @@ async function seedBookmarksPresetsAndSubscriptions(
   }
 }
 
+type AnalyticsSeedUser = { id: string; username: string };
+type AnalyticsSeedJob = Pick<
+  Job,
+  | "id"
+  | "companyId"
+  | "companyType"
+  | "jobFamily"
+  | "deadlineType"
+  | "status"
+>;
+
+const companyTypeAnalyticsWeight: Record<CompanyType, number> = {
+  [CompanyType.BIG4]: 9,
+  [CompanyType.LOCAL_ACCOUNTING_FIRM]: 6,
+  [CompanyType.MID_SMALL_ACCOUNTING_FIRM]: 4,
+  [CompanyType.FINANCIAL_COMPANY]: 7,
+  [CompanyType.GENERAL_COMPANY]: 6,
+  [CompanyType.PUBLIC_INSTITUTION]: 5,
+};
+
+const jobFamilyAnalyticsWeight: Record<JobFamily, number> = {
+  [JobFamily.AUDIT]: 7,
+  [JobFamily.TAX]: 5,
+  [JobFamily.FAS]: 6,
+  [JobFamily.DEAL]: 6,
+  [JobFamily.INTERNAL_ACCOUNTING]: 7,
+  [JobFamily.IN_HOUSE]: 5,
+};
+
+function createAnalyticsEventDate(dayOffset: number, sequence: number) {
+  const now = new Date();
+  const date = new Date(now);
+  date.setDate(now.getDate() - dayOffset);
+  date.setHours(
+    8 + (sequence % 10),
+    (sequence * 13) % 60,
+    (sequence * 17) % 60,
+    0,
+  );
+
+  if (date.getTime() > now.getTime()) {
+    return new Date(now.getTime() - (sequence + 5) * 60 * 1000);
+  }
+  return date;
+}
+
+function calculateAnalyticsBaseInterest(job: AnalyticsSeedJob, index: number) {
+  const statusWeight = job.status === JobStatus.OPEN ? 1 : 0.45;
+  const deadlineWeight =
+    job.deadlineType === DeadlineType.FIXED_DATE
+      ? 2
+      : job.deadlineType === DeadlineType.UNTIL_FILLED
+        ? 1
+        : 0;
+  return Math.max(
+    2,
+    Math.round(
+      (companyTypeAnalyticsWeight[job.companyType] +
+        jobFamilyAnalyticsWeight[job.jobFamily] +
+        deadlineWeight +
+        ((index * 5) % 7)) *
+        statusWeight,
+    ),
+  );
+}
+
+function calculateDailyAnalyticsCounts(
+  job: AnalyticsSeedJob,
+  jobIndex: number,
+  dayOffset: number,
+) {
+  const weekdayPattern = [1.2, 0.9, 1.05, 1.25, 1.15, 0.65, 0.75];
+  const recencyBoost = 1 + ((ANALYTICS_SEED_DAYS - dayOffset) / 100);
+  const campaignPulse =
+    (jobIndex + dayOffset) % 11 === 0
+      ? 1.45
+      : (jobIndex * 3 + dayOffset) % 7 === 0
+        ? 1.2
+        : 1;
+  const base = calculateAnalyticsBaseInterest(job, jobIndex);
+  const detailViews = Math.max(
+    0,
+    Math.round(
+      (base *
+        weekdayPattern[dayOffset % weekdayPattern.length] *
+        recencyBoost *
+        campaignPulse) /
+        3.4,
+    ),
+  );
+  const originalClicks = Math.floor(
+    detailViews * (0.16 + (jobIndex % 5) * 0.025),
+  );
+  const bookmarkAdds = Math.floor(
+    detailViews * (0.07 + (jobIndex % 4) * 0.018),
+  );
+  const bookmarkRemoves =
+    bookmarkAdds > 0 && (jobIndex + dayOffset) % 5 === 0 ? 1 : 0;
+
+  return {
+    detailViews,
+    originalClicks,
+    bookmarkAdds,
+    bookmarkRemoves,
+  };
+}
+
+function pickAnalyticsActorId(
+  users: AnalyticsSeedUser[],
+  jobIndex: number,
+  dayOffset: number,
+  eventIndex: number,
+  allowAnonymous: boolean,
+) {
+  if (!users.length) return null;
+  if (allowAnonymous && (jobIndex + dayOffset + eventIndex) % 4 === 0) {
+    return null;
+  }
+  return users[(jobIndex * 3 + dayOffset + eventIndex) % users.length].id;
+}
+
+function appendAnalyticsEvents(
+  events: Prisma.JobEngagementEventCreateManyInput[],
+  users: AnalyticsSeedUser[],
+  job: AnalyticsSeedJob,
+  jobIndex: number,
+  dayOffset: number,
+  type: JobEngagementEventType,
+  count: number,
+  sequenceBase: number,
+) {
+  const allowAnonymous = type === JobEngagementEventType.DETAIL_VIEW;
+
+  for (let eventIndex = 0; eventIndex < count; eventIndex += 1) {
+    events.push({
+      id: `${MOCK_ENGAGEMENT_EVENT_ID_PREFIX}${jobIndex}-${dayOffset}-${type}-${eventIndex}`,
+      jobId: job.id,
+      companyId: job.companyId,
+      type,
+      actorUserId: pickAnalyticsActorId(
+        users,
+        jobIndex,
+        dayOffset,
+        eventIndex,
+        allowAnonymous,
+      ),
+      createdAt: createAnalyticsEventDate(
+        dayOffset,
+        sequenceBase + eventIndex,
+      ),
+    });
+  }
+}
+
+function buildAnalyticsEngagementEvents(
+  jobs: AnalyticsSeedJob[],
+  users: AnalyticsSeedUser[],
+) {
+  const events: Prisma.JobEngagementEventCreateManyInput[] = [];
+
+  for (const [jobIndex, job] of jobs.entries()) {
+    for (let dayOffset = 0; dayOffset < ANALYTICS_SEED_DAYS; dayOffset += 1) {
+      const counts = calculateDailyAnalyticsCounts(job, jobIndex, dayOffset);
+      const sequenceBase = jobIndex * 100 + dayOffset * 10;
+
+      appendAnalyticsEvents(
+        events,
+        users,
+        job,
+        jobIndex,
+        dayOffset,
+        JobEngagementEventType.DETAIL_VIEW,
+        counts.detailViews,
+        sequenceBase,
+      );
+      appendAnalyticsEvents(
+        events,
+        users,
+        job,
+        jobIndex,
+        dayOffset,
+        JobEngagementEventType.ORIGINAL_CLICK,
+        counts.originalClicks,
+        sequenceBase + 2000,
+      );
+      appendAnalyticsEvents(
+        events,
+        users,
+        job,
+        jobIndex,
+        dayOffset,
+        JobEngagementEventType.BOOKMARK_ADDED,
+        counts.bookmarkAdds,
+        sequenceBase + 4000,
+      );
+      appendAnalyticsEvents(
+        events,
+        users,
+        job,
+        jobIndex,
+        dayOffset,
+        JobEngagementEventType.BOOKMARK_REMOVED,
+        counts.bookmarkRemoves,
+        sequenceBase + 6000,
+      );
+    }
+  }
+
+  return events;
+}
+
+function buildAnalyticsBookmarkData(
+  jobs: AnalyticsSeedJob[],
+  users: AnalyticsSeedUser[],
+) {
+  const bookmarks: Prisma.BookmarkCreateManyInput[] = [];
+  if (!users.length) return bookmarks;
+
+  for (const [jobIndex, job] of jobs.entries()) {
+    if (job.status !== JobStatus.OPEN) continue;
+    const shouldBookmark =
+      jobIndex % 2 === 0 || job.deadlineType === DeadlineType.FIXED_DATE;
+    if (!shouldBookmark) continue;
+
+    const bookmarkCount = Math.min(
+      users.length,
+      1 +
+        ((companyTypeAnalyticsWeight[job.companyType] + jobIndex * 3) %
+          Math.min(users.length, 4)),
+    );
+
+    for (let index = 0; index < bookmarkCount; index += 1) {
+      const user = users[(jobIndex + index) % users.length];
+      bookmarks.push({
+        userId: user.id,
+        targetType: BookmarkTargetType.JOB,
+        targetId: job.id,
+        createdAt: createAnalyticsEventDate((jobIndex + index) % 14, index),
+      });
+    }
+  }
+
+  return bookmarks;
+}
+
+async function createManyInChunks<T>(
+  items: T[],
+  createMany: (chunk: T[]) => Promise<unknown>,
+) {
+  for (
+    let index = 0;
+    index < items.length;
+    index += MOCK_CREATE_MANY_CHUNK_SIZE
+  ) {
+    await createMany(items.slice(index, index + MOCK_CREATE_MANY_CHUNK_SIZE));
+  }
+}
+
+async function seedCompanyAnalyticsMockData(
+  userByUsername: Map<string, { id: string; username: string }>,
+  companies: Company[],
+) {
+  const users = jobSeekerMockUsers
+    .map((user) => userByUsername.get(user.username))
+    .filter((user): user is AnalyticsSeedUser => Boolean(user));
+  const companyIds = companies.map((company) => company.id);
+  const jobs = await prisma.job.findMany({
+    where: {
+      companyId: { in: companyIds },
+      status: { in: [JobStatus.OPEN, JobStatus.CLOSED] },
+    },
+    select: {
+      id: true,
+      companyId: true,
+      companyType: true,
+      jobFamily: true,
+      deadlineType: true,
+      status: true,
+    },
+    orderBy: [{ companyId: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+  });
+  const jobIds = jobs.map((job) => job.id);
+
+  await prisma.jobEngagementEvent.deleteMany({
+    where: { id: { startsWith: MOCK_ENGAGEMENT_EVENT_ID_PREFIX } },
+  });
+
+  await prisma.bookmark.deleteMany({
+    where: {
+      userId: { in: users.map((user) => user.id) },
+      targetType: BookmarkTargetType.JOB,
+      targetId: { in: jobIds },
+    },
+  });
+
+  const engagementEvents = buildAnalyticsEngagementEvents(jobs, users);
+  await createManyInChunks(engagementEvents, (chunk) =>
+    prisma.jobEngagementEvent.createMany({
+      data: chunk,
+      skipDuplicates: true,
+    }),
+  );
+
+  const bookmarks = buildAnalyticsBookmarkData(jobs, users);
+  await createManyInChunks(bookmarks, (chunk) =>
+    prisma.bookmark.createMany({
+      data: chunk,
+      skipDuplicates: true,
+    }),
+  );
+
+  return {
+    engagementEventCount: engagementEvents.length,
+    currentBookmarkCount: bookmarks.length,
+  };
+}
+
 async function main() {
   const passwordHash = await argon2.hash(MOCK_PASSWORD);
 
@@ -1998,9 +2319,13 @@ async function main() {
 
   await seedCommunityData(userByUsername);
   await seedBookmarksPresetsAndSubscriptions(userByUsername, labelByName);
+  const analyticsMockCounts = await seedCompanyAnalyticsMockData(
+    userByUsername,
+    companies,
+  );
 
   console.log(
-    `Inserted or updated mock data: ${TARGET_COMPANY_COUNT} companies, ${TARGET_JOB_COUNT} jobs, ${TARGET_COMPANY_COUNT + mockUsers.length} users, community posts, bookmarks, presets, ${mockResumes.length} resumes, ${mockAnalysisCount} job fit analyses.`,
+    `Inserted or updated mock data: ${TARGET_COMPANY_COUNT} companies, ${TARGET_JOB_COUNT} jobs, ${TARGET_COMPANY_COUNT + mockUsers.length} users, community posts, bookmarks, presets, ${mockResumes.length} resumes, ${mockAnalysisCount} job fit analyses, ${analyticsMockCounts.engagementEventCount} company analytics events, ${analyticsMockCounts.currentBookmarkCount} analytics bookmarks.`,
   );
 }
 

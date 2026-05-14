@@ -4,6 +4,13 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${ENV_FILE:-${REPO_ROOT}/.env}"
 
+if [[ -f "${ENV_FILE}" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "${ENV_FILE}"
+  set +a
+fi
+
 if [[ "${S3_DEPLOY_UPDATE_EC2_HOST:-0}" == "1" ||
   "${S3_DEPLOY_UPDATE_EC2_HOST:-false}" == "true" ]]; then
   ENV_FILE="${ENV_FILE}" bash "${REPO_ROOT}/scripts/update-ec2-host-env.sh"

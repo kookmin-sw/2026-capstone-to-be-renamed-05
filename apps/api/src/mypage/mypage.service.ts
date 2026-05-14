@@ -53,7 +53,7 @@ import {
 } from 'node:path';
 import { Readable } from 'node:stream';
 import {
-  isServerRuntime,
+  resolveRuntimeEnvironment,
   resolveWorkspaceRoot,
 } from '../config/runtime-environment';
 import { AssetsService } from '../assets/assets.service';
@@ -1231,7 +1231,16 @@ export class MypageService implements OnModuleInit {
       );
     }
 
-    return isServerRuntime() ? 's3' : 'local';
+    return this.getRuntimeEnvironment() === 'aws' ? 's3' : 'local';
+  }
+
+  private getRuntimeEnvironment() {
+    return resolveRuntimeEnvironment({
+      APP_ENV: this.config.get<string>('APP_ENV'),
+      RUNTIME_ENV: this.config.get<string>('RUNTIME_ENV'),
+      DEPLOY_TARGET: this.config.get<string>('DEPLOY_TARGET'),
+      NODE_ENV: this.config.get<string>('NODE_ENV') ?? process.env.NODE_ENV,
+    });
   }
 
   private getLocalResumeConfig(): Extract<

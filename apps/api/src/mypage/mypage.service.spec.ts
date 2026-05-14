@@ -212,6 +212,41 @@ describe('MypageService resumes', () => {
     );
   });
 
+  it('defaults to S3 resume storage when the configured runtime is aws', async () => {
+    mockS3Send.mockResolvedValueOnce({});
+    prisma.resume.create.mockImplementation(
+      ({ data }: { data: Record<string, unknown> }) =>
+        Promise.resolve({
+          ...data,
+          createdAt,
+          updatedAt: createdAt,
+        }),
+    );
+    service = new MypageService(
+      prisma as unknown as PrismaService,
+      createConfig({
+        APP_ENV: 'aws',
+        AWS_REGION: 'ap-northeast-2',
+        S3_RESUME_BUCKET: 'private-resumes',
+      }),
+      assetsService as unknown as AssetsService,
+    );
+
+    const result = await service.createResume('user-1', {
+      fileName: 'resume.pdf',
+      contentType: 'application/pdf',
+      body: Buffer.from('%PDF'),
+    });
+
+    expect(result.fileUrl).toBe(`/mypage/resumes/${result.id}/download`);
+    const command = readS3Command();
+    expect(command.constructor.name).toBe('PutObjectCommand');
+    expect(command.input).toMatchObject({
+      Bucket: 'private-resumes',
+      ContentType: 'application/pdf',
+    });
+  });
+
   it('streams resume downloads from S3 when configured', async () => {
     const resume = resumeRecord({ id: 'resume-1', userId: 'user-1' });
     prisma.resume.findFirst.mockResolvedValue(resume);

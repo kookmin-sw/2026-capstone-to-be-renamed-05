@@ -203,6 +203,9 @@ S3 버킷은 `company-logos/*`, `company-backgrounds/*` 및 정적 웹 파일에
 기본적으로 `company-logos/`, `company-backgrounds/`, `resumes/`, `postgres/`,
 `backups/`, `out/` prefix를 삭제 대상에서 제외하고, mock 정적 회사 이미지는 별도
 동기화로 업로드합니다.
+`npm run prisma:mock`이 넣는 샘플 회사 이미지는 기본적으로 `/company-logos/*`,
+`/company-backgrounds/*` 같은 웹 정적 경로를 사용합니다. 별도 CDN을 쓰는 경우에만
+`MOCK_PUBLIC_ASSET_BASE_URL`을 설정하세요.
 CORS 설정에서는 웹 출처가 `Content-Type` 헤더와 함께 `PUT` 요청을 보낼 수
 있어야 합니다. 운영 환경이 AWS 위에서 실행된다면 장기 액세스 키 대신 EC2/ECS
 IAM 역할 사용을 권장합니다.

@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { isAbsolute, join, resolve } from 'node:path';
 
 export type RuntimeEnvironment = 'local' | 'aws' | 'test';
 
@@ -71,6 +71,15 @@ export function resolveEnvFilePaths(
   startDir = process.cwd(),
 ) {
   const root = resolveWorkspaceRoot(startDir);
+  const explicitEnvFile = firstNonEmpty(env.ENV_FILE);
+  if (explicitEnvFile) {
+    return [
+      isAbsolute(explicitEnvFile)
+        ? explicitEnvFile
+        : join(root, explicitEnvFile),
+    ];
+  }
+
   const runtime = resolveRuntimeEnvironment(env);
   const names =
     runtime === 'aws'

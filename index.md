@@ -1,26 +1,162 @@
 # Accountit
 
+## 1. 프로젝트 소개
+
 **Accountit**은 회계사, 회계사 준비생, 회계법인을 위한 **CPA 특화 채용 큐레이션 플랫폼**입니다.
 
 흩어져 있는 회계사 채용 공고를 한곳에 모아 제공하고, 사용자가 KICPA 조건, 수습 가능 여부, 실무수습기관 인정 여부, 마감일 등 CPA에 특화된 기준으로 적합한 공고를 빠르게 탐색할 수 있도록 돕습니다. AI 기반 이력서 분석, 기업 정보 비교, 일정 관리, 커뮤니티 기능까지 함께 제공해 회계사 채용 과정을 보다 체계적으로 관리할 수 있게 합니다.
 
 기업회원에게는 지원자의 관심 데이터와 채용 반응 분석을 제공하여 더 효율적인 채용 운영을 지원합니다.
 
-## 기본 정보
+### 기본 정보
 
 | 항목 | 내용 |
 | --- | --- |
 | 팀명 | Accountit |
 | 소속 | AWS-2 분반 (SW-05) 85 |
 
-| 팀원 (학번) | 역할 |
+### Target User
+
+#### 1. 회계사 및 CPA 자격 보유자
+
+감사, 세무, FAS, Deal, 내부회계, 인하우스 등 다양한 회계 직무로 이직하거나 커리어를 확장하려는 사용자입니다.
+
+#### 2. 회계사 준비생 및 수습 예정자
+
+수습 CPA 가능 공고, 실무수습기관 인정 여부, 신입 채용, KICPA 우대/필수 조건을 중심으로 공고를 탐색하는 사용자입니다.
+
+#### 3. 회계법인 및 채용 기업
+
+회계사 채용 공고를 등록하고, 지원자 관심도와 공고 성과 데이터를 확인하려는 기업회원입니다.
+
+### Problem
+
+회계사 채용 공고는 여러 채널에 흩어져 있어 지원자가 필요한 정보를 한눈에 확인하기 어렵습니다.
+
+#### 공고의 파편화
+
+회사별 채용 페이지, KICPA 게시판, 일반 채용 사이트에 공고가 분산되어 있어 지원자가 여러 채널을 직접 확인해야 합니다.
+
+#### CPA 조건의 불투명성
+
+수습 CPA 가능 여부, 실무수습기관 인정 여부, KICPA 우대/필수 조건, 마감일 등을 공고마다 일일이 확인해야 합니다.
+
+#### 지원 판단 정보의 분산
+
+회사 규모, 후기, 평균연봉, 입사·퇴사 흐름 등 지원 판단에 필요한 회사 정보가 채용 공고와 따로 존재합니다.
+
+### 주요 기능
+
+#### 1. CPA 채용 공고 통합 및 맞춤형 필터
+
+파편화된 CPA 채용 공고를 통합해 제공하고, 사용자는 직무, 회사 유형, 지역, 고용 형태, 경력, KICPA 조건, 수습 가능 여부, 실무수습기관 여부, 마감 유형 등 CPA 채용에 필요한 기준으로 공고를 필터링할 수 있습니다.
+
+![채용 공고 탭](docs/images/accountit-page/jobs.png)
+
+#### 2. AI 이력서 분석 및 공고별 적합도 판단
+
+AI가 이력서를 분석해 채용 공고별 적합도를 판단합니다. 공고별 AI 요약, 핵심 태그, 유의사항을 함께 제공해 사용자가 지원 여부를 더 빠르게 판단할 수 있도록 돕습니다.
+
+![채용 공고 상세 AI 적합도 분석](docs/images/accountit-page/job-detail-fit.png)
+
+#### 3. 기업회원용 관심 데이터 및 공고 성과 분석
+
+기업회원은 공고 조회수, 원문 클릭수, 북마크 수, 클릭률, 전환 흐름 등 지원자 관심 데이터를 확인할 수 있습니다. 이를 통해 공고 성과를 점검하고 채용 운영을 개선할 수 있습니다.
+
+![기업회원 대시보드](docs/images/accountit-page/company-dashboard.png)
+
+#### 4. 마감일 캘린더 및 알림
+
+시작일과 마감일을 쉽게 확인할 수 있도록 주간, 월간, 미니 캘린더를 제공합니다. 북마크한 공고의 마감 임박, 상태 변경, 관심 태그 기반 신규 공고 알림도 함께 제공합니다.
+
+![마감일 캘린더](docs/images/accountit-page/calendar.png)
+
+#### 5. 회계사 전용 커뮤니티
+
+CPA 준비생, 수습 회계사, 시니어 회계사, 자유게시판을 운영하고 CPA 인증을 진행합니다. 회계사 채용과 커리어에 필요한 경험과 정보를 나눌 수 있는 커뮤니티 공간입니다.
+
+![커뮤니티 탭](docs/images/accountit-page/community.png)
+
+#### 6. 기업별 상세 정보 제공
+
+기업 유형, 설립 연차, 직원 수, 평균 연봉, 입사·퇴사 흐름, 이직률, 진행 중인 공고를 확인할 수 있습니다. 사용자는 공고뿐 아니라 기업 정보를 함께 비교해 지원 판단을 할 수 있습니다.
+
+![회사 정보 상세](docs/images/accountit-page/company-detail.png)
+
+## 2. 소개 영상
+
+프로젝트 소개 영상은 최종 제출 전 추가 예정입니다.
+
+## 3. 팀 소개
+
+| 팀원 (학번) | 담당 |
 | --- | --- |
 | 김진우 (20182217) | 팀 리더, BE, PM |
 | 박수진 (20230152) | BE, PM |
 | 박지영 (20223080) | FE |
 | 지성은 (20223148) | FE |
 
-## 메인 컬러 팔레트
+## 4. 사용법
+
+### 설치 및 실행
+
+```bash
+npm install
+cp .env.example .env
+docker compose up -d
+npm run prisma:migrate
+npm run prisma:mock
+npm run dev
+```
+
+로컬 실행 주소는 다음과 같습니다.
+
+| 항목 | 주소 |
+| --- | --- |
+| Web | <http://localhost:3000> |
+| API | <http://localhost:4000> |
+| Swagger | <http://localhost:4000/docs> |
+
+### 주요 명령어
+
+```bash
+npm run dev
+npm run dev:web
+npm run dev:api
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+npm run prisma:generate
+npm run prisma:migrate
+npm run prisma:migrate:deploy
+npm run prisma:seed
+npm run prisma:mock
+```
+
+`npm run prisma:seed`는 기본 데이터를 넣지 않습니다. 샘플 데이터를 넣으려면 `npm run prisma:mock`을 실행합니다.
+
+## 5. 기타
+
+### 기술 스택
+
+- Monorepo: npm workspaces
+- Web: Next.js App Router, TypeScript, Tailwind CSS, shadcn/ui, lucide-react
+- API: NestJS, Prisma, PostgreSQL, Swagger/OpenAPI
+- Shared: TypeScript enums and DTO-friendly types
+- Auth: username/password, argon2 password hashing, HTTP-only JWT cookies
+- Roles: `JOB_SEEKER`, `COMPANY`, `ADMIN`
+
+### 프로젝트 구조
+
+```text
+apps/web          사용자 및 관리자 웹 UI
+apps/api          REST API, 인증, Prisma, Swagger
+packages/shared   공유 enum 및 TypeScript 타입
+prisma            Prisma 스키마, 마이그레이션, seed/mock 스크립트
+```
+
+### 메인 컬러 팔레트
 
 | 구분 | HEX |
 | --- | --- |
@@ -28,71 +164,3 @@
 | Brand / Strong | `#d03368` |
 | Brand / Soft | `#fff0f5` |
 | Brand / Mid | `#ffd6e5` |
-
-## Target User
-
-### 1. 회계사 및 CPA 자격 보유자
-
-감사, 세무, FAS, Deal, 내부회계, 인하우스 등 다양한 회계 직무로 이직하거나 커리어를 확장하려는 사용자입니다.
-
-### 2. 회계사 준비생 및 수습 예정자
-
-수습 CPA 가능 공고, 실무수습기관 인정 여부, 신입 채용, KICPA 우대/필수 조건을 중심으로 공고를 탐색하는 사용자입니다.
-
-### 3. 회계법인 및 채용 기업
-
-회계사 채용 공고를 등록하고, 지원자 관심도와 공고 성과 데이터를 확인하려는 기업회원입니다.
-
-## Problem
-
-회계사 채용 공고는 여러 채널에 흩어져 있어 지원자가 필요한 정보를 한눈에 확인하기 어렵습니다.
-
-### 공고의 파편화
-
-회사별 채용 페이지, KICPA 게시판, 일반 채용 사이트에 공고가 분산되어 있어 지원자가 여러 채널을 직접 확인해야 합니다.
-
-### CPA 조건의 불투명성
-
-수습 CPA 가능 여부, 실무수습기관 인정 여부, KICPA 우대/필수 조건, 마감일 등을 공고마다 일일이 확인해야 합니다.
-
-### 지원 판단 정보의 분산
-
-회사 규모, 후기, 평균연봉, 입사·퇴사 흐름 등 지원 판단에 필요한 회사 정보가 채용 공고와 따로 존재합니다.
-
-## 주요 기능
-
-### 1. CPA 채용 공고 통합 및 맞춤형 필터
-
-파편화된 CPA 채용 공고를 통합해 제공하고, 사용자는 직무, 회사 유형, 지역, 고용 형태, 경력, KICPA 조건, 수습 가능 여부, 실무수습기관 여부, 마감 유형 등 CPA 채용에 필요한 기준으로 공고를 필터링할 수 있습니다.
-
-![채용 공고 탭](docs/images/accountit-page/jobs.png)
-
-### 2. AI 이력서 분석 및 공고별 적합도 판단
-
-AI가 이력서를 분석해 채용 공고별 적합도를 판단합니다. 공고별 AI 요약, 핵심 태그, 유의사항을 함께 제공해 사용자가 지원 여부를 더 빠르게 판단할 수 있도록 돕습니다.
-
-![채용 공고 상세 AI 적합도 분석](docs/images/accountit-page/job-detail-fit.png)
-
-### 3. 기업회원용 관심 데이터 및 공고 성과 분석
-
-기업회원은 공고 조회수, 원문 클릭수, 북마크 수, 클릭률, 전환 흐름 등 지원자 관심 데이터를 확인할 수 있습니다. 이를 통해 공고 성과를 점검하고 채용 운영을 개선할 수 있습니다.
-
-![기업회원 대시보드](docs/images/accountit-page/company-dashboard.png)
-
-### 4. 마감일 캘린더 및 알림
-
-시작일과 마감일을 쉽게 확인할 수 있도록 주간, 월간, 미니 캘린더를 제공합니다. 북마크한 공고의 마감 임박, 상태 변경, 관심 태그 기반 신규 공고 알림도 함께 제공합니다.
-
-![마감일 캘린더](docs/images/accountit-page/calendar.png)
-
-### 5. 회계사 전용 커뮤니티
-
-CPA 준비생, 수습 회계사, 시니어 회계사, 자유게시판을 운영하고 CPA 인증을 진행합니다. 회계사 채용과 커리어에 필요한 경험과 정보를 나눌 수 있는 커뮤니티 공간입니다.
-
-![커뮤니티 탭](docs/images/accountit-page/community.png)
-
-### 6. 기업별 상세 정보 제공
-
-기업 유형, 설립 연차, 직원 수, 평균 연봉, 입사·퇴사 흐름, 이직률, 진행 중인 공고를 확인할 수 있습니다. 사용자는 공고뿐 아니라 기업 정보를 함께 비교해 지원 판단을 할 수 있습니다.
-
-![회사 정보 상세](docs/images/accountit-page/company-detail.png)

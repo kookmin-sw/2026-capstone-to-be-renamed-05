@@ -37,6 +37,9 @@ type JobPresetBarProps = {
   filters: JobFilterState;
   onChange: (filters: JobFilterState, options?: SetJobFiltersOptions) => void;
   className?: string;
+  showBasePresets?: boolean;
+  wrap?: boolean;
+  compact?: boolean;
 };
 
 const careerLevelLabels: Record<string, string> = {
@@ -123,6 +126,9 @@ export function JobPresetBar({
   filters,
   onChange,
   className,
+  showBasePresets = true,
+  wrap = false,
+  compact = false,
 }: JobPresetBarProps) {
   const [authMode, setAuthMode] = useState<
     "loading" | "guest" | "job-seeker" | "hidden"
@@ -208,6 +214,11 @@ export function JobPresetBar({
   };
 
   const applyPersonalPreset = (preset: UserJobPresetItem) => {
+    if (filters.userPresetId === preset.id) {
+      onChange({ ...filters, userPresetId: "" });
+      return;
+    }
+
     onChange(userPresetState(preset.filterState, preset.id), {
       preserveUserPreset: true,
     });
@@ -278,22 +289,31 @@ export function JobPresetBar({
 
   return (
     <div className={cn(styles.root, className)}>
-      <div className={styles.row}>
-        {jobPresetConfigs.map((preset) => {
-          const selected = filters.preset === preset.id;
-          return (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => applyBasePreset(preset.id)}
-              className={cn(styles.chip, selected && styles.chipSelected)}
-            >
-              {preset.label}
-            </button>
-          );
-        })}
+      <div
+        className={cn(
+          styles.row,
+          wrap && styles.rowWrap,
+          compact && styles.rowCompact,
+        )}
+      >
+        {showBasePresets &&
+          jobPresetConfigs.map((preset) => {
+            const selected = filters.preset === preset.id;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => applyBasePreset(preset.id)}
+                className={cn(styles.chip, selected && styles.chipSelected)}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
 
-        {authMode !== "hidden" && <span className={styles.divider} />}
+        {showBasePresets && authMode !== "hidden" && (
+          <span className={styles.divider} />
+        )}
 
         {authMode === "guest" && (
           <span className={styles.guestHint}>개인회원 로그인 시 저장 가능</span>

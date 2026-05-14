@@ -49,6 +49,8 @@ import { companyDetailHref } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import styles from "./job-detail.module.css";
 
+const MYPAGE_RESUME_SECTION_HREF = "/mypage?section=resume#resume-section";
+
 export function JobDetailClient() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
@@ -278,7 +280,11 @@ function JobFitAnalysisPanel({
           <h2>이력서를 등록하면 바로 분석할 수 있습니다</h2>
           <p>마이페이지에 최대 5개의 이력서를 등록하고 공고별 적합도를 비교해보세요.</p>
         </div>
-        <ActionLink href="/mypage" size="sm" iconStart={<FileText size={14} />}>
+        <ActionLink
+          href={MYPAGE_RESUME_SECTION_HREF}
+          size="sm"
+          iconStart={<FileText size={14} />}
+        >
           이력서 등록
         </ActionLink>
       </section>

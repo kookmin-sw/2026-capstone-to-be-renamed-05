@@ -10,6 +10,7 @@ import {
 
 export type SetJobFiltersOptions = {
   preserveUserPreset?: boolean;
+  preserveQuick?: boolean;
 };
 
 export function useJobFilterState() {
@@ -65,7 +66,7 @@ export function useJobFilterState() {
     (next: JobFilterState, options: SetJobFiltersOptions = {}) => {
       setFilters({
         ...next,
-        quick: "",
+        quick: options.preserveQuick ? next.quick : "",
         userPresetId: options.preserveUserPreset ? next.userPresetId : "",
       });
     },

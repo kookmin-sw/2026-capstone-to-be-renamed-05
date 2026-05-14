@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Building2,
+  MessageCircle,
   SlidersHorizontal,
   Sparkles,
   Target,
@@ -152,6 +153,12 @@ const intelligenceSections: Array<{
       chips: ['조회 추이', '공고별 관심도', '북마크 흐름'],
     },
   },
+];
+
+const communityHighlights: Array<{ icon: LucideIcon; label: string }> = [
+  { icon: UsersRound, label: '회계사 중심 대화' },
+  { icon: ClipboardList, label: '지원 준비 정보' },
+  { icon: CheckCircle2, label: '커리어 고민 공유' },
 ];
 
 type HomeQuickFilterId =
@@ -488,37 +495,85 @@ export default function Home() {
         ))}
       </section>
 
-      <section className={styles.outroSection} aria-label="서비스 지표">
-        <h2>
-          회계사를 위한 모든 여정을
-          <br />더 <span>든든하게</span> 함께합니다
-        </h2>
-        <div className={styles.statsGrid}>
-          {stats.map(({ value, label }) => (
-            <div className={styles.statCard} key={label}>
-              <strong>{value}</strong>
-              <span>{label}</span>
+      <section className={styles.communitySection} aria-labelledby="community-title">
+        <div className={styles.communityPanel}>
+          <div className={styles.communityVisual} aria-hidden="true">
+            <Image
+              className={styles.communityImage}
+              src={`${assetBasePath}/landing/accountit-community.png`}
+              alt=""
+              width={1680}
+              height={936}
+              sizes="48vw"
+            />
+          </div>
+
+          <div className={styles.communityCopy}>
+            <span className={styles.communityEyebrow}>
+              <MessageCircle size={16} aria-hidden="true" />
+              CPA Community
+            </span>
+            <h2 id="community-title">
+              같은 길을 걷는 사람들과
+              <br />
+              <span>채용과 커리어 정보</span>를 나누세요
+            </h2>
+            <p>
+              회계사와 회계사 준비생이 채용 준비, 실무수습, 법인 문화, 직무 선택,
+              커리어 고민을 한 공간에서 나눌 수 있습니다.
+            </p>
+
+            <div className={styles.communityHighlights}>
+              {communityHighlights.map(({ icon: Icon, label }) => (
+                <span key={label}>
+                  <Icon size={16} aria-hidden="true" />
+                  {label}
+                </span>
+              ))}
             </div>
-          ))}
+
+            <div className={styles.communityActions}>
+              <ActionLink href="/community" size="lg" iconEnd={<ArrowRight size={17} />}>
+                커뮤니티 둘러보기
+              </ActionLink>
+              <ActionLink href="/login?mode=register" size="lg" variant="subtle">
+                회원가입하고 참여하기
+              </ActionLink>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className={styles.ctaSection} aria-labelledby="cta-title">
-        <div className={styles.ctaInner}>
-          <h2 id="cta-title">
-            공고를 찾는 순간부터 마감 관리까지
-            <br />
-            <span>Accountit에서 이어가세요</span>
+      <section className={styles.closingBand} aria-label="서비스 지표와 시작 안내">
+        <section className={styles.outroSection} aria-label="서비스 지표">
+          <h2>
+            회계사를 위한 모든 여정을
+            <br />더 <span>든든하게</span> 함께합니다
           </h2>
-          <div className={styles.ctaActions}>
-            <ActionLink href="/jobs" size="lg" iconEnd={<ArrowRight size={17} />}>
-              채용공고 탐색하기
-            </ActionLink>
-            <ActionLink href="/community" size="lg" variant="subtle">
-              커뮤니티 둘러보기
-            </ActionLink>
+          <div className={styles.statsGrid}>
+            {stats.map(({ value, label }) => (
+              <div className={styles.statCard} key={label}>
+                <strong>{value}</strong>
+                <span>{label}</span>
+              </div>
+            ))}
           </div>
-        </div>
+        </section>
+
+        <section className={styles.ctaSection} aria-labelledby="cta-title">
+          <div className={styles.ctaInner}>
+            <h2 id="cta-title">
+              공고를 찾는 순간부터 마감 관리까지
+              <br />
+              <span>Accountit에서 이어가세요</span>
+            </h2>
+            <div className={styles.ctaActions}>
+              <ActionLink href="/jobs" size="lg" iconEnd={<ArrowRight size={17} />}>
+                서비스 이용해보기
+              </ActionLink>
+            </div>
+          </div>
+        </section>
       </section>
     </main>
   );

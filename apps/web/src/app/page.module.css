@@ -116,6 +116,7 @@
 .outroSection,
 .quickSection,
 .intelligenceSection,
+.communitySection,
 .ctaSection {
   max-width: 80rem;
   margin: 0 auto;
@@ -125,8 +126,8 @@
 
 /* ── Quick nav ────────────────────────────────────── */
 .quickSection {
-  padding-top: 7rem;
-  padding-bottom: 7rem;
+  padding-top: 2rem;
+  padding-bottom: 4rem;
 }
 
 .quickRow {
@@ -232,7 +233,6 @@
 }
 
 .intelligencePanel:nth-child(even) {
-  grid-template-columns: minmax(24rem, 0.95fr) minmax(0, 1.05fr);
   background:
     radial-gradient(circle at 92% 18%, rgba(224, 231, 255, 0.66), transparent 13rem),
     linear-gradient(180deg, #ffffff 0%, #fbfbff 100%);
@@ -249,15 +249,6 @@
 
 .intelligencePanel:nth-child(even)::after {
   background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.09), transparent 68%);
-}
-
-.intelligencePanel:nth-child(even) .intelligenceCopy {
-  order: 2;
-  text-align: right;
-}
-
-.intelligencePanel:nth-child(even) .intelligenceVisual {
-  order: 1;
 }
 
 .intelligenceCopy {
@@ -305,11 +296,6 @@
   color: #6366f1;
 }
 
-.intelligencePanel:nth-child(even) .intelligenceCopy h2,
-.intelligencePanel:nth-child(even) .intelligenceCopy > p {
-  margin-left: auto;
-}
-
 .intelligenceCopy > p {
   max-width: 37rem;
   margin-top: 1rem;
@@ -339,9 +325,7 @@
 }
 
 .intelligencePanel:nth-child(even) .intelligencePoint {
-  grid-template-columns: minmax(0, 1fr) auto;
   border-color: rgba(99, 102, 241, 0.1);
-  text-align: right;
 }
 
 .intelligencePoint svg {
@@ -350,7 +334,6 @@
 }
 
 .intelligencePanel:nth-child(even) .intelligencePoint svg {
-  order: 2;
   color: #6366f1;
 }
 
@@ -376,10 +359,6 @@
   align-items: center;
   gap: 0.75rem;
   margin-top: 1.65rem;
-}
-
-.intelligencePanel:nth-child(even) .intelligenceActions {
-  justify-content: flex-end;
 }
 
 .intelligenceActions .intelligenceActionPurple {
@@ -568,6 +547,157 @@
   background: rgba(238, 242, 255, 0.74);
 }
 
+/* ── Community section ────────────────────────────── */
+.communitySection {
+  max-width: 80rem;
+  padding-top: 0.5rem;
+  padding-bottom: 6.75rem;
+}
+
+.communityPanel {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  align-items: center;
+  gap: 2.25rem;
+  min-height: 33rem;
+  overflow: visible;
+  padding: 1rem 0 3rem;
+}
+
+.communityPanel::before {
+  position: absolute;
+  right: 2rem;
+  bottom: 3rem;
+  width: 8.5rem;
+  height: 8.5rem;
+  border-radius: 999px;
+  background: rgba(232, 69, 122, 0.045);
+  content: '';
+}
+
+.communityPanel::after {
+  position: absolute;
+  right: 8rem;
+  top: 3.5rem;
+  width: 4.75rem;
+  height: 4.75rem;
+  border-radius: 999px;
+  background-image: radial-gradient(rgba(232, 69, 122, 0.16) 1.5px, transparent 1.5px);
+  background-size: 1rem 1rem;
+  content: '';
+  opacity: 0.72;
+}
+
+.communityVisual {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: visible;
+  padding: 1rem 0;
+}
+
+.communityImage {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: min(52rem, 108%);
+  max-width: none;
+  height: auto;
+  margin-left: -2.5rem;
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 0%, black 10%, black 88%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, black 8%, black 88%, transparent 100%);
+  mask-image:
+    linear-gradient(to right, transparent 0%, black 10%, black 88%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, black 8%, black 88%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
+.communityCopy {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.communityEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2rem;
+  border-radius: 999px;
+  background: #fff0f6;
+  color: var(--brand);
+  padding: 0 1rem;
+  font-size: 0.8125rem;
+  font-weight: 900;
+}
+
+.communityCopy h2 {
+  max-width: 34rem;
+  margin-top: 1.2rem;
+  color: #202738;
+  font-size: 2.65rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.28;
+  word-break: keep-all;
+}
+
+.communityCopy h2 span {
+  color: var(--brand);
+}
+
+.communityCopy p {
+  max-width: 32rem;
+  margin-top: 1.15rem;
+  color: #5a6170;
+  font-size: 0.98rem;
+  font-weight: 500;
+  line-height: 1.85;
+  overflow-wrap: break-word;
+  word-break: keep-all;
+}
+
+.communityHighlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.45rem;
+}
+
+.communityHighlights span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  min-height: 2.3rem;
+  border: 1px solid rgba(232, 69, 122, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 240, 245, 0.7);
+  color: #4f5968;
+  padding: 0 0.82rem;
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.communityHighlights svg {
+  color: var(--brand);
+}
+
+.communityActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
 /* ── Problem section ──────────────────────────────── */
 .problemSection {
   padding-top: 5rem;
@@ -660,10 +790,47 @@
   color: var(--brand);
 }
 
+/* ── Closing band ─────────────────────────────────── */
+.closingBand {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #ffffff 14%, rgba(255, 255, 255, 0.92) 22%, rgba(255, 247, 250, 0.72) 36%, rgba(255, 240, 245, 0.68) 48%, rgba(255, 255, 255, 0.96) 68%, rgba(255, 247, 250, 0.92) 100%),
+    radial-gradient(circle at 14% 28%, rgba(232, 69, 122, 0.07), transparent 19rem),
+    radial-gradient(circle at 86% 72%, rgba(255, 214, 229, 0.62), transparent 20rem);
+  box-shadow: 0 -5rem 7rem rgba(255, 240, 245, 0.14);
+}
+
+.closingBand::before {
+  position: absolute;
+  top: 5rem;
+  left: 5vw;
+  width: 6rem;
+  height: 6rem;
+  border-radius: 999px;
+  background: rgba(232, 69, 122, 0.045);
+  content: '';
+}
+
+.closingBand::after {
+  position: absolute;
+  right: 6vw;
+  bottom: 5.5rem;
+  width: 8rem;
+  height: 8rem;
+  border-radius: 999px;
+  background-image: radial-gradient(rgba(232, 69, 122, 0.12) 1.5px, transparent 1.5px);
+  background-size: 1rem 1rem;
+  content: '';
+  opacity: 0.58;
+}
+
 /* ── Outro / stats ────────────────────────────────── */
 .outroSection {
-  padding-top: 5rem;
-  padding-bottom: 10rem;
+  position: relative;
+  z-index: 1;
+  padding-top: 7rem;
+  padding-bottom: 4.5rem;
   text-align: center;
 }
 
@@ -674,7 +841,9 @@
 
 .outroSection p {
   max-width: 30rem;
-  margin: 1rem auto 0;
+  margin-top: 1rem;
+  margin-right: auto;
+  margin-left: auto;
   color: #6b7280;
   font-size: 0.9375rem;
   font-weight: 500;
@@ -686,9 +855,9 @@
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 5.5rem;
+  gap: 1.5rem;
   max-width: 70rem;
-  margin: 5.5rem auto 0;
+  margin: 4.25rem auto 0;
 }
 
 .statCard {
@@ -696,14 +865,14 @@
   flex-direction: column;
   align-items: center;
   gap: 0.625rem;
-  padding: 0.25rem 1.5rem 2rem;
   overflow: hidden;
+  padding: 0.25rem 1.5rem 2rem;
 }
 
 .statCard strong {
   display: block;
   color: #38202f;
-  font-size: 5rem;
+  font-size: 4rem;
   font-weight: 900;
   letter-spacing: 0;
   line-height: 1;
@@ -718,20 +887,20 @@
 
 /* ── CTA ──────────────────────────────────────────── */
 .ctaSection {
+  position: relative;
+  z-index: 1;
   padding-top: 0;
-  padding-bottom: 8rem;
+  padding-bottom: 7rem;
 }
 
 .ctaInner {
   display: grid;
   justify-items: center;
   gap: 1.6rem;
-  border: 1px solid rgba(232, 69, 122, 0.16);
-  border-radius: 0.75rem;
-  background:
-    linear-gradient(180deg, rgba(255, 240, 245, 0.9), rgba(255, 255, 255, 0.96)),
-    #ffffff;
-  padding: clamp(2rem, 5vw, 4rem) 1.5rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 2.25rem 1.5rem 0;
   text-align: center;
 }
 

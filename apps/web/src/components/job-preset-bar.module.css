@@ -11,6 +11,39 @@
   padding-bottom: 0.25rem;
 }
 
+.rowWrap {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  padding-bottom: 0;
+}
+
+.rowCompact {
+  gap: 0.4rem;
+}
+
+.rowCompact .chip,
+.rowCompact .personalChip,
+.rowCompact .saveButton,
+.rowCompact .nameConfirm,
+.rowCompact .nameCancel {
+  font-size: 0.6875rem;
+}
+
+.rowCompact .chip,
+.rowCompact .saveButton,
+.rowCompact .nameConfirm,
+.rowCompact .nameCancel {
+  padding: 0.3125rem 0.625rem;
+}
+
+.rowCompact .personalChipLabel {
+  padding: 0.3125rem 0.625rem;
+}
+
+.rowCompact .personalChipDelete {
+  padding: 0 0.425rem;
+}
+
 .chip {
   flex: none;
   border: 1px solid var(--app-line);

@@ -8,13 +8,13 @@
     "npm": ">=11"
   },
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
-    "dev": "concurrently -n api,web -c cyan,magenta \"npm run dev:api\" \"npm run dev:web\"",
-    "dev:api": "npm run start:dev --workspace @cpa/api",
-    "dev:web": "npm run dev --workspace @cpa/web",
+    "dev": "npm run build --workspace @cpa/shared && concurrently -n api,web -c cyan,magenta \"npm run start:dev --workspace @cpa/api\" \"npm run dev:web\"",
+    "dev:api": "npm run build --workspace @cpa/shared && npm run start:dev --workspace @cpa/api",
+    "dev:web": "npm run build --workspace @cpa/shared && npm run dev --workspace @cpa/web",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",

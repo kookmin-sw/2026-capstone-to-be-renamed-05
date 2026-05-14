@@ -58,7 +58,10 @@ export type QuickJobFilterId =
   | "trainee"
   | "entry"
   | "experienced"
-  | "deadlineSoon";
+  | "deadlineSoon"
+  | "salaryAbove"
+  | "big4"
+  | "seoul";
 
 export type QuickJobFilter = {
   id: QuickJobFilterId;
@@ -96,6 +99,24 @@ export const quickJobFilters: QuickJobFilter[] = [
       sort: "deadlineAsc",
     },
     aliases: { deadline: "soon" },
+  },
+  {
+    id: "salaryAbove",
+    label: "연봉 평균 이상",
+    values: { salaryLevel: "ABOVE_AVERAGE" },
+    aliases: { salaryLevel: "ABOVE_AVERAGE" },
+  },
+  {
+    id: "big4",
+    label: "Big4",
+    values: { companyType: "BIG4" },
+    aliases: { companyType: "BIG4" },
+  },
+  {
+    id: "seoul",
+    label: "서울",
+    values: { selectedLocations: ["서울"] },
+    aliases: { locations: "서울" },
   },
 ];
 

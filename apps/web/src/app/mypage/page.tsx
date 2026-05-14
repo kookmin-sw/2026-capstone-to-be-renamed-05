@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   type ChangeEvent,
   type FormEvent,
@@ -86,6 +87,7 @@ const PROFILE_COMPLETION_HIDDEN_UNTIL_STORAGE_KEY =
   "accountit:mypage-profile-completion:hiddenUntil";
 const PROFILE_COMPLETION_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
 const PROFILE_COMPLETION_NEW_USER_MS = 30 * 24 * 60 * 60 * 1000;
+const RESUME_SECTION_ID = "resume-section";
 
 type ProfileCompletionAction =
   | "profileImage"
@@ -142,6 +144,7 @@ const boardLabels: Record<CommunityBoardType, string> = {
 };
 
 export default function MyPage() {
+  const searchParams = useSearchParams();
   const [profile, setProfile] = useState<MyProfileResponse | null>(null);
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [resumes, setResumes] = useState<ResumeItem[]>([]);
@@ -179,6 +182,7 @@ export default function MyPage() {
     useState(false);
 
   const resumeFileInputRef = useRef<HTMLInputElement>(null);
+  const resumeSectionRef = useRef<HTMLElement>(null);
   const profileImageInputRef = useRef<HTMLInputElement>(null);
   const displayNameInputRef = useRef<HTMLInputElement>(null);
   const verificationBadgeButtonRef = useRef<HTMLButtonElement>(null);
@@ -381,6 +385,24 @@ export default function MyPage() {
     profileCompletionDismissed,
     profileCompletionModalOpen,
   ]);
+
+  useEffect(() => {
+    if (loading || !authorized) return;
+
+    const shouldScrollToResume =
+      searchParams.get("section") === "resume" ||
+      window.location.hash === `#${RESUME_SECTION_ID}`;
+    if (!shouldScrollToResume) return;
+
+    const timer = window.setTimeout(() => {
+      resumeSectionRef.current?.scrollIntoView({
+        block: "center",
+        behavior: "smooth",
+      });
+    }, 120);
+
+    return () => window.clearTimeout(timer);
+  }, [authorized, loading, searchParams]);
 
   async function handleProfileSave(event: FormEvent) {
     event.preventDefault();
@@ -1090,7 +1112,11 @@ export default function MyPage() {
             </section>
           </div>
 
-          <section className={styles.panel}>
+          <section
+            id={RESUME_SECTION_ID}
+            ref={resumeSectionRef}
+            className={styles.panel}
+          >
             <div className={styles.panelHeader}>
               <div className={styles.panelTitleGroup}>
                 <h2>

@@ -2,11 +2,15 @@ import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowRight,
+  BellRing,
   CalendarClock,
   CheckCircle2,
   ClipboardList,
+  FileSearch,
+  ShieldCheck,
   SlidersHorizontal,
   Target,
+  UsersRound,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -43,8 +47,8 @@ const problemCards: Array<{
   },
   {
     icon: Target,
-    title: '원하는 공고 찾기 어려워요',
-    description: '맞는 공고를 찾는 데 시간과 노력이 너무 많이 필요합니다.',
+    title: '지원정보를 직접 찾아야 해요',
+    description: '회사 규모, 후기, 평균연봉, 입퇴사 흐름 등이 공고와 별도로 존재합니다.',
   },
 ];
 
@@ -71,6 +75,38 @@ const stats: Array<{ value: string; label: string }> = [
   { value: '10,000+', label: '누적 채용공고' },
   { value: '5,000+', label: '회계사 회원' },
   { value: '300+', label: '제휴 기업' },
+];
+
+const differentiatorCards: Array<{
+  icon: LucideIcon;
+  title: string;
+  description: string;
+}> = [
+  {
+    icon: SlidersHorizontal,
+    title: 'CPA 조건까지 비교',
+    description:
+      '수습 가능 여부, KICPA 조건, 실무수습기관, 직무와 경력 조건을 공고 탐색 기준으로 함께 제공합니다.',
+  },
+  {
+    icon: FileSearch,
+    title: 'AI 적합도와 맞춤 탐색',
+    description:
+      '이력서 기반 적합도와 빠른 필터, 저장한 프리셋으로 나에게 맞는 공고를 더 빠르게 좁힙니다.',
+  },
+  {
+    icon: CalendarClock,
+    title: '마감과 기업 정보를 함께',
+    description:
+      '마감 캘린더, D-day, 평균 연봉, 회사 유형, 직원 흐름까지 지원 판단에 필요한 정보를 연결합니다.',
+  },
+];
+
+const trustPoints: Array<{ icon: LucideIcon; label: string }> = [
+  { icon: ShieldCheck, label: '출처 표시' },
+  { icon: CheckCircle2, label: '마지막 확인 시간' },
+  { icon: BellRing, label: '북마크·알림' },
+  { icon: UsersRound, label: '회계사 커뮤니티' },
 ];
 
 type HomeQuickFilterId =
@@ -330,6 +366,38 @@ export default function Home() {
               <h3>{item.title}</h3>
               <p>{item.description}</p>
             </article>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.differentiatorSection} aria-labelledby="differentiator-title">
+        <div className={styles.differentiatorHeader}>
+          <span className={styles.differentiatorEyebrow}>Why Accountit</span>
+          <h2 id="differentiator-title">Accountit이 다른 이유</h2>
+          <p>
+            일반 채용 사이트의 키워드 검색을 넘어, 회계사 커리어에서 실제로
+            비교해야 하는 조건을 공고와 함께 정리합니다.
+          </p>
+        </div>
+
+        <div className={styles.differentiatorGrid}>
+          {differentiatorCards.map(({ icon: Icon, title, description }) => (
+            <article className={styles.differentiatorCard} key={title}>
+              <span className={styles.differentiatorIcon} aria-hidden="true">
+                <Icon size={20} />
+              </span>
+              <h3>{title}</h3>
+              <p>{description}</p>
+            </article>
+          ))}
+        </div>
+
+        <div className={styles.trustBar} aria-label="서비스 신뢰 정보">
+          {trustPoints.map(({ icon: Icon, label }) => (
+            <div className={styles.trustItem} key={label}>
+              <Icon size={16} aria-hidden="true" />
+              <span>{label}</span>
+            </div>
           ))}
         </div>
       </section>

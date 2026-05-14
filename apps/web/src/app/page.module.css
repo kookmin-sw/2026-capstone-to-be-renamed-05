@@ -116,6 +116,7 @@
 .solutionSection,
 .outroSection,
 .quickSection,
+.differentiatorSection,
 .ctaSection {
   max-width: 80rem;
   margin: 0 auto;
@@ -172,9 +173,125 @@
   white-space: nowrap;
 }
 
+/* ── Differentiator section ───────────────────────── */
+.differentiatorSection {
+  padding-top: 1rem;
+  padding-bottom: 6.5rem;
+}
+
+.differentiatorHeader {
+  max-width: 43rem;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.differentiatorEyebrow {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  border: 1px solid rgba(232, 69, 122, 0.16);
+  border-radius: 999px;
+  background: #fff7fa;
+  color: var(--brand);
+  padding: 0 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.differentiatorHeader h2 {
+  margin-top: 0.9rem;
+  color: #202738;
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+
+.differentiatorHeader p {
+  margin-top: 0.85rem;
+  color: #6b7280;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.75;
+  overflow-wrap: break-word;
+  word-break: keep-all;
+}
+
+.differentiatorGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 2.4rem;
+}
+
+.differentiatorCard {
+  border: 1px solid #e8eaed;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  padding: 1.55rem;
+  box-shadow: 0 10px 28px rgba(32, 39, 56, 0.05);
+}
+
+.differentiatorIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.45rem;
+  height: 2.45rem;
+  border-radius: 0.625rem;
+  background: #fff0f5;
+  color: var(--brand);
+}
+
+.differentiatorCard h3 {
+  margin-top: 1rem;
+  color: #202738;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.differentiatorCard p {
+  margin-top: 0.55rem;
+  color: #667080;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.65;
+  overflow-wrap: break-word;
+  word-break: keep-all;
+}
+
+.trustBar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+  border: 1px solid rgba(232, 69, 122, 0.14);
+  border-radius: 0.75rem;
+  background: linear-gradient(90deg, rgba(255, 240, 245, 0.82), rgba(255, 255, 255, 0.96));
+  padding: 0.85rem;
+}
+
+.trustItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.25rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.72);
+  color: #4f5968;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.trustItem svg {
+  color: var(--brand);
+}
+
 /* ── Problem section ──────────────────────────────── */
 .problemSection {
-  padding-top: 7rem;
+  padding-top: 5rem;
   padding-bottom: 5rem;
 }
 
@@ -213,9 +330,9 @@
 }
 
 .problemCard {
-  border: 1px solid #e8eaed;
+  border: 1px solid rgba(232, 69, 122, 0.1);
   border-radius: 0.875rem;
-  background: #f9fafb;
+  background: linear-gradient(180deg, #fffbfd 0%, #fff7fa 100%);
   padding: 2.5rem 1.75rem 2.25rem;
   text-align: center;
   transition:
@@ -224,12 +341,23 @@
 }
 
 .problemCard:hover {
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.07);
+  box-shadow: 0 8px 28px rgba(232, 69, 122, 0.11);
   transform: translateY(-2px);
 }
 
 .problemIcon {
-  margin: 0 auto 1.25rem;
+  width: 6rem;
+  height: 6rem;
+  margin: 0 auto 1.35rem;
+  border-radius: 999px;
+  background: #ffd6e5;
+  color: var(--brand-strong);
+  box-shadow: 0 10px 22px rgba(232, 69, 122, 0.08);
+}
+
+.problemIcon svg {
+  width: 50%;
+  height: 50%;
 }
 
 .problemCard h3 {

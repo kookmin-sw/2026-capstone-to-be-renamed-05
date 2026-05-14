@@ -91,11 +91,11 @@ const careerLevelLabels: Record<string, string> = {
 };
 
 const salaryLevelLabels: Record<string, string> = {
-  ABOVE_AVERAGE: '연봉 업계평균이상',
-  TOP_1: '연봉상위1%',
-  TOP_2_5: '연봉상위2~5%',
-  TOP_6_10: '연봉상위6~10%',
-  TOP_11_20: '연봉상위11~20%',
+  ABOVE_AVERAGE: '업계평균이상',
+  TOP_1: '상위1%',
+  TOP_2_5: '상위2~5%',
+  TOP_6_10: '상위6~10%',
+  TOP_11_20: '상위11~20%',
 };
 
 @Injectable()

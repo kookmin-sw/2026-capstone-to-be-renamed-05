@@ -338,11 +338,11 @@ const TRAINEE_OPTS = [
   { value: "UNCLEAR", label: "불명확" },
 ];
 const SALARY_LEVEL_OPTS = [
-  { value: "ABOVE_AVERAGE", label: "연봉 업계평균이상" },
-  { value: "TOP_1", label: "연봉상위1%" },
-  { value: "TOP_2_5", label: "연봉상위2~5%" },
-  { value: "TOP_6_10", label: "연봉상위6~10%" },
-  { value: "TOP_11_20", label: "연봉상위11~20%" },
+  { value: "ABOVE_AVERAGE", label: "업계평균이상" },
+  { value: "TOP_1", label: "상위1%" },
+  { value: "TOP_2_5", label: "상위2~5%" },
+  { value: "TOP_6_10", label: "상위6~10%" },
+  { value: "TOP_11_20", label: "상위11~20%" },
 ];
 
 function CheckboxColumn({
@@ -441,7 +441,7 @@ export default function JobsPage() {
   const [total, setTotal] = useState(0);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(true);
   const [miniMonth, setMiniMonth] = useState(() => new Date());
   const [calendarDays, setCalendarDays] = useState<JobCalendarDay[]>([]);
   const [calendarLoading, setCalendarLoading] = useState(true);

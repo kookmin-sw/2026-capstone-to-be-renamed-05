@@ -249,7 +249,7 @@ describe('CompaniesService submission ownership', () => {
 
     expect(prisma.company.findUnique).toHaveBeenCalledWith({
       where: { ownerUserId: 'company-user-1' },
-      select: { id: true },
+      select: { id: true, name: true },
     });
     expect(prisma.job.findMany).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -8,8 +8,10 @@ GitHub Actions calling the EC2 API once.
 
 - EC2: Ubuntu or Amazon Linux instance with Docker, Docker Compose, AWS CLI, and
   an IAM instance profile.
-- Security group: allow public inbound `80` and `443`; allow `22` only from your
-  IP or use SSM; do not expose `3000`, `4000`, or `5432`.
+- Security group: for HTTPS production, allow public inbound `80` and `443`;
+  allow `22` only from your IP or use SSM; do not expose app/database ports.
+  For temporary HTTP EC2 demos without a domain, allow only the demo ports you
+  need, typically `3000` for the static web app and `8080` for the API.
 - S3 web bucket: enable static website hosting and public read for the exported
   web files. The same bucket may also be used for assets and resumes if object
   prefixes are kept separate.
@@ -82,11 +84,13 @@ NEXT_PUBLIC_CANONICAL_WEB_ORIGIN=https://app.accountit.example.com
 NEXT_PUBLIC_REDIRECT_WEB_HOSTS=accountit-web.s3-website.ap-northeast-2.amazonaws.com
 NODE_ENV=production
 NEXT_PUBLIC_API_BASE_URL=https://api.accountit.example.com
-WEB_ORIGIN=http://accountit-web.s3-website.ap-northeast-2.amazonaws.com
+WEB_ORIGIN=http://accountit-web.s3-website.ap-northeast-2.amazonaws.com,https://app.accountit.example.com
 AUTH_COOKIE_SECURE=true
 ENABLE_SWAGGER=false
 DEPLOY_BRANCH=develop
-DEPLOY_AUTO_UPDATE_EC2_HOST=true
+DEPLOY_AUTO_UPDATE_EC2_HOST=
+DEPLOY_AUTO_UPDATE_WEB_HOST=
+DEPLOY_RESTART_WEB_STATIC=
 ```
 
 `DATABASE_URL` should point at the Compose Postgres hostname:
@@ -103,7 +107,9 @@ For temporary HTTP demos that still publish the static bundle to S3, set
 `NEXT_PUBLIC_CANONICAL_WEB_ORIGIN` to the EC2 web origin and
 `NEXT_PUBLIC_REDIRECT_WEB_HOSTS` to the S3 website host. S3 and the EC2 API are
 different sites, so browser cookie rules prevent the HTTP-only auth cookie from
-being used reliably on the S3 origin.
+being used reliably on the S3 origin. Leaving `DEPLOY_AUTO_UPDATE_WEB_HOST` and
+`DEPLOY_RESTART_WEB_STATIC` blank auto-enables the EC2 web redirect and static
+web restart when `AUTH_COOKIE_SECURE=false`.
 
 The EC2 IAM role should allow the API to presign and verify company image
 uploads, and to store private resumes:
@@ -168,8 +174,8 @@ Content-Type: application/json
 EC2 runs `scripts/deploy-ec2.sh`, which uses `.run/deploy.lock` and
 `.run/deploy.log`, hard resets the deploy worktree to `origin/develop`, installs
 dependencies, deploys Prisma migrations, builds the API, builds and syncs the
-static web app to S3, then schedules the API restart. The existing EC2 `:3000`
-static web serve process is not restarted because S3 is the operating web host.
+static web app to S3, optionally restarts the EC2 `:3000` static web server for
+temporary HTTP demos, then restarts or schedules the API restart.
 
 The deploy worktree is treated as disposable. Do not keep uncommitted production
 edits in that checkout.
@@ -180,13 +186,22 @@ settings when the API is on `https://api.<domain>` and the web app is on the S3
 website host. Use CloudFront and a first-party web domain when stable cookie
 auth is required.
 
-When `DEPLOY_AUTO_UPDATE_EC2_HOST=true`, the EC2 deploy calls
+When `DEPLOY_AUTO_UPDATE_EC2_HOST=true`, or when it is blank and the deploy is a
+temporary HTTP demo with `AUTH_COOKIE_SECURE=false`, the EC2 deploy calls
 `scripts/update-ec2-host-env.sh` during S3 deployment. It reads the current EC2
 public IPv4 from instance metadata, then rewrites `API_PUBLIC_BASE_URL` and
 `NEXT_PUBLIC_API_BASE_URL` before the static web build. Set `DEPLOY_API_PORT` if
 the public API port differs from `PORT`, or set `DEPLOY_PUBLIC_HOST`/
-`DEPLOY_API_BASE_URL` to override metadata detection. `DEPLOY_API_URL` remains a
-GitHub secret and is not changed by EC2.
+`DEPLOY_API_BASE_URL` to override metadata detection. Set
+`DEPLOY_AUTO_UPDATE_EC2_HOST=false` when using a stable API domain. `DEPLOY_API_URL`
+remains a GitHub secret and is not changed by EC2.
+
+For temporary HTTP demos with `AUTH_COOKIE_SECURE=false`, the same deploy step
+also rewrites `NEXT_PUBLIC_CANONICAL_WEB_ORIGIN` to the current EC2 web origin
+and includes that origin in `WEB_ORIGIN`. This makes the S3 static site redirect
+users to the same-site EC2 web server before login, so the HTTP-only auth cookie
+can be stored and sent. The deploy then restarts the EC2 static web server on
+`DEPLOY_WEB_PORT` unless `DEPLOY_RESTART_WEB_STATIC=false`.
 
 ## 5. Manual Deploy
 
@@ -214,6 +229,12 @@ automation is available as:
 ENV_FILE=.env NODE_VERSION=24 bash scripts/restart-api.sh
 ```
 
+The matching static web restart command is:
+
+```bash
+ENV_FILE=.env NODE_VERSION=24 bash scripts/restart-web-static.sh
+```
+
 Check health:
 
 ```bash
@@ -238,10 +259,12 @@ ENV_FILE=.env.production npm run backup:postgres
 
 ## 7. Smoke Test
 
-- The S3 website endpoint loads the static web app.
-- `https://api.accountit.example.com/healthz` returns `{ "ok": true }`.
-- Login and logout reach the API over HTTPS; cookie persistence may vary while
-  the web app is served from the HTTP S3 website endpoint.
+- The S3 website endpoint loads the static web app, or redirects to the EC2 web
+  origin for temporary HTTP demos.
+- `https://api.accountit.example.com/healthz` returns `{ "ok": true }`, or
+  `http://<ec2-public-ip>:8080/healthz` does for temporary HTTP demos.
+- Login and logout reach the API. For temporary HTTP demos, verify the browser
+  lands on `http://<ec2-public-ip>:3000` before logging in.
 - Job and company detail pages open as `/jobs/detail/?id=...` and
   `/companies/detail/?id=...`.
 - Company logo upload completes: presign request, browser S3 `PUT`, complete

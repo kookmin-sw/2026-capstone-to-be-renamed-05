@@ -1,5 +1,6 @@
 import {
   resolveDatabaseUrl,
+  resolveEnvFilePaths,
   resolvePrismaPostgresConfig,
   resolveRuntimeEnvironment,
 } from './runtime-environment';
@@ -75,5 +76,11 @@ describe('runtime environment helpers', () => {
     expect(() => resolveDatabaseUrl({ APP_ENV: 'aws' })).toThrow(
       /DATABASE_URL/,
     );
+  });
+
+  it('uses an explicit ENV_FILE without mixing local and aws defaults', () => {
+    expect(
+      resolveEnvFilePaths({ ENV_FILE: '.env.production' }, '/repo'),
+    ).toEqual(['/repo/.env.production']);
   });
 });

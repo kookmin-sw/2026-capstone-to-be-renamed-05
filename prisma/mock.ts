@@ -344,10 +344,8 @@ const companyLogoPalette: MockImageAsset[] = [
 
 function buildMockPublicAssetUrl(path: string) {
   const publicBaseUrl =
-    process.env.NEXT_PUBLIC_S3_PUBLIC_BASE_URL?.trim() ||
-    process.env.S3_PUBLIC_BASE_URL?.trim() ||
-    process.env.NEXT_PUBLIC_LOCAL_ASSET_PUBLIC_BASE_URL?.trim() ||
-    process.env.LOCAL_ASSET_PUBLIC_BASE_URL?.trim();
+    process.env.MOCK_PUBLIC_ASSET_BASE_URL?.trim() ||
+    process.env.NEXT_PUBLIC_STATIC_ASSET_BASE_URL?.trim();
 
   if (!publicBaseUrl) return `/${path}`;
   return `${publicBaseUrl.replace(/\/+$/, "")}/${path}`;

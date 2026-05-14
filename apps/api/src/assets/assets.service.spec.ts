@@ -368,6 +368,37 @@ describe('AssetsService', () => {
     });
   });
 
+  it('defaults to S3 storage when the configured runtime is aws', async () => {
+    prisma.company.findUnique.mockResolvedValue({ id: 'company-1' });
+    prisma.asset.create.mockResolvedValue({
+      id: 'asset-aws-1',
+      publicUrl:
+        'https://cpa-assets.s3.ap-northeast-2.amazonaws.com/company-logos/company-1/logo.png',
+    });
+    service = new AssetsService(
+      prisma as unknown as PrismaService,
+      createConfig({
+        APP_ENV: 'aws',
+        AWS_REGION: 'ap-northeast-2',
+        S3_ASSET_BUCKET: 'cpa-assets',
+        S3_PUBLIC_BASE_URL:
+          'https://cpa-assets.s3.ap-northeast-2.amazonaws.com',
+      }),
+    );
+
+    const result = await service.createCompanyLogoUploadUrl('user-1', {
+      fileName: 'logo.png',
+      contentType: 'image/png',
+      byteSize: 123,
+    });
+
+    expect(mockGetSignedUrl).toHaveBeenCalled();
+    expect(result).toMatchObject({
+      uploadUrl: 'https://signed.example.com',
+      requiresCredentials: false,
+    });
+  });
+
   it('writes local uploads and marks them ready after file verification', async () => {
     const tempDir = await mkdtemp(join(tmpdir(), 'accountit-assets-'));
     service = new AssetsService(

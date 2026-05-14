@@ -11,6 +11,7 @@ APP_ENV=local # or aws
 Use local PostgreSQL and local file uploads:
 
 ```bash
+# Copy .env.example to .env.local, then adjust as needed.
 APP_ENV=local
 NEXT_PUBLIC_APP_ENV=local
 ASSET_STORAGE_DRIVER=local
@@ -72,3 +73,6 @@ When a temporary HTTP demo also uploads the static web bundle to S3, point
 `NEXT_PUBLIC_CANONICAL_WEB_ORIGIN` at the EC2 web origin and list the S3 website
 host in `NEXT_PUBLIC_REDIRECT_WEB_HOSTS`. This sends users to the same-site EC2
 web origin before login, where the HTTP-only auth cookie can be stored and sent.
+Leave `DEPLOY_AUTO_UPDATE_WEB_HOST` and `DEPLOY_RESTART_WEB_STATIC` blank to
+auto-enable that behavior only when `AUTH_COOKIE_SECURE=false`, or set them
+explicitly for one-off demos.

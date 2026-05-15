@@ -16,6 +16,16 @@ import {
   Trash2 as TrashIcon,
 } from "lucide-react";
 import { type CSSProperties, type FormEvent, useEffect, useState } from "react";
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { JobSubmissionForm } from "./_components/job-submission-form";
 import { ManagedJobCard } from "./_components/managed-job-card";
 import { Metric } from "./_components/metric";
@@ -55,6 +65,12 @@ import {
 import { companyTypeLabels } from "@/lib/labels";
 import { companyDetailHref } from "@/lib/routes";
 import styles from "./company-page.module.css";
+
+const analyticsLineLabels = {
+  detailViews: "상세 조회",
+  originalClicks: "원문 클릭",
+  bookmarkAdds: "북마크 추가",
+} as const;
 
 export default function CompanyPage() {
   const [dashboard, setDashboard] = useState<CompanyDashboardResponse | null>(
@@ -539,12 +555,17 @@ function AnalyticsSection({
       summary.bookmarkRemoves +
       summary.currentBookmarks >
     0;
+  const dailyChartData = analytics.daily.map((point) => ({
+    ...point,
+    label: formatShortDate(point.date),
+  }));
   const maxDailyValue = Math.max(
     1,
-    ...analytics.daily.map(
-      (point) =>
-        point.detailViews + point.originalClicks + point.bookmarkAdds,
-    ),
+    ...analytics.daily.flatMap((point) => [
+      point.detailViews,
+      point.originalClicks,
+      point.bookmarkAdds,
+    ]),
   );
 
   return (
@@ -590,28 +611,86 @@ function AnalyticsSection({
                 <h3>일자별 추이</h3>
                 <span>최근 {analytics.period.days}일</span>
               </div>
-              <div className={styles.trendList}>
-                {analytics.daily.map((point) => {
-                  const total =
-                    point.detailViews +
-                    point.originalClicks +
-                    point.bookmarkAdds;
-                  const width = Math.max(4, (total / maxDailyValue) * 100);
-                  return (
-                    <div key={point.date} className={styles.trendRow}>
-                      <time dateTime={point.date}>
-                        {formatShortDate(point.date)}
-                      </time>
-                      <div className={styles.trendBarTrack}>
-                        <span
-                          className={styles.trendBar}
-                          style={{ width: `${width}%` }}
-                        />
-                      </div>
-                      <strong>{formatNumber(total)}</strong>
-                    </div>
-                  );
-                })}
+              <div className={styles.analyticsLineChart}>
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart
+                    data={dailyChartData}
+                    margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      stroke="var(--app-line)"
+                      strokeDasharray="3 3"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="label"
+                      interval="preserveStartEnd"
+                      minTickGap={18}
+                      tick={{ fontSize: 11, fill: "var(--app-muted)" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      domain={[0, Math.ceil(maxDailyValue * 1.15)]}
+                      tick={{ fontSize: 11, fill: "var(--app-muted)" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        border: "1px solid var(--app-line)",
+                        borderRadius: "0.5rem",
+                        boxShadow: "0 12px 30px rgba(15, 23, 42, 0.08)",
+                        fontSize: "0.8125rem",
+                      }}
+                      formatter={(value, name) => [
+                        `${formatNumber(Number(value))}회`,
+                        analyticsLineLabels[
+                          String(name) as keyof typeof analyticsLineLabels
+                        ] ?? String(name),
+                      ]}
+                      labelFormatter={(label) => `${label}`}
+                    />
+                    <Legend
+                      iconType="circle"
+                      iconSize={8}
+                      formatter={(value: string) =>
+                        analyticsLineLabels[
+                          value as keyof typeof analyticsLineLabels
+                        ] ?? value
+                      }
+                      wrapperStyle={{
+                        fontSize: "0.75rem",
+                        paddingTop: "0.75rem",
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="detailViews"
+                      stroke="var(--proto-brand)"
+                      strokeWidth={2.5}
+                      dot={false}
+                      activeDot={{ r: 5 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="originalClicks"
+                      stroke="#2563eb"
+                      strokeWidth={2.5}
+                      dot={false}
+                      activeDot={{ r: 5 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="bookmarkAdds"
+                      stroke="#16a34a"
+                      strokeWidth={2.5}
+                      dot={false}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </div>
 

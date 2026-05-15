@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Stack logo">
+  <rect width="96" height="96" rx="18" fill="#fafafa"/>
+  <path d="M48 17 76 31 48 45 20 31 48 17Z" fill="#2563eb"/>
+  <path d="M20 46 48 60l28-14v13L48 73 20 59V46Z" fill="#0f766e"/>
+  <path d="M20 31 48 45l28-14v13L48 58 20 44V31Z" fill="#f97316"/>
+</svg>

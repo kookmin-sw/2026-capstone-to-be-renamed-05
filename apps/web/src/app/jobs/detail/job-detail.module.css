@@ -74,47 +74,71 @@
 
 .fitAnalysisPanel {
   display: grid;
-  gap: 0.875rem;
-  border: 1px solid var(--brand-mid);
-  border-left: 3px solid var(--brand);
+  gap: 0.75rem;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(232, 69, 122, 0.3);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(255, 240, 245, 0.9), rgba(240, 253, 250, 0.72)),
+    linear-gradient(180deg, rgba(255, 240, 245, 0.7), rgba(255, 255, 255, 0.92) 34%),
     white;
   padding: 1rem;
-  box-shadow: var(--shadow-xs);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.fitAnalysisPanel::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0.25rem;
+  background: linear-gradient(180deg, var(--brand), #14b8a6);
 }
 
 .fitAnalysisHeader {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.9rem;
+  padding-bottom: 0.15rem;
 }
 
 .fitAnalysisIntro {
   min-width: 0;
   display: grid;
-  gap: 0.2rem;
+  gap: 0.22rem;
 }
 
 .fitEyebrow {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid rgba(232, 69, 122, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  padding: 0.2rem 0.55rem;
   color: var(--brand);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 950;
+  line-height: 1;
+}
+
+.fitEyebrow svg {
+  width: 0.9rem;
+  height: 0.9rem;
 }
 
 .fitAnalysisIntro h2 {
   color: var(--gray-900);
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 900;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
 .fitAnalysisIntro p {
   color: var(--gray-600);
   font-size: 0.8125rem;
-  line-height: 1.55;
+  line-height: 1.45;
 }
 
 .fitControlRow {
@@ -126,17 +150,24 @@
   flex-wrap: wrap;
 }
 
+.fitControlRow > button {
+  min-height: 2.5rem;
+  padding-inline: 1rem;
+  font-size: 0.8125rem;
+}
+
 .resumeSelect {
   width: min(20rem, 100%);
-  min-height: 2.25rem;
-  border: 1px solid var(--app-line);
+  min-height: 2.5rem;
+  border: 1px solid rgba(15, 23, 42, 0.12);
   border-radius: 8px;
   background: white;
-  padding: 0.45rem 0.7rem;
+  padding: 0.5rem 0.75rem;
   color: var(--gray-900);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 700;
   outline: none;
+  box-shadow: var(--shadow-xs);
 }
 
 .resumeSelect:focus {
@@ -154,112 +185,291 @@
   font-weight: 700;
 }
 
-.fitResult {
+.fitReport {
+  --fit-tone: var(--brand);
+  --fit-tone-soft: rgba(255, 240, 245, 0.9);
   display: grid;
-  grid-template-columns: 8rem minmax(0, 1fr);
-  gap: 0.875rem;
-  align-items: start;
+  gap: 0.6rem;
 }
 
-.fitScoreBox {
+.fitReportHigh {
+  --fit-tone: #16a34a;
+  --fit-tone-soft: rgba(240, 253, 244, 0.96);
+}
+
+.fitReportMid {
+  --fit-tone: #0f766e;
+  --fit-tone-soft: rgba(240, 253, 250, 0.96);
+}
+
+.fitReportWatch {
+  --fit-tone: #d97706;
+  --fit-tone-soft: rgba(255, 251, 235, 0.96);
+}
+
+.fitReportLow {
+  --fit-tone: var(--brand);
+  --fit-tone-soft: rgba(255, 240, 245, 0.96);
+}
+
+.fitReportHero {
   display: grid;
-  min-height: 7.5rem;
-  place-items: center;
-  border: 1px solid rgba(15, 23, 42, 0.08);
+  grid-template-columns: 9.25rem minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: stretch;
+}
+
+.fitReportScore,
+.fitReportDecision,
+.fitReportFacts,
+.fitEvidenceList,
+.fitNextAction,
+.fitEmptyState {
   border-radius: 8px;
   background: white;
+  box-shadow: var(--shadow-xs);
+}
+
+.fitReportScore {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 0.18rem;
+  min-height: 7.6rem;
+  border: 1px solid rgba(232, 69, 122, 0.22);
+  background:
+    linear-gradient(145deg, var(--fit-tone-soft), #ffffff 72%),
+    white;
   padding: 0.85rem;
-  text-align: center;
 }
 
-.fitScoreBox span {
-  color: var(--app-muted);
-  font-size: 0.72rem;
-  font-weight: 900;
-}
-
-.fitScoreBox strong {
-  color: var(--brand);
-  font-size: 2rem;
+.fitReportScore span {
+  color: var(--gray-600);
+  font-size: 0.68rem;
   font-weight: 950;
+}
+
+.fitReportScore strong {
+  color: var(--fit-tone);
+  font-size: 2.75rem;
+  font-weight: 950;
+  letter-spacing: 0;
   line-height: 1;
 }
 
-.fitScoreBox small {
+.fitReportScore em {
+  color: var(--gray-900);
+  font-size: 0.9rem;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.fitReportDecision {
+  display: grid;
+  align-content: center;
+  gap: 0.45rem;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 0.85rem;
+}
+
+.fitDecisionMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--app-muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.fitDecisionMeta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--fit-tone);
+  font-weight: 950;
+}
+
+.fitReportDecision h3 {
+  color: var(--gray-900);
+  font-size: 0.98rem;
+  font-weight: 950;
+  line-height: 1.35;
+}
+
+.fitReportDecision p {
+  margin: 0;
+  color: var(--gray-700);
+  font-size: 0.8125rem;
+  font-weight: 750;
+  line-height: 1.55;
+}
+
+.fitScoreMeter {
+  overflow: hidden;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #e8eef5;
+}
+
+.fitScoreMeter span {
+  display: block;
+  height: 100%;
+  min-width: 0.45rem;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--fit-tone), var(--brand));
+}
+
+.fitScoreScale {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
   color: var(--app-muted);
   font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: 800;
 }
 
-.fitResultBody {
-  min-width: 0;
+.fitReportFacts {
   display: grid;
-  gap: 0.75rem;
+  grid-template-columns: 1.25fr 0.75fr 1fr;
+  border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
-.fitSummary {
-  color: var(--gray-800);
-  font-size: 0.9rem;
-  font-weight: 750;
-  line-height: 1.65;
-}
-
-.fitInsightGrid {
+.fitReportFacts div {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.625rem;
+  gap: 0.18rem;
+  padding: 0.58rem 0.8rem;
 }
 
-.fitInsightList {
+.fitReportFacts div + div {
+  border-left: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.fitReportFacts span {
+  color: var(--app-muted);
+  font-size: 0.66rem;
+  font-weight: 850;
+}
+
+.fitReportFacts strong {
   min-width: 0;
-  border: 1px solid var(--app-line);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.88);
-  padding: 0.75rem;
-}
-
-.fitInsightList strong {
-  display: block;
-  margin-bottom: 0.45rem;
+  overflow-wrap: anywhere;
   color: var(--gray-900);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 900;
 }
 
-.fitInsightList ul {
+.fitEvidenceGrid {
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.fitEvidenceList {
+  min-width: 0;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  padding: 0.72rem;
+}
+
+.fitInsightStrength {
+  border-top: 4px solid #16a34a;
+}
+
+.fitInsightPriority {
+  border-top: 4px solid var(--brand);
+}
+
+.fitInsightGap {
+  border-top: 4px solid #f59e0b;
+}
+
+.fitEvidenceList strong {
+  display: flex;
+  align-items: center;
   gap: 0.35rem;
-  margin: 0;
-  padding-left: 1rem;
+  margin-bottom: 0.45rem;
+  color: var(--gray-900);
+  font-size: 0.78rem;
+  font-weight: 950;
 }
 
-.fitInsightList li {
-  color: var(--gray-600);
-  font-size: 0.75rem;
-  line-height: 1.45;
+.fitInsightStrength strong {
+  color: #15803d;
 }
 
-.fitRecommendation,
-.fitEmptyState {
-  border: 1px dashed var(--brand-mid);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.7);
-  padding: 0.75rem;
-}
-
-.fitRecommendation {
-  display: grid;
-  gap: 0.2rem;
-}
-
-.fitRecommendation strong {
+.fitInsightPriority strong {
   color: var(--brand);
+}
+
+.fitInsightGap strong {
+  color: #b45309;
+}
+
+.fitEvidenceList ul {
+  display: grid;
+  gap: 0.32rem;
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.fitEvidenceList li {
+  position: relative;
+  padding-left: 0.85rem;
+  color: var(--gray-700);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.fitEvidenceList li::before {
+  content: "";
+  position: absolute;
+  top: 0.58em;
+  left: 0;
+  width: 0.28rem;
+  height: 0.28rem;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.fitNextAction,
+.fitEmptyState {
+  border: 1px dashed rgba(232, 69, 122, 0.42);
+  background: rgba(255, 255, 255, 0.78);
+  padding: 0.72rem;
+}
+
+.fitNextAction {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  background:
+    linear-gradient(90deg, var(--fit-tone-soft), rgba(255, 255, 255, 0.92)),
+    white;
+}
+
+.fitNextActionIcon {
+  display: grid;
+  flex: none;
+  width: 1.8rem;
+  height: 1.8rem;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--fit-tone);
+  color: white;
+}
+
+.fitNextAction strong {
+  display: block;
+  margin-bottom: 0.18rem;
+  color: var(--fit-tone);
   font-size: 0.75rem;
   font-weight: 950;
 }
 
-.fitRecommendation span,
+.fitNextAction p,
 .fitEmptyState {
+  margin: 0;
   color: var(--gray-700);
   font-size: 0.8125rem;
   line-height: 1.55;
@@ -449,14 +659,32 @@
     width: 100%;
   }
 
-  .fitResult,
-  .fitInsightGrid {
+  .fitControlRow > button {
+    width: 100%;
+  }
+
+  .fitReportHero,
+  .fitReportFacts,
+  .fitEvidenceGrid {
     grid-template-columns: 1fr;
   }
 
-  .fitScoreBox {
+  .fitReportFacts div + div {
+    border-top: 1px solid rgba(15, 23, 42, 0.08);
+    border-left: none;
+  }
+
+  .fitReportScore {
     min-height: auto;
-    justify-items: start;
-    text-align: left;
+  }
+
+  .fitReportScore strong {
+    font-size: 2.55rem;
+  }
+
+  .fitDecisionMeta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.25rem;
   }
 }

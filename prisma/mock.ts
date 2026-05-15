@@ -335,8 +335,13 @@ const companyLogoByName = new Map<string, MockImageAsset>([
 
 const companyLogoPalette: MockImageAsset[] = [
   { fileName: "mock-logo-apex.svg", originalName: "Apex mock logo" },
+  { fileName: "mock-logo-axis.svg", originalName: "Axis mock logo" },
+  { fileName: "mock-logo-beacon.svg", originalName: "Beacon mock logo" },
+  { fileName: "mock-logo-bloom.svg", originalName: "Bloom mock logo" },
   { fileName: "mock-logo-bridge.svg", originalName: "Bridge mock logo" },
+  { fileName: "mock-logo-cipher.svg", originalName: "Cipher mock logo" },
   { fileName: "mock-logo-core.svg", originalName: "Core mock logo" },
+  { fileName: "mock-logo-crest.svg", originalName: "Crest mock logo" },
   { fileName: "mock-logo-delta.svg", originalName: "Delta mock logo" },
   { fileName: "mock-logo-eon.svg", originalName: "Eon mock logo" },
   { fileName: "mock-logo-firm.svg", originalName: "Firm mock logo" },
@@ -344,6 +349,19 @@ const companyLogoPalette: MockImageAsset[] = [
   { fileName: "mock-logo-halo.svg", originalName: "Halo mock logo" },
   { fileName: "mock-logo-ion.svg", originalName: "Ion mock logo" },
   { fileName: "mock-logo-juno.svg", originalName: "Juno mock logo" },
+  { fileName: "mock-logo-ledger.svg", originalName: "Ledger mock logo" },
+  { fileName: "mock-logo-lumen.svg", originalName: "Lumen mock logo" },
+  { fileName: "mock-logo-matrix.svg", originalName: "Matrix mock logo" },
+  { fileName: "mock-logo-nova.svg", originalName: "Nova mock logo" },
+  { fileName: "mock-logo-pillar.svg", originalName: "Pillar mock logo" },
+  { fileName: "mock-logo-prism.svg", originalName: "Prism mock logo" },
+  { fileName: "mock-logo-quartz.svg", originalName: "Quartz mock logo" },
+  { fileName: "mock-logo-ridge.svg", originalName: "Ridge mock logo" },
+  { fileName: "mock-logo-signal.svg", originalName: "Signal mock logo" },
+  { fileName: "mock-logo-sprout.svg", originalName: "Sprout mock logo" },
+  { fileName: "mock-logo-stack.svg", originalName: "Stack mock logo" },
+  { fileName: "mock-logo-vault.svg", originalName: "Vault mock logo" },
+  { fileName: "mock-logo-verge.svg", originalName: "Verge mock logo" },
 ];
 
 function buildMockPublicAssetUrl(path: string) {

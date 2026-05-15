@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Prism logo">
+  <rect width="96" height="96" rx="18" fill="#111827"/>
+  <path d="M48 18 78 70H18L48 18Z" fill="#f8fafc"/>
+  <path d="M48 18v52H18L48 18Z" fill="#38bdf8"/>
+  <path d="M48 18 78 70H48V18Z" fill="#f472b6"/>
+  <path d="M48 70h30L48 42v28Z" fill="#facc15"/>
+</svg>

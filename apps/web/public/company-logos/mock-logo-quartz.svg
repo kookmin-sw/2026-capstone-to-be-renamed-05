@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Quartz logo">
+  <rect width="96" height="96" rx="22" fill="#ecfeff"/>
+  <path d="M48 14 78 38 48 82 18 38 48 14Z" fill="#0891b2"/>
+  <path d="M18 38h60M48 14 37 38l11 44 11-44-11-24Z" fill="none" stroke="#cffafe" stroke-width="5" stroke-linejoin="round"/>
+</svg>

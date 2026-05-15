@@ -318,6 +318,8 @@
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--company-brand), #8b5cf6);
+}
+
 .analyticsLineChart {
   width: 100%;
   min-width: 0;
@@ -393,6 +395,215 @@
 .analyticsJobCell span {
   color: var(--app-muted);
   font-size: 0.72rem;
+}
+
+.aiInsightPanel {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid #c7d2fe;
+  border-radius: 0.75rem;
+  background: #fbfbff;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.9) inset,
+    0 18px 42px rgba(49, 46, 129, 0.12);
+}
+
+.aiInsightHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid rgba(99, 102, 241, 0.22);
+  background: #27253a;
+  padding: 1rem 1.125rem;
+}
+
+.aiInsightKicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #f8fafc;
+  font-size: 0.8125rem;
+  font-weight: 900;
+}
+
+.aiInsightKicker svg {
+  color: #a5b4fc;
+}
+
+.aiInsightHeader p {
+  margin-top: 0.375rem;
+  max-width: 46rem;
+  color: #cbd5e1;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.aiInsightBadge {
+  border: 1px solid rgba(199, 210, 254, 0.28);
+  border-radius: 999px;
+  background: rgba(238, 242, 255, 0.12);
+  color: #e0e7ff;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.6875rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.aiInsightGrid {
+  display: grid;
+  gap: 0.875rem;
+  background: #f5f7ff;
+  padding: 1rem;
+}
+
+.aiInsightColumn {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  border: 1px solid #dbe1ff;
+  border-left: 3px solid #6366f1;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  padding: 0.875rem;
+  box-shadow: 0 10px 24px rgba(49, 46, 129, 0.06);
+}
+
+.aiInsightColumn:nth-child(2) {
+  border-left-color: #0f766e;
+}
+
+.aiInsightColumn:nth-child(3) {
+  border-left-color: #92400e;
+}
+
+.aiInsightColumnHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.aiInsightColumnIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.375rem;
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.aiInsightColumn:nth-child(2) .aiInsightColumnIcon {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.aiInsightColumn:nth-child(3) .aiInsightColumnIcon {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.aiInsightColumnHeader h3 {
+  color: var(--gray-900);
+  font-size: 0.875rem;
+  font-weight: 850;
+}
+
+.aiInsightList {
+  display: grid;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.aiInsightItem {
+  display: grid;
+  gap: 0.25rem;
+  border-top: 1px solid var(--app-line);
+  padding-top: 0.625rem;
+}
+
+.aiInsightItem:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.aiInsightItemLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #4f46e5;
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.aiInsightColumn:nth-child(2) .aiInsightItemLabel {
+  color: #0f766e;
+}
+
+.aiInsightColumn:nth-child(3) .aiInsightItemLabel {
+  color: #92400e;
+}
+
+.aiInsightItemLabel svg {
+  flex: none;
+}
+
+.aiInsightTitleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.aiInsightTitleRow strong {
+  min-width: 0;
+  color: var(--gray-900);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.aiInsightItem p {
+  color: var(--app-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.aiInsightToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1.55rem;
+  height: 1.55rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  background: #f8fafc;
+  color: #475569;
+  padding: 0;
+  cursor: pointer;
+}
+
+.aiInsightToggle:hover {
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.aiInsightToggle svg {
+  transition: transform 0.15s ease;
+}
+
+.aiInsightToggleOpen svg {
+  transform: rotate(180deg);
 }
 
 /* ─── Section Stack & Item List ───────────────────────────── */
@@ -857,6 +1068,10 @@
 
   .analyticsGrid {
     grid-template-columns: 0.9fr 1.1fr;
+  }
+
+  .aiInsightGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .analyticsMetricGrid {

@@ -9,13 +9,25 @@ import type {
 import {
   BarChart3,
   BriefcaseBusiness,
+  CheckCircle2,
+  ChevronDown,
   Clock,
   Eye,
+  Lightbulb,
+  ListChecks,
   MousePointerClick,
+  Sparkles,
   Star,
+  Target,
   Trash2 as TrashIcon,
 } from "lucide-react";
-import { type CSSProperties, type FormEvent, useEffect, useState } from "react";
+import {
+  type CSSProperties,
+  type FormEvent,
+  type ReactNode,
+  useEffect,
+  useState,
+} from "react";
 import {
   CartesianGrid,
   Legend,
@@ -71,6 +83,69 @@ const analyticsLineLabels = {
   originalClicks: "원문 클릭",
   bookmarkAdds: "북마크 추가",
 } as const;
+
+const aiInterpretations = [
+  {
+    label: "관심 구조",
+    title: "조회는 확보됐지만 원문 클릭 전환은 공고별 편차가 큽니다.",
+    description:
+      "직무 범위와 수습 가능 여부가 첫 화면에 보이는 공고는 원문 이동 의도가 높다는 가정입니다.",
+  },
+  {
+    label: "후보군 반응",
+    title: "주니어·수습 후보군은 조건 명확성에 더 크게 반응합니다.",
+    description:
+      "연차, KICPA 조건, 실무수습 인정 여부가 함께 정리된 공고를 비교 목록에 저장하는 패턴으로 구성했습니다.",
+  },
+  {
+    label: "마감 압력",
+    title: "마감 임박 공고는 북마크 대비 클릭 전환이 둔화됩니다.",
+    description:
+      "D-7 이후에는 상세 조회가 늘어도 원문 클릭이 분산될 수 있어 리마인드 소재가 필요합니다.",
+  },
+] as const;
+
+const aiDataUseResults = [
+  {
+    label: "타깃 세그먼트",
+    title: "실무수습 가능 + 세무/감사 관심군",
+    description:
+      "북마크와 원문 클릭이 겹치는 후보를 우선 노출 타깃으로 묶어 운영하는 방향입니다.",
+  },
+  {
+    label: "공고 활용",
+    title: "상위 관심 공고 2건을 대표 채용 카드로 재사용",
+    description:
+      "조회·북마크·클릭률을 합산한 내부 점수로 대표 공고 후보를 고르는 방식입니다.",
+  },
+  {
+    label: "콘텐츠 보강",
+    title: "전환 낮은 공고는 첫 문단과 조건 표기를 보강",
+    description:
+      "상세 조회 후 이탈이 큰 공고에 업무 범위, 성장 경로, 지원 조건을 분리 노출하는 방식입니다.",
+  },
+] as const;
+
+const aiRecommendedActions = [
+  {
+    label: "오늘",
+    title: "원문 첫 3줄에 직무 범위와 수습 가능 여부를 먼저 배치",
+    description:
+      "상세 조회 직후 비교 판단에 필요한 조건을 줄여 원문 클릭 손실을 낮추는 액션입니다.",
+  },
+  {
+    label: "이번 주",
+    title: "북마크가 많은 공고를 채용 페이지 상단에 고정",
+    description:
+      "관심 저장 신호가 있는 공고를 대표 공고로 올려 반복 방문자의 재탐색을 줄입니다.",
+  },
+  {
+    label: "마감 전",
+    title: "D-5 시점에 마감 리마인드 문구와 지원 조건 요약을 노출",
+    description:
+      "마감 임박 조회 증가를 원문 클릭으로 연결하기 위한 운영 가이드입니다.",
+  },
+] as const;
 
 export default function CompanyPage() {
   const [dashboard, setDashboard] = useState<CompanyDashboardResponse | null>(
@@ -722,9 +797,113 @@ function AnalyticsSection({
               </div>
             </div>
           </div>
+
+          <AiInsightSection periodDays={analytics.period.days} />
         </>
       )}
     </section>
+  );
+}
+
+function AiInsightSection({ periodDays }: { periodDays: number }) {
+  return (
+    <div className={styles.aiInsightPanel}>
+      <div className={styles.aiInsightHeader}>
+        <div>
+          <div className={styles.aiInsightKicker}>
+            <Sparkles size={16} />
+            AI 분석 리포트
+          </div>
+          <p>
+            최근 {periodDays}일 관심도 흐름을 채용 운영 관점에서 쉽게 정리했습니다.
+            어떤 공고를 먼저 손봐야 하는지와 바로 할 일을 함께 제안합니다.
+          </p>
+        </div>
+        <span className={styles.aiInsightBadge}>이번 주 우선순위</span>
+      </div>
+
+      <div className={styles.aiInsightGrid}>
+        <AiInsightColumn
+          icon={<Lightbulb size={16} />}
+          title="해석"
+          items={aiInterpretations}
+        />
+        <AiInsightColumn
+          icon={<Target size={16} />}
+          title="데이터 활용 결과"
+          items={aiDataUseResults}
+        />
+        <AiInsightColumn
+          icon={<ListChecks size={16} />}
+          title="권장 행위"
+          items={aiRecommendedActions}
+        />
+      </div>
+    </div>
+  );
+}
+
+function AiInsightColumn({
+  icon,
+  title,
+  items,
+}: {
+  icon: ReactNode;
+  title: string;
+  items: readonly {
+    label: string;
+    title: string;
+    description: string;
+  }[];
+}) {
+  return (
+    <section className={styles.aiInsightColumn}>
+      <div className={styles.aiInsightColumnHeader}>
+        <span className={styles.aiInsightColumnIcon}>{icon}</span>
+        <h3>{title}</h3>
+      </div>
+      <ul className={styles.aiInsightList}>
+        {items.map((item) => (
+          <AiInsightItem key={`${title}-${item.label}`} item={item} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function AiInsightItem({
+  item,
+}: {
+  item: {
+    label: string;
+    title: string;
+    description: string;
+  };
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <li className={styles.aiInsightItem}>
+      <span className={styles.aiInsightItemLabel}>
+        <CheckCircle2 size={13} />
+        {item.label}
+      </span>
+      <div className={styles.aiInsightTitleRow}>
+        <strong>{item.title}</strong>
+        <button
+          type="button"
+          className={`${styles.aiInsightToggle} ${
+            expanded ? styles.aiInsightToggleOpen : ""
+          }`}
+          aria-label={expanded ? "설명 접기" : "설명 보기"}
+          aria-expanded={expanded}
+          onClick={() => setExpanded((current) => !current)}
+        >
+          <ChevronDown size={14} />
+        </button>
+      </div>
+      {expanded ? <p>{item.description}</p> : null}
+    </li>
   );
 }
 

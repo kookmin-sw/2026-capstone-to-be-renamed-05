@@ -196,6 +196,7 @@ export class JobsService {
       include: {
         ...jobInclude,
         aiSuggestions: {
+          where: { status: 'APPROVED' },
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
@@ -208,6 +209,7 @@ export class JobsService {
     return {
       ...this.toListItem(job),
       description: job.description,
+      aiSummary: job.aiSummary,
       practicalTrainingInstitution: job.practicalTrainingInstitution,
       minExperienceYears: job.minExperienceYears,
       maxExperienceYears: job.maxExperienceYears,

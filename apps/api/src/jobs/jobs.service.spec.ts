@@ -1,5 +1,15 @@
 import { NotFoundException } from '@nestjs/common';
-import { JobEngagementEventType, JobStatus, type Prisma } from '@prisma/client';
+import {
+  CompanyType,
+  DeadlineType,
+  EmploymentType,
+  JobEngagementEventType,
+  JobFamily,
+  JobStatus,
+  KicpaCondition,
+  TraineeStatus,
+  type Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { JobsService } from './jobs.service';
 
@@ -63,6 +73,71 @@ describe('JobsService', () => {
         where: { id: 'job-1', status: JobStatus.OPEN },
       }),
     );
+  });
+
+  it('returns curated job AI summaries with approved suggestion metadata', async () => {
+    const now = new Date('2026-05-15T00:00:00.000Z');
+    prisma.job.findFirst.mockResolvedValue({
+      id: 'job-1',
+      title: '감사본부 신입 회계사',
+      description: '감사조서 작성과 재무제표 검토를 담당합니다.',
+      companyId: 'company-1',
+      sourceId: 'source-1',
+      originalUrl: 'https://example.com/jobs/audit',
+      jobFamily: JobFamily.AUDIT,
+      employmentType: EmploymentType.FULL_TIME,
+      companyType: CompanyType.LOCAL_ACCOUNTING_FIRM,
+      kicpaCondition: KicpaCondition.PREFERRED,
+      traineeStatus: TraineeStatus.AVAILABLE,
+      practicalTrainingInstitution: true,
+      minExperienceYears: 0,
+      maxExperienceYears: 1,
+      location: '서울 중구',
+      aiSummary: '수습 CPA가 감사 실무를 빠르게 경험하기 좋은 공고입니다.',
+      deadlineType: DeadlineType.FIXED_DATE,
+      deadline: new Date('2026-05-31T14:59:59.000Z'),
+      status: JobStatus.OPEN,
+      lastCheckedAt: now,
+      createdAt: now,
+      updatedAt: now,
+      company: {
+        name: '한빛회계법인',
+        averageSalary: null,
+        logoAsset: null,
+        backgroundAsset: null,
+      },
+      source: { name: 'KICPA 채용' },
+      labels: [],
+      aiSuggestions: [
+        {
+          id: 'suggestion-1',
+          jobId: 'job-1',
+          summary: '감사 신입에게 적합합니다.',
+          tags: ['수습가능'],
+          risks: ['마감일 확인'],
+          rawJson: {},
+          status: 'APPROVED',
+          createdAt: now,
+          updatedAt: now,
+        },
+      ],
+    });
+
+    const result = await service.detail('job-1');
+
+    expect(prisma.job.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          aiSuggestions: expect.objectContaining({
+            where: { status: 'APPROVED' },
+          }),
+        }),
+      }),
+    );
+    expect(result.aiSummary).toBe(
+      '수습 CPA가 감사 실무를 빠르게 경험하기 좋은 공고입니다.',
+    );
+    expect(result.aiSuggestion?.summary).toBe('감사 신입에게 적합합니다.');
   });
 
   it('records public engagement events for open jobs without returning actor data', async () => {

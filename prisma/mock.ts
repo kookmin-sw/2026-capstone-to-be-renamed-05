@@ -158,6 +158,7 @@ type SeedJob = {
   minExperienceYears: number;
   maxExperienceYears: number | null;
   location: string;
+  aiSummary: string;
   deadlineType: DeadlineType;
   deadline: Date | null;
   labels: Label[];
@@ -626,6 +627,63 @@ function getSourceForJob(
   return sources.saraminSource;
 }
 
+function buildMockJobAiSummary({
+  title,
+  companyName,
+  jobFamilyLabel,
+  companyTypeLabel,
+  kicpaCondition,
+  traineeStatus,
+  practicalTrainingInstitution,
+  minExperienceYears,
+  maxExperienceYears,
+  location,
+  deadlineType,
+}: {
+  title: string;
+  companyName: string;
+  jobFamilyLabel: string;
+  companyTypeLabel: string;
+  kicpaCondition: KicpaCondition;
+  traineeStatus: TraineeStatus;
+  practicalTrainingInstitution: boolean;
+  minExperienceYears: number;
+  maxExperienceYears: number | null;
+  location: string;
+  deadlineType: DeadlineType;
+}) {
+  const experienceText =
+    minExperienceYears === 0
+      ? "신입·수습 지원자"
+      : maxExperienceYears
+        ? `${minExperienceYears}~${maxExperienceYears}년 경력자`
+        : `${minExperienceYears}년 이상 경력자`;
+  const kicpaText =
+    kicpaCondition === KicpaCondition.REQUIRED
+      ? "KICPA 자격이 필수라 자격 보유 여부가 핵심입니다"
+      : kicpaCondition === KicpaCondition.PREFERRED
+        ? "KICPA 보유자나 준비 이력이 우대 포인트입니다"
+        : kicpaCondition === KicpaCondition.UNCLEAR
+          ? "KICPA 조건은 공고 본문에서 추가 확인이 필요합니다"
+          : "KICPA 조건보다는 직무 경험과 업무 적합도가 더 중요합니다";
+  const traineeText =
+    traineeStatus === TraineeStatus.AVAILABLE
+      ? practicalTrainingInstitution
+        ? "실무수습기관 인정 가능성이 있어 수습 CPA가 우선 검토하기 좋습니다"
+        : "수습 CPA 지원은 가능하지만 실무수습기관 인정 여부는 확인이 필요합니다"
+      : traineeStatus === TraineeStatus.UNCLEAR
+        ? "수습 CPA 가능 여부가 불명확해 지원 전 확인이 필요합니다"
+        : "수습 목적보다는 즉시 투입 가능한 실무 경력에 초점이 있습니다";
+  const deadlineText =
+    deadlineType === DeadlineType.FIXED_DATE
+      ? "마감일이 정해져 있어 지원 서류를 빠르게 정리해야 합니다"
+      : deadlineType === DeadlineType.UNTIL_FILLED
+        ? "채용 시 마감 공고라 적합하면 조기 지원이 유리합니다"
+        : "상시 채용형 공고라 이력서 완성도를 높여 지원해도 좋습니다";
+
+  return `${companyName}의 ${title} 공고는 ${companyTypeLabel}의 ${jobFamilyLabel} 포지션으로, ${experienceText}에게 맞춰져 있습니다. ${kicpaText}. ${traineeText}. 근무지는 ${location}이며, ${deadlineText}.`;
+}
+
 function createGeneratedJob(
   index: number,
   companies: Company[],
@@ -722,12 +780,21 @@ function createGeneratedJob(
     [JobFamily.INTERNAL_ACCOUNTING]: "내부회계",
     [JobFamily.IN_HOUSE]: "인하우스",
   };
+  const companyTypeLabels: Record<CompanyType, string> = {
+    [CompanyType.BIG4]: "Big4 회계법인",
+    [CompanyType.LOCAL_ACCOUNTING_FIRM]: "로컬 회계법인",
+    [CompanyType.MID_SMALL_ACCOUNTING_FIRM]: "중소형 세무회계법인",
+    [CompanyType.FINANCIAL_COMPANY]: "금융회사",
+    [CompanyType.GENERAL_COMPANY]: "일반기업",
+    [CompanyType.PUBLIC_INSTITUTION]: "공공기관",
+  };
 
   const company = companies[(index * 7 + 3) % companies.length];
   const jobFamily = jobFamilies[index % jobFamilies.length];
   const titleOptions = titleByFamily[jobFamily];
   const title =
     titleOptions[Math.floor(index / jobFamilies.length) % titleOptions.length];
+  const location = locations[index % locations.length];
   const minExperienceYears = index % 5 === 0 ? 0 : (index % 7) + 1;
   const maxExperienceYears =
     index % 9 === 0 ? null : minExperienceYears + 1 + (index % 3);
@@ -758,6 +825,24 @@ function createGeneratedJob(
         : EmploymentType.FULL_TIME;
   const { deadlineType, deadline } = createDeadline(index);
   const source = getSourceForJob(company.type, jobFamily, sources);
+  const practicalTrainingInstitution =
+    traineeStatus === TraineeStatus.AVAILABLE &&
+    (company.type === CompanyType.BIG4 ||
+      company.type === CompanyType.LOCAL_ACCOUNTING_FIRM ||
+      company.type === CompanyType.MID_SMALL_ACCOUNTING_FIRM);
+  const aiSummary = buildMockJobAiSummary({
+    title,
+    companyName: company.name,
+    jobFamilyLabel: familyLabels[jobFamily],
+    companyTypeLabel: companyTypeLabels[company.type],
+    kicpaCondition,
+    traineeStatus,
+    practicalTrainingInstitution,
+    minExperienceYears,
+    maxExperienceYears,
+    location,
+    deadlineType,
+  });
   const labelNames = [
     familyLabels[jobFamily],
     minExperienceYears === 0 ? "신입" : "경력",
@@ -773,7 +858,7 @@ function createGeneratedJob(
 
   return {
     title,
-    description: `${company.name} ${title} 포지션입니다. ${familyDescriptions[jobFamily]} 주요 업무는 월별 산출물 관리, 실무 자료 검토, 이해관계자 커뮤니케이션입니다. 지원자는 ${minExperienceYears === 0 ? "신입 또는 수습 CPA 지원자" : `${minExperienceYears}년 이상 실무 경험자`}를 우선 검토하며, KICPA 조건과 수습 가능 여부는 공고 조건에 맞춰 명시했습니다. 근무지는 ${locations[index % locations.length]}이며 서류 검토 후 실무 인터뷰와 처우 협의를 진행합니다.`,
+    description: `${company.name} ${title} 포지션입니다. ${familyDescriptions[jobFamily]} 주요 업무는 월별 산출물 관리, 실무 자료 검토, 이해관계자 커뮤니케이션입니다. 지원자는 ${minExperienceYears === 0 ? "신입 또는 수습 CPA 지원자" : `${minExperienceYears}년 이상 실무 경험자`}를 우선 검토하며, KICPA 조건과 수습 가능 여부는 공고 조건에 맞춰 명시했습니다. 근무지는 ${location}이며 서류 검토 후 실무 인터뷰와 처우 협의를 진행합니다.`,
     company,
     source,
     originalUrl: `https://example.com/generated/jobs/${pad(index + 1, 4)}`,
@@ -782,14 +867,11 @@ function createGeneratedJob(
     companyType: company.type,
     kicpaCondition,
     traineeStatus,
-    practicalTrainingInstitution:
-      traineeStatus === TraineeStatus.AVAILABLE &&
-      (company.type === CompanyType.BIG4 ||
-        company.type === CompanyType.LOCAL_ACCOUNTING_FIRM ||
-        company.type === CompanyType.MID_SMALL_ACCOUNTING_FIRM),
+    practicalTrainingInstitution,
     minExperienceYears,
     maxExperienceYears,
-    location: locations[index % locations.length],
+    location,
+    aiSummary,
     deadlineType,
     deadline,
     labels: labelNames
@@ -817,6 +899,7 @@ async function upsertJob(jobData: SeedJob, lastCheckedAt = new Date()) {
     minExperienceYears: jobData.minExperienceYears,
     maxExperienceYears: jobData.maxExperienceYears,
     location: jobData.location,
+    aiSummary: jobData.aiSummary,
     deadlineType: jobData.deadlineType,
     deadline: jobData.deadline,
     lastCheckedAt,
@@ -2910,6 +2993,8 @@ async function main() {
       minExperienceYears: 0,
       maxExperienceYears: 1,
       location: "서울 중구",
+      aiSummary:
+        "수습 CPA 지원자가 감사조서 작성과 재무제표 검토를 빠르게 경험하기 좋은 공고입니다. 실무수습기관 요건이 명확하고 온보딩·리뷰어 피드백이 있어 첫 감사 현장 경험을 쌓기 좋습니다.",
       deadlineType: DeadlineType.FIXED_DATE,
       deadline: new Date("2026-05-08T14:59:59.000Z"),
       labels: [traineeLabel, kicpaPreferredLabel, urgentLabel],
@@ -2930,6 +3015,8 @@ async function main() {
       minExperienceYears: 1,
       maxExperienceYears: 3,
       location: "서울 영등포구",
+      aiSummary:
+        "KICPA 자격과 Deal 프로젝트 경험을 우대하는 주니어 재무자문 공고입니다. 재무실사, 밸류에이션, Q&A 관리 경험을 숫자와 산출물 중심으로 정리하면 매칭도가 높습니다.",
       deadlineType: DeadlineType.UNTIL_FILLED,
       deadline: null,
       labels: [kicpaPreferredLabel],
@@ -2950,6 +3037,8 @@ async function main() {
       minExperienceYears: 4,
       maxExperienceYears: 8,
       location: "서울 강남구",
+      aiSummary:
+        "상장사 내부회계 운영평가와 외부감사 대응 경험을 가진 경력자에게 맞는 공고입니다. RCM 업데이트, 통제 설계·운영평가, 개선 과제 추적 경험을 구체적으로 보여주는 것이 중요합니다.",
       deadlineType: DeadlineType.FIXED_DATE,
       deadline: new Date("2026-05-31T14:59:59.000Z"),
       labels: [kicpaPreferredLabel],

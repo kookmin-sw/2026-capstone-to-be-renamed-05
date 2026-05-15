@@ -252,6 +252,7 @@ export type JobAiSuggestion = {
 
 export type JobDetailItem = JobListItem & {
   description: string;
+  aiSummary: string | null;
   aiSuggestion: JobAiSuggestion | null;
 };
 

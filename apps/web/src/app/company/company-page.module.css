@@ -251,42 +251,10 @@
   font-weight: 700;
 }
 
-.trendList {
-  display: grid;
-  gap: 0.45rem;
-}
-
-.trendRow {
-  display: grid;
-  grid-template-columns: 3rem minmax(0, 1fr) 2.5rem;
-  align-items: center;
-  gap: 0.625rem;
-  min-height: 1.6rem;
-}
-
-.trendRow time,
-.trendRow strong {
-  color: var(--gray-700);
-  font-size: 0.75rem;
-  font-weight: 800;
-}
-
-.trendRow strong {
-  text-align: right;
-}
-
-.trendBarTrack {
-  overflow: hidden;
-  height: 0.55rem;
-  border-radius: 999px;
-  background: #e5e7eb;
-}
-
-.trendBar {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--proto-brand);
+.analyticsLineChart {
+  width: 100%;
+  min-width: 0;
+  height: 17.75rem;
 }
 
 .analyticsTable {

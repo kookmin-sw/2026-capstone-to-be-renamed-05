@@ -57,7 +57,7 @@ git fetch origin "${DEPLOY_BRANCH}"
 git reset --hard "origin/${DEPLOY_BRANCH}"
 
 echo "==> Installing dependencies"
-npm ci
+npm ci --include=dev
 
 echo "==> Applying Prisma migrations"
 npm run prisma:generate

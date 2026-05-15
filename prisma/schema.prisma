@@ -322,6 +322,7 @@ model Job {
   minExperienceYears           Int?
   maxExperienceYears           Int?
   location                     String?
+  aiSummary                    String?
   deadlineType                 DeadlineType
   deadline                     DateTime?
   status                       JobStatus      @default(OPEN)

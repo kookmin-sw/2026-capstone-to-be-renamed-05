@@ -716,6 +716,8 @@ function JobDetail({
     job.minExperienceYears,
     job.maxExperienceYears,
   );
+  const aiSummaryText =
+    job.aiSummary?.trim() || job.aiSuggestion?.summary || null;
   const trackOriginalClick = () => {
     void recordJobEngagement(job.id, "ORIGINAL_CLICK").catch(() => {});
   };
@@ -828,11 +830,25 @@ function JobDetail({
               <Sparkles size={15} />
               AI 요약
             </h2>
-            {job.aiSuggestion ? (
+            {aiSummaryText ? (
               <div className="grid gap-3">
-                <p className="text-sm leading-6 text-gray-700">{job.aiSuggestion.summary}</p>
-                <ChipGroup title="추천 태그" items={job.aiSuggestion.tags} tone="pink" />
-                <ChipGroup title="확인 필요" items={job.aiSuggestion.risks} tone="gray" />
+                <p className="text-sm leading-6 text-gray-700">
+                  {aiSummaryText}
+                </p>
+                {job.aiSuggestion && (
+                  <>
+                    <ChipGroup
+                      title="추천 태그"
+                      items={job.aiSuggestion.tags}
+                      tone="pink"
+                    />
+                    <ChipGroup
+                      title="확인 필요"
+                      items={job.aiSuggestion.risks}
+                      tone="gray"
+                    />
+                  </>
+                )}
               </div>
             ) : (
               <p className="text-sm text-[var(--app-muted)]">

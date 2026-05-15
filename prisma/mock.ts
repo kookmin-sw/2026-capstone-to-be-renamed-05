@@ -1150,9 +1150,292 @@ async function upsertCompanyLogoAsset(
 }
 
 const communitySeedUsernames = jobSeekerMockUsers.map((user) => user.username);
+const GENERATED_COMMUNITY_POST_COUNT = 100;
 
 function seedDate(dayOffset: number, hour = 9) {
   return new Date(Date.UTC(2026, 4, 13 - dayOffset, hour, 0, 0));
+}
+
+type CommunityAnswerSeed = {
+  authorIndex: number;
+  content: string;
+  isAnonymous: boolean;
+  likeCount: number;
+  isAccepted?: boolean;
+};
+
+type CommunityPostSeed = {
+  boardType: CommunityBoardType;
+  title: string;
+  content: string;
+  status: CommunityPostStatus;
+  tags: string[];
+  authorIndex: number;
+  isAnonymous: boolean;
+  viewCount: number;
+  likeCount: number;
+  dayOffset: number;
+  answers: CommunityAnswerSeed[];
+};
+
+type GeneratedCommunityTemplate = {
+  boardType: CommunityBoardType;
+  titleSeeds: string[];
+  titleSuffixes: string[];
+  contentSeeds: string[];
+  contextSeeds: string[];
+  tagSets: string[][];
+  answerSeeds: string[];
+};
+
+function buildGeneratedCommunityPostSeeds(count: number): CommunityPostSeed[] {
+  const templates: GeneratedCommunityTemplate[] = [
+    {
+      boardType: CommunityBoardType.CPA_PREP,
+      titleSeeds: [
+        "감사 신입 공고를 비교할 때 어디를 먼저 보시나요",
+        "세무팀 지원 전에 준비하면 좋은 실무 키워드",
+        "KICPA 우대 공고와 필수 공고 차이가 궁금합니다",
+        "수습 가능 로컬 회계법인 찾는 기준 공유 부탁드립니다",
+        "FAS 관심자가 감사 공고도 같이 봐야 할까요",
+        "면접에서 시험 일정 질문을 받으면 어떻게 답하시나요",
+      ],
+      titleSuffixes: [
+        "지원 전 체크",
+        "서류 준비",
+        "면접 대비",
+        "초보 질문",
+        "경험 공유 요청",
+      ],
+      contentSeeds: [
+        "공고가 많아지니 어떤 조건을 우선해야 할지 헷갈립니다.",
+        "비슷한 직무명이어도 실제 업무 범위가 달라 보여서 고민입니다.",
+        "첫 지원이라 지원서에 어떤 경험을 앞세울지 정리하고 있습니다.",
+        "마감일이 가까운 공고와 상시채용 공고를 같이 보니 우선순위가 어렵습니다.",
+        "관심 공고를 저장해두고 비교하는 중인데 실무자 관점이 궁금합니다.",
+      ],
+      contextSeeds: [
+        "서울권 로컬 회계법인",
+        "Big4 감사본부",
+        "세무회계 사무소",
+        "FAS 주니어 포지션",
+        "KICPA 우대 신입 공고",
+      ],
+      tagSets: [
+        ["신입", "감사", "공고비교"],
+        ["세무", "면접준비", "엑셀"],
+        ["KICPA", "수습", "지원전략"],
+        ["FAS", "Deal", "주니어"],
+        ["자기소개서", "커리어", "초보질문"],
+      ],
+      answerSeeds: [
+        "공고의 담당 업무, 수습 가능 여부, 마감 방식을 먼저 나눠 보면 판단이 쉬워집니다.",
+        "지원 전에 원문 링크와 회사 페이지를 같이 열어두면 면접 준비까지 이어가기 좋습니다.",
+        "우대 조건은 점수표처럼 보기보다 본인이 설명할 수 있는 경험과 연결하는 편이 좋았습니다.",
+        "비슷한 공고라도 교육 체계와 리뷰어 구조가 다르니 면접에서 꼭 물어보세요.",
+      ],
+    },
+    {
+      boardType: CommunityBoardType.TRAINEE,
+      titleSeeds: [
+        "수습 기간 중 업무 기록은 어느 정도 자세히 남기시나요",
+        "첫 감사 현장 투입 전에 확인할 체크리스트",
+        "실무수습기관 인정 여부를 다시 확인하는 방법",
+        "성수기 일정 관리가 어려울 때 도움이 된 방식",
+        "리뷰 코멘트를 빠르게 반영하는 노하우가 궁금합니다",
+        "수습 중 관심 공고를 계속 봐도 괜찮을까요",
+      ],
+      titleSuffixes: [
+        "현장 질문",
+        "수습 일지",
+        "업무 루틴",
+        "멘토 조언",
+        "경험 공유",
+      ],
+      contentSeeds: [
+        "요즘 맡는 업무가 늘어나면서 기록과 복습을 어떻게 해야 할지 고민입니다.",
+        "현장에서 바로 물어보기 애매한 내용이 있어 선배님들 경험을 듣고 싶습니다.",
+        "공고에서 본 내용과 실제 배정 업무가 조금 달라 확인할 기준을 찾고 있습니다.",
+        "마감 일정과 리뷰 일정이 겹칠 때 우선순위를 잡는 방식이 궁금합니다.",
+        "처음 보는 절차가 많아서 실수하지 않으려면 어떤 준비가 필요할지 알고 싶습니다.",
+      ],
+      contextSeeds: [
+        "재고실사",
+        "매출 테스트",
+        "계정별 조서 작성",
+        "수습 인정 자료",
+        "성수기 감사팀",
+      ],
+      tagSets: [
+        ["수습", "감사", "기록"],
+        ["실무수습", "멘토링", "질문"],
+        ["성수기", "일정관리", "리뷰"],
+        ["재고실사", "체크리스트", "현장"],
+        ["조서작성", "업무루틴", "피드백"],
+      ],
+      answerSeeds: [
+        "날짜, 고객사, 절차, 산출물을 한 줄로 남기고 주간 단위로 다시 정리하면 좋았습니다.",
+        "리뷰 코멘트는 바로 고치기보다 왜 나온 지적이었는지 한 줄 메모를 남겨두면 반복이 줄었습니다.",
+        "수습 인정과 관련된 내용은 담당자에게 메일로 확인해 기록을 남기는 편이 안전합니다.",
+        "현장 업무는 준비물과 연락처, 표본 리스트를 전날에 다시 확인하는 것만으로도 실수가 줄었습니다.",
+      ],
+    },
+    {
+      boardType: CommunityBoardType.SENIOR,
+      titleSeeds: [
+        "감사 경력으로 내부회계 포지션 지원할 때 강조할 점",
+        "FAS 이직 준비 시 포트폴리오처럼 정리할 수 있는 경험",
+        "상장사 공시 담당 공고에서 꼭 확인하는 조건",
+        "금융사 회계 포지션은 어떤 역량을 더 보나요",
+        "로컬에서 Big4로 이동한 분들 경험이 궁금합니다",
+        "공공기관 회계직으로 전환할 때 준비한 것",
+      ],
+      titleSuffixes: [
+        "경력 이직",
+        "실무 관점",
+        "면접 포인트",
+        "조건 비교",
+        "경험 질문",
+      ],
+      contentSeeds: [
+        "공고를 읽다 보면 기존 경험이 어느 정도 인정될지 판단하기 어렵습니다.",
+        "직무명은 비슷하지만 요구하는 산출물과 협업 방식이 달라 보여 고민입니다.",
+        "이직 준비를 하면서 경력기술서에 어떤 프로젝트를 앞에 둘지 정리하고 있습니다.",
+        "회사 유형별로 기대하는 회계사 역할이 달라지는지 경험을 듣고 싶습니다.",
+        "면접에서 실무 깊이를 어떻게 보여주면 좋을지 사례가 궁금합니다.",
+      ],
+      contextSeeds: [
+        "내부회계 운영",
+        "FAS 재무실사",
+        "연결결산",
+        "공시 담당",
+        "금융 리스크 관리",
+      ],
+      tagSets: [
+        ["이직", "내부회계", "경력"],
+        ["FAS", "재무실사", "Big4"],
+        ["공시", "상장사", "연결결산"],
+        ["금융사", "리스크", "회계"],
+        ["공공기관", "정산", "커리어"],
+      ],
+      answerSeeds: [
+        "감사 경험은 테스트 절차보다 쟁점을 어떻게 정리하고 설득했는지까지 설명하면 강점이 됩니다.",
+        "프로젝트명보다 본인이 맡은 판단, 산출물, 이해관계자 조율을 구체적으로 쓰는 편이 좋았습니다.",
+        "공고에 적힌 시스템이나 산업 경험이 부족해도 유사한 검증 경험을 연결해서 말할 수 있습니다.",
+        "경력직 면접에서는 성과보다도 재현 가능한 업무 방식과 리스크 감각을 많이 봤습니다.",
+      ],
+    },
+    {
+      boardType: CommunityBoardType.FREE,
+      titleSeeds: [
+        "오늘 본 공고 중 저장해둘 만한 조건 공유합니다",
+        "커뮤니티에 있으면 좋을 기능 아이디어",
+        "회사 상세 페이지를 볼 때 제일 유용했던 정보",
+        "면접 일정 관리할 때 쓰는 작은 습관",
+        "마감 임박 공고를 놓치지 않는 방법",
+        "공고 원문 링크를 같이 정리하니 편하네요",
+      ],
+      titleSuffixes: [
+        "잡담",
+        "팁 공유",
+        "데이터 후기",
+        "사용 경험",
+        "가벼운 메모",
+      ],
+      contentSeeds: [
+        "공고를 여러 개 보다 보니 작은 기준 하나가 지원 판단에 꽤 도움이 됐습니다.",
+        "오늘 커뮤니티와 공고 목록을 같이 보면서 느낀 점을 남깁니다.",
+        "회사 정보와 공고 정보를 함께 비교하니 생각보다 빠르게 후보가 줄었습니다.",
+        "마감일과 원문 링크를 같이 관리하니 지원 일정이 훨씬 덜 헷갈립니다.",
+        "다른 분들은 어떤 방식으로 관심 공고를 정리하는지 궁금합니다.",
+      ],
+      contextSeeds: [
+        "마감순 정렬",
+        "관심 공고",
+        "회사 연봉 정보",
+        "직무 태그",
+        "캘린더 화면",
+      ],
+      tagSets: [
+        ["잡담", "공고탐색", "팁"],
+        ["관심공고", "마감관리", "원문링크"],
+        ["회사정보", "연봉", "후기"],
+        ["커뮤니티", "아이디어", "사용성"],
+        ["캘린더", "D-day", "지원관리"],
+      ],
+      answerSeeds: [
+        "저도 비슷하게 쓰고 있는데 태그와 마감일을 같이 보면 놓치는 공고가 줄었습니다.",
+        "원문 링크를 따로 저장해두면 면접 직전에 공고 내용을 다시 확인하기 좋았습니다.",
+        "회사 상세 정보까지 같이 보면 단순히 유명한 회사보다 나에게 맞는 공고를 찾기 쉽습니다.",
+        "관심 공고를 너무 많이 저장하면 다시 헷갈려서 주 1회 정리하는 편이 좋았습니다.",
+      ],
+    },
+  ];
+
+  return Array.from({ length: count }, (_, index) => {
+    const template = templates[index % templates.length];
+    const localIndex = Math.floor(index / templates.length);
+    const statusCycle =
+      template.boardType === CommunityBoardType.FREE
+        ? [
+            CommunityPostStatus.FREE,
+            CommunityPostStatus.INFO,
+            CommunityPostStatus.FREE,
+            CommunityPostStatus.INFO,
+          ]
+        : [
+            CommunityPostStatus.QUESTION,
+            CommunityPostStatus.ANSWERED,
+            CommunityPostStatus.QUESTION,
+            CommunityPostStatus.INFO,
+          ];
+    const status = statusCycle[localIndex % statusCycle.length];
+    const titleSeed = template.titleSeeds[localIndex % template.titleSeeds.length];
+    const titleSuffix =
+      template.titleSuffixes[
+        (localIndex + index) % template.titleSuffixes.length
+      ];
+    const context =
+      template.contextSeeds[(localIndex + index) % template.contextSeeds.length];
+    const tags = template.tagSets[localIndex % template.tagSets.length];
+    const answered = status === CommunityPostStatus.ANSWERED;
+    const answerBase =
+      template.answerSeeds[(localIndex + 1) % template.answerSeeds.length];
+    const firstAnswer: CommunityAnswerSeed = {
+      authorIndex: (localIndex + index + 2) % communitySeedUsernames.length,
+      content: `${answerBase} ${context} 기준으로도 먼저 확인할 항목을 정해두면 비교가 훨씬 편합니다.`,
+      isAnonymous: (localIndex + index) % 2 === 0,
+      likeCount: 3 + ((localIndex * 5 + index) % 18),
+      isAccepted: answered,
+    };
+    const secondAnswer: CommunityAnswerSeed = {
+      authorIndex: (localIndex + index + 4) % communitySeedUsernames.length,
+      content:
+        "저는 공고 원문, 회사 페이지, 마감일을 한 번에 열어두고 지원 여부를 판단하는 방식이 제일 안정적이었습니다.",
+      isAnonymous: (localIndex + index) % 3 === 0,
+      likeCount: 1 + ((localIndex * 3 + index) % 10),
+    };
+    const answers =
+      answered || localIndex % 3 === 0
+        ? [firstAnswer, ...(localIndex % 5 === 0 ? [secondAnswer] : [])]
+        : [];
+
+    return {
+      boardType: template.boardType,
+      title: `${titleSeed} - ${titleSuffix}`,
+      content: `${
+        template.contentSeeds[localIndex % template.contentSeeds.length]
+      } 특히 ${context} 기준으로 보면 어떤 신호를 먼저 봐야 할지 의견을 듣고 싶습니다.`,
+      status,
+      tags,
+      authorIndex: (localIndex + index + 1) % communitySeedUsernames.length,
+      isAnonymous: (localIndex + index) % 4 === 0,
+      viewCount: 24 + ((index * 17 + localIndex * 11) % 360),
+      likeCount: 1 + ((index * 7 + localIndex * 3) % 42),
+      dayOffset: 9 + index,
+      answers,
+    };
+  });
 }
 
 async function seedCommunityData(
@@ -1171,7 +1454,7 @@ async function seedCommunityData(
     where: { authorId: { in: authors.map((author) => author.id) } },
   });
 
-  const postSeeds = [
+  const postSeeds: CommunityPostSeed[] = [
     {
       boardType: CommunityBoardType.CPA_PREP,
       title: "1차 합격 후 수습 공고를 언제부터 봐야 할까요?",
@@ -1348,6 +1631,375 @@ async function seedCommunityData(
       dayOffset: 8,
       answers: [],
     },
+    {
+      boardType: CommunityBoardType.CPA_PREP,
+      title: "회계법인 지원 전에 자기소개서에서 꼭 보여줘야 하는 역량이 있을까요?",
+      content:
+        "첫 지원이라 감사조서 경험은 없고 학교 프로젝트와 인턴 경험만 있습니다. 수습 가능 공고에 지원할 때 문제 해결력, 꼼꼼함, 커뮤니케이션 중 어떤 부분을 더 앞에 두면 좋을지 조언 부탁드립니다.",
+      status: CommunityPostStatus.ANSWERED,
+      tags: ["자기소개서", "수습", "신입"],
+      authorIndex: 1,
+      isAnonymous: false,
+      viewCount: 243,
+      likeCount: 24,
+      dayOffset: 0,
+      answers: [
+        {
+          authorIndex: 3,
+          content:
+            "감사 신입은 완성된 실무 역량보다 자료를 끝까지 추적한 경험을 구체적으로 쓰는 게 좋았습니다. 숫자 오류를 찾아낸 사례나 일정 관리 사례를 짧게 넣어 보세요.",
+          isAnonymous: false,
+          likeCount: 15,
+          isAccepted: true,
+        },
+        {
+          authorIndex: 6,
+          content:
+            "커뮤니케이션은 추상적으로 쓰기보다 요청 자료 목록을 정리하고 확인한 방식처럼 실제 행동으로 보여주는 편이 설득력 있습니다.",
+          isAnonymous: true,
+          likeCount: 8,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.CPA_PREP,
+      title: "세무팀 신입은 엑셀을 어느 정도까지 준비해야 하나요?",
+      content:
+        "세무조정이나 신고 업무를 바로 맡지는 않더라도 엑셀 테스트가 있다는 얘기를 들었습니다. 피벗, XLOOKUP, SUMIFS 정도면 충분한지 궁금합니다.",
+      status: CommunityPostStatus.QUESTION,
+      tags: ["세무", "엑셀", "면접준비"],
+      authorIndex: 0,
+      isAnonymous: true,
+      viewCount: 158,
+      likeCount: 13,
+      dayOffset: 1,
+      answers: [
+        {
+          authorIndex: 3,
+          content:
+            "기본 함수와 피벗은 꼭 익히고, 신고 자료를 거래처별/계정별로 정리하는 연습을 해두면 좋습니다. 실무에서는 파일 구조를 흐트러뜨리지 않는 습관도 중요합니다.",
+          isAnonymous: false,
+          likeCount: 10,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.CPA_PREP,
+      title: "면접에서 KICPA 유예생이라고 말할 때 불리하지 않을까요?",
+      content:
+        "2차 일부 과목을 남겨둔 상태입니다. 공고에는 KICPA 우대라고 되어 있는데 유예생도 긍정적으로 봐주는지, 시험 일정은 어떻게 설명하면 좋을지 궁금합니다.",
+      status: CommunityPostStatus.QUESTION,
+      tags: ["KICPA", "유예생", "면접"],
+      authorIndex: 1,
+      isAnonymous: true,
+      viewCount: 121,
+      likeCount: 7,
+      dayOffset: 2,
+      answers: [
+        {
+          authorIndex: 2,
+          content:
+            "시험 일정을 숨기기보다 성수기와 겹치지 않는 준비 계획을 말하는 편이 낫습니다. 팀에서는 예측 가능한 일정 공유를 더 중요하게 봅니다.",
+          isAnonymous: false,
+          likeCount: 6,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.CPA_PREP,
+      title: "로컬 회계법인과 중소 세무법인 중 첫 커리어 선택 고민",
+      content:
+        "감사 경험을 쌓고 싶지만 세무 실무도 배우고 싶습니다. 로컬 회계법인 감사팀과 중소 세무법인 컨설팅팀 중 첫 커리어로 어떤 선택이 확장성이 있을까요?",
+      status: CommunityPostStatus.ANSWERED,
+      tags: ["커리어", "로컬", "세무법인"],
+      authorIndex: 5,
+      isAnonymous: false,
+      viewCount: 302,
+      likeCount: 31,
+      dayOffset: 3,
+      answers: [
+        {
+          authorIndex: 4,
+          content:
+            "감사 커리어를 열어두고 싶다면 외부감사 경험을 먼저 확보하는 쪽이 선택지가 넓었습니다. 세무는 이후에도 프로젝트나 이직으로 보완할 기회가 많습니다.",
+          isAnonymous: false,
+          likeCount: 18,
+          isAccepted: true,
+        },
+        {
+          authorIndex: 3,
+          content:
+            "세무 쪽이 명확히 맞다면 신고 시즌을 겪어보는 것도 좋습니다. 다만 공고 설명에서 담당 업무 범위가 너무 기장 위주인지 확인하세요.",
+          isAnonymous: false,
+          likeCount: 12,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.TRAINEE,
+      title: "수습 일지 작성할 때 어떤 단위로 정리하시나요?",
+      content:
+        "업무가 여러 고객사로 나뉘다 보니 하루 단위로 쓰면 너무 길어지고, 프로젝트 단위로 쓰면 날짜 흐름이 안 보입니다. 실제 수습 인정 받을 때 보기 좋은 형식이 있을까요?",
+      status: CommunityPostStatus.ANSWERED,
+      tags: ["수습일지", "감사", "기록"],
+      authorIndex: 2,
+      isAnonymous: false,
+      viewCount: 177,
+      likeCount: 19,
+      dayOffset: 0,
+      answers: [
+        {
+          authorIndex: 6,
+          content:
+            "날짜, 고객사, 주요 절차, 산출물을 한 줄로 남기고 주말에 프로젝트별로 묶어 요약했습니다. 나중에 증빙 찾기가 훨씬 쉽습니다.",
+          isAnonymous: false,
+          likeCount: 14,
+          isAccepted: true,
+        },
+        {
+          authorIndex: 4,
+          content:
+            "리뷰 받은 사항을 별도 칸에 적어두면 같은 지적을 줄이는 데 도움이 됩니다.",
+          isAnonymous: true,
+          likeCount: 6,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.TRAINEE,
+      title: "첫 재고실사 배정 전에 준비할 체크리스트 공유 부탁드립니다",
+      content:
+        "이번 주말에 처음 재고실사를 나갑니다. 전표나 장부보다 현장 대응이 걱정되는데, 챙겨야 할 물품이나 확인해야 할 절차가 있을까요?",
+      status: CommunityPostStatus.QUESTION,
+      tags: ["재고실사", "감사절차", "수습"],
+      authorIndex: 5,
+      isAnonymous: true,
+      viewCount: 99,
+      likeCount: 8,
+      dayOffset: 1,
+      answers: [
+        {
+          authorIndex: 2,
+          content:
+            "실사표, 표본 리스트, 필기구, 보조배터리, 담당자 연락처는 기본이고 사진 촬영 가능 여부를 미리 확인하세요. 이동 동선도 생각보다 중요합니다.",
+          isAnonymous: false,
+          likeCount: 9,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.TRAINEE,
+      title: "성수기 야근이 많은 팀인지 공고만 보고 가늠할 수 있나요?",
+      content:
+        "수습 기간에는 배우는 게 우선이라고 생각하지만 팀별 업무량 차이가 너무 크다는 얘기를 들어 걱정됩니다. 공고에서 체크할 수 있는 표현이 있을까요?",
+      status: CommunityPostStatus.QUESTION,
+      tags: ["성수기", "팀문화", "공고읽기"],
+      authorIndex: 2,
+      isAnonymous: true,
+      viewCount: 141,
+      likeCount: 10,
+      dayOffset: 3,
+      answers: [
+        {
+          authorIndex: 6,
+          content:
+            "상장사 감사, 연결 패키지, IPO, 대형 고객사 상주 표현이 많으면 바쁜 편일 수 있습니다. 면접에서 최근 3개월 평균 투입 프로젝트 수를 물어보는 것도 괜찮습니다.",
+          isAnonymous: false,
+          likeCount: 11,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.TRAINEE,
+      title: "수습 가능 공고 중 재택/하이브리드는 실제로 얼마나 지켜지나요?",
+      content:
+        "공고에는 하이브리드라고 되어 있어도 감사 현장은 출장이 많다고 들었습니다. 수습 회계사에게도 재택이 현실적으로 가능한지 궁금합니다.",
+      status: CommunityPostStatus.QUESTION,
+      tags: ["하이브리드", "근무환경", "수습"],
+      authorIndex: 5,
+      isAnonymous: false,
+      viewCount: 112,
+      likeCount: 5,
+      dayOffset: 5,
+      answers: [],
+    },
+    {
+      boardType: CommunityBoardType.SENIOR,
+      title: "Big4 감사 4년차에서 FAS로 이동하려면 어떤 경험을 강조해야 할까요?",
+      content:
+        "감사 경험은 제조업과 플랫폼 고객사가 많고, 실사 프로젝트는 보조로 한 번 참여했습니다. FAS 주니어/시니어 경계 공고에 지원할 때 어떤 키워드를 앞세우면 좋을까요?",
+      status: CommunityPostStatus.ANSWERED,
+      tags: ["FAS", "Big4", "이직"],
+      authorIndex: 3,
+      isAnonymous: false,
+      viewCount: 331,
+      likeCount: 35,
+      dayOffset: 0,
+      answers: [
+        {
+          authorIndex: 6,
+          content:
+            "매출 인식, 운전자본, 우발부채처럼 실사에서 바로 쓰이는 감사 포인트를 거래 관점으로 설명해 보세요. 데이터룸 자료 검토 경험도 좋습니다.",
+          isAnonymous: false,
+          likeCount: 22,
+          isAccepted: true,
+        },
+        {
+          authorIndex: 4,
+          content:
+            "보고서 작성 경험이 있다면 목차 구성과 쟁점 요약을 해본 사례를 강조하는 게 좋았습니다.",
+          isAnonymous: true,
+          likeCount: 9,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.SENIOR,
+      title: "내부회계 운영 담당으로 옮긴 뒤 가장 크게 달라진 점",
+      content:
+        "감사할 때는 테스트 결과를 전달하는 입장이었는데, 회사 안에서는 통제 설계와 현업 설득이 훨씬 중요했습니다. 이직 준비하시는 분들은 RCM과 프로세스 문서화 경험을 꼭 정리해 두세요.",
+      status: CommunityPostStatus.INFO,
+      tags: ["내부회계", "인하우스", "경험공유"],
+      authorIndex: 4,
+      isAnonymous: false,
+      viewCount: 268,
+      likeCount: 29,
+      dayOffset: 1,
+      answers: [
+        {
+          authorIndex: 6,
+          content:
+            "동의합니다. 운영 담당은 예외사항을 고치는 일정 조율까지 해야 해서 현업 언어로 설명하는 능력이 정말 중요했습니다.",
+          isAnonymous: false,
+          likeCount: 13,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.SENIOR,
+      title: "연결결산 공고에서 ERP 전환 경험 우대는 어느 정도 의미인가요?",
+      content:
+        "SAP나 Oracle 전환 경험 우대라고 적힌 공고가 많습니다. 실제로는 결산 프로세스 개선 경험 정도여도 지원해볼 만한지 궁금합니다.",
+      status: CommunityPostStatus.QUESTION,
+      tags: ["연결결산", "ERP", "상장사"],
+      authorIndex: 6,
+      isAnonymous: true,
+      viewCount: 186,
+      likeCount: 12,
+      dayOffset: 2,
+      answers: [
+        {
+          authorIndex: 4,
+          content:
+            "전환 프로젝트 풀타임 경험이 아니어도 계정 매핑, 결산 체크리스트 개선, 데이터 검증 경험이 있으면 충분히 이야기해볼 수 있습니다.",
+          isAnonymous: false,
+          likeCount: 10,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.SENIOR,
+      title: "공공기관 회계직은 민간 감사 경력을 어떻게 보나요?",
+      content:
+        "공공기관 회계/정산 담당 공고를 보고 있습니다. 민간 외부감사 경력이 보조금 정산이나 예산 업무로 연결될 수 있을까요?",
+      status: CommunityPostStatus.QUESTION,
+      tags: ["공공기관", "정산", "커리어전환"],
+      authorIndex: 3,
+      isAnonymous: true,
+      viewCount: 147,
+      likeCount: 9,
+      dayOffset: 4,
+      answers: [
+        {
+          authorIndex: 6,
+          content:
+            "증빙 검토와 감사 대응 경험은 연결됩니다. 다만 예산 집행 규정, 보조금 시스템, 공공기관 평가 일정은 별도로 학습하면 좋습니다.",
+          isAnonymous: false,
+          likeCount: 8,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.FREE,
+      title: "오늘 마감 D-day 공고만 모아서 보니 지원 우선순위가 확 잡히네요",
+      content:
+        "마감순 정렬에서 D-day 0 공고를 먼저 보고, 원문 지원 버튼을 누른 공고는 따로 체크했습니다. 급한 공고와 상시채용을 분리해서 보니 훨씬 덜 헷갈립니다.",
+      status: CommunityPostStatus.INFO,
+      tags: ["D-day", "마감순", "지원관리"],
+      authorIndex: 0,
+      isAnonymous: false,
+      viewCount: 205,
+      likeCount: 27,
+      dayOffset: 0,
+      answers: [
+        {
+          authorIndex: 1,
+          content:
+            "저도 상시채용은 따로 저장해두고 고정 마감 공고부터 처리합니다. 캘린더 화면이 같이 보이면 일정 잡기 편하더라고요.",
+          isAnonymous: false,
+          likeCount: 11,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.FREE,
+      title: "회사 페이지에서 평균 연봉과 직원 추이를 같이 보니 좋네요",
+      content:
+        "공고만 볼 때보다 회사 상세에서 직원 수, 평균 연봉, 최근 추이를 같이 보니 지원 판단이 빨라졌습니다. 특히 성장 중인 로컬 법인을 찾을 때 유용했습니다.",
+      status: CommunityPostStatus.FREE,
+      tags: ["회사정보", "연봉", "직원추이"],
+      authorIndex: 5,
+      isAnonymous: false,
+      viewCount: 184,
+      likeCount: 20,
+      dayOffset: 2,
+      answers: [
+        {
+          authorIndex: 3,
+          content:
+            "저는 공고의 업무 범위와 회사 페이지의 태그가 일치하는지도 봅니다. 데이터가 맞물리면 신뢰가 더 가는 것 같아요.",
+          isAnonymous: false,
+          likeCount: 7,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.FREE,
+      title: "면접 일정 잡을 때 원문 링크를 같이 남겨두면 편합니다",
+      content:
+        "같은 회사가 비슷한 포지션을 여러 개 올리면 나중에 어떤 공고로 지원했는지 헷갈립니다. 원문 링크와 플랫폼 공고 링크를 둘 다 저장해두는 습관 추천합니다.",
+      status: CommunityPostStatus.INFO,
+      tags: ["면접", "원문링크", "팁"],
+      authorIndex: 2,
+      isAnonymous: true,
+      viewCount: 132,
+      likeCount: 14,
+      dayOffset: 4,
+      answers: [],
+    },
+    {
+      boardType: CommunityBoardType.FREE,
+      title: "커뮤니티에 면접 질문 모음도 있으면 좋겠습니다",
+      content:
+        "감사, 세무, FAS, 인하우스별로 자주 나오는 질문을 모아두면 공고 탐색 다음 단계까지 자연스럽게 이어질 것 같습니다. 각자 받은 질문을 익명으로 공유해도 좋겠네요.",
+      status: CommunityPostStatus.FREE,
+      tags: ["면접질문", "커뮤니티", "아이디어"],
+      authorIndex: 1,
+      isAnonymous: true,
+      viewCount: 76,
+      likeCount: 6,
+      dayOffset: 6,
+      answers: [
+        {
+          authorIndex: 6,
+          content:
+            "직무별 질문과 답변 방향을 나누면 좋겠습니다. 특히 내부회계와 공시는 실무 질문이 꽤 다릅니다.",
+          isAnonymous: false,
+          likeCount: 5,
+        },
+      ],
+    },
+    ...buildGeneratedCommunityPostSeeds(GENERATED_COMMUNITY_POST_COUNT),
   ];
 
   for (const [postIndex, seed] of postSeeds.entries()) {

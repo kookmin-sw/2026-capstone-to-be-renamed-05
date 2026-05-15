@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Bloom logo">
+  <rect width="96" height="96" rx="24" fill="#fdf2f8"/>
+  <circle cx="48" cy="48" r="9" fill="#be123c"/>
+  <ellipse cx="48" cy="25" rx="10" ry="17" fill="#db2777"/>
+  <ellipse cx="48" cy="71" rx="10" ry="17" fill="#fb7185"/>
+  <ellipse cx="25" cy="48" rx="17" ry="10" fill="#14b8a6"/>
+  <ellipse cx="71" cy="48" rx="17" ry="10" fill="#0f766e"/>
+</svg>

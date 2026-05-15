@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Signal logo">
+  <rect width="96" height="96" rx="18" fill="#f5f3ff"/>
+  <circle cx="31" cy="62" r="9" fill="#7c3aed"/>
+  <path d="M42 53c8 0 14 6 14 14M42 37c17 0 30 13 30 30M42 21c26 0 46 20 46 46" fill="none" stroke="#7c3aed" stroke-width="8" stroke-linecap="round"/>
+  <path d="M24 24h15v15H24z" fill="#f97316"/>
+</svg>

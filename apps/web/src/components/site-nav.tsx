@@ -1,16 +1,19 @@
 "use client";
 
+import type { NotificationItem } from "@cpa/shared";
 import { Bell, LogOut } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActionButton, ActionLink } from "@/components/ui/action-button";
 import {
   AUTH_USER_CHANGED_EVENT,
   fetchCurrentUser,
+  fetchNotifications,
   fetchNotificationUnreadCount,
   logoutRequest,
+  markNotificationRead,
   NOTIFICATIONS_CHANGED_EVENT,
   type AuthUser,
 } from "@/lib/api";
@@ -25,6 +28,8 @@ const navItems = [
   { href: "/community", label: "커뮤니티", key: "community" },
 ] as const;
 
+const NOTIFICATION_PREVIEW_SIZE = 5;
+
 type SiteNavProps = {
   variant?: "app" | "landing";
 };
@@ -36,6 +41,14 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
   const [authReady, setAuthReady] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationPreview, setNotificationPreview] = useState<
+    NotificationItem[]
+  >([]);
+  const [notificationPreviewLoading, setNotificationPreviewLoading] =
+    useState(false);
+  const [notificationPreviewError, setNotificationPreviewError] = useState("");
+  const notificationPopoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -63,6 +76,9 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
 
   useEffect(() => {
     if (user?.role !== "JOB_SEEKER") {
+      setNotificationsOpen(false);
+      setNotificationPreview([]);
+      setNotificationUnreadCount(0);
       return;
     }
 
@@ -91,6 +107,56 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
       );
     };
   }, [pathname, user?.id, user?.role]);
+
+  const loadNotificationPreview = useCallback(async () => {
+    if (user?.role !== "JOB_SEEKER") return;
+
+    setNotificationPreviewLoading(true);
+    setNotificationPreviewError("");
+    try {
+      const result = await fetchNotifications({
+        page: 1,
+        pageSize: NOTIFICATION_PREVIEW_SIZE,
+      });
+      setNotificationPreview(result.items);
+      setNotificationUnreadCount(result.unreadCount);
+    } catch (error) {
+      setNotificationPreviewError(
+        error instanceof Error ? error.message : "알림을 불러오지 못했습니다.",
+      );
+    } finally {
+      setNotificationPreviewLoading(false);
+    }
+  }, [user?.id, user?.role]);
+
+  useEffect(() => {
+    if (!notificationsOpen) return;
+
+    void loadNotificationPreview();
+  }, [loadNotificationPreview, notificationsOpen]);
+
+  useEffect(() => {
+    if (!notificationsOpen) return;
+
+    function closeOnOutsidePointerDown(event: PointerEvent) {
+      if (
+        notificationPopoverRef.current?.contains(event.target as Node) === false
+      ) {
+        setNotificationsOpen(false);
+      }
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setNotificationsOpen(false);
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePointerDown);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointerDown);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [notificationsOpen]);
 
   const isLanding = variant === "landing";
 
@@ -137,6 +203,22 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
     }
   }
 
+  async function markPreviewNotificationRead(id: string) {
+    const current = notificationPreview.find((item) => item.id === id);
+    if (!current || current.readAt) return;
+
+    try {
+      const updated = await markNotificationRead(id);
+      setNotificationPreview((prev) =>
+        prev.map((item) => (item.id === id ? updated : item)),
+      );
+      setNotificationUnreadCount((count) => Math.max(0, count - 1));
+      window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+    } catch {
+      // The destination navigation should not be blocked by a read-state update.
+    }
+  }
+
   return (
     <nav className={cn(styles.nav, isLanding && styles.landingNav)}>
       <div className={styles.inner}>
@@ -168,20 +250,97 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
           {!authReady ? null : user ? (
             <div className={styles.userActions}>
               {user.role === "JOB_SEEKER" && (
-                <Link
-                  href="/mypage/notifications"
-                  className={styles.notificationLink}
-                  aria-label={`알림 ${notificationUnreadCount}개`}
+                <div
+                  className={styles.notificationPopoverWrap}
+                  ref={notificationPopoverRef}
                 >
-                  <Bell size={17} />
-                  {notificationUnreadCount > 0 && (
-                    <span className={styles.notificationBadge}>
-                      {notificationUnreadCount > 99
-                        ? "99+"
-                        : notificationUnreadCount}
-                    </span>
+                  <button
+                    type="button"
+                    className={styles.notificationLink}
+                    aria-expanded={notificationsOpen}
+                    aria-haspopup="dialog"
+                    aria-label={`알림 ${notificationUnreadCount}개`}
+                    onClick={() => setNotificationsOpen((open) => !open)}
+                  >
+                    <Bell size={17} />
+                    {notificationUnreadCount > 0 && (
+                      <span className={styles.notificationBadge}>
+                        {notificationUnreadCount > 99
+                          ? "99+"
+                          : notificationUnreadCount}
+                      </span>
+                    )}
+                  </button>
+                  {notificationsOpen && (
+                    <div
+                      className={styles.notificationPopover}
+                      role="dialog"
+                      aria-label="알림"
+                    >
+                      <div className={styles.notificationPopoverHeader}>
+                        <div>
+                          <p>알림</p>
+                          <span>
+                            읽지 않음{" "}
+                            {notificationUnreadCount.toLocaleString("ko-KR")}개
+                          </span>
+                        </div>
+                        <Link
+                          href="/mypage/notifications"
+                          className={styles.notificationAllLink}
+                          onClick={() => setNotificationsOpen(false)}
+                        >
+                          전체 보기
+                        </Link>
+                      </div>
+                      <div className={styles.notificationPopoverList}>
+                        {notificationPreviewLoading ? (
+                          <div className={styles.notificationEmpty}>
+                            알림을 불러오는 중입니다.
+                          </div>
+                        ) : notificationPreviewError ? (
+                          <div className={styles.notificationError}>
+                            {notificationPreviewError}
+                          </div>
+                        ) : notificationPreview.length ? (
+                          notificationPreview.map((item) => (
+                            <Link
+                              key={item.id}
+                              href={item.href}
+                              className={cn(
+                                styles.notificationItem,
+                                !item.readAt && styles.notificationUnread,
+                              )}
+                              onClick={() => {
+                                void markPreviewNotificationRead(item.id);
+                                setNotificationsOpen(false);
+                              }}
+                            >
+                              <div className={styles.notificationTitleRow}>
+                                {!item.readAt && (
+                                  <span
+                                    className={styles.unreadDot}
+                                    aria-hidden="true"
+                                  />
+                                )}
+                                <span>{notificationTypeLabel(item.type)}</span>
+                                <strong>{item.title}</strong>
+                              </div>
+                              <p>{item.body}</p>
+                              <time dateTime={item.createdAt}>
+                                {formatNotificationDateTime(item.createdAt)}
+                              </time>
+                            </Link>
+                          ))
+                        ) : (
+                          <div className={styles.notificationEmpty}>
+                            표시할 알림이 없습니다.
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
-                </Link>
+                </div>
               )}
               {user.profileImageUrl && (
                 <span className={styles.userAvatar}>
@@ -221,4 +380,17 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
       </div>
     </nav>
   );
+}
+
+function notificationTypeLabel(type: NotificationItem["type"]) {
+  if (type === "BOOKMARK_DEADLINE_SOON") return "관심 공고";
+  if (type === "BOOKMARK_STATUS_CHANGED") return "관심 공고";
+  return "태그";
+}
+
+function formatNotificationDateTime(value: string) {
+  return new Intl.DateTimeFormat("ko-KR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }

@@ -1,4 +1,4 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import {
   CompanyType,
   CpaVerificationStatus,
@@ -49,6 +49,10 @@ describe('AdminService review flows', () => {
   };
   let prisma: {
     $transaction: jest.Mock;
+    job: {
+      findUnique: jest.Mock;
+      update: jest.Mock;
+    };
     companyProfileSubmission: {
       findUnique: jest.Mock;
       update: jest.Mock;
@@ -90,12 +94,25 @@ describe('AdminService review flows', () => {
       $transaction: jest.fn((callback: (client: typeof tx) => unknown) =>
         callback(tx),
       ),
+      job: {
+        findUnique: jest.fn(),
+        update: jest.fn(),
+      },
       companyProfileSubmission: {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
     };
     service = new AdminService(prisma as unknown as PrismaService);
+  });
+
+  it('returns not found when refreshing a missing job', async () => {
+    prisma.job.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.refreshJobCheckedAt('missing-job'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.job.update).not.toHaveBeenCalled();
   });
 
   it('approves a pending job submission by creating a public job', async () => {

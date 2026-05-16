@@ -60,6 +60,15 @@ jest.mock('@aws-sdk/client-s3', () => {
   };
 });
 
+jest.mock('@cpa/shared', () => ({
+  RESUME_ALLOWED_EXTENSIONS: ['pdf', 'docx', 'txt'],
+  RESUME_ANALYSIS_MAX_CHARS: 12_000,
+  RESUME_ANALYSIS_MAX_PAGES: 10,
+  RESUME_ANALYSIS_MIN_CHARS: 80,
+  RESUME_UPLOAD_LIMIT: 5,
+  RESUME_UPLOAD_MAX_BYTES: 10 * 1024 * 1024,
+}));
+
 const createdAt = new Date('2026-05-10T00:00:00.000Z');
 
 describe('MypageService resumes', () => {
@@ -133,22 +142,79 @@ describe('MypageService resumes', () => {
     expect(stored.toString()).toBe('%PDF');
   });
 
-  it('rejects unsupported resume files before creating records', async () => {
+  it('accepts TXT and DOCX resume uploads', async () => {
+    prisma.resume.create.mockImplementation(
+      ({ data }: { data: Record<string, unknown> }) =>
+        Promise.resolve({
+          ...data,
+          createdAt,
+          updatedAt: createdAt,
+        }),
+    );
+
+    const txt = await service.createResume('user-1', {
+      fileName: 'audit-resume.txt',
+      contentType: 'text/plain; charset=utf-8',
+      body: Buffer.from('감사 수습 이력서 본문', 'utf8'),
+    });
+    const docx = await service.createResume('user-1', {
+      fileName: 'tax-resume.docx',
+      contentType:
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      body: Buffer.from('docx-bytes'),
+    });
+
+    expect(txt.contentType).toBe('text/plain');
+    expect(docx.contentType).toBe(
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    );
     await expect(
-      service.createResume('user-1', {
+      readFile(join(tempDir, 'user-1', `${txt.id}.txt`), 'utf8'),
+    ).resolves.toBe('감사 수습 이력서 본문');
+    await expect(
+      readFile(join(tempDir, 'user-1', `${docx.id}.docx`), 'utf8'),
+    ).resolves.toBe('docx-bytes');
+  });
+
+  it('rejects unsupported resume files before creating records', async () => {
+    const rejectedPayloads = [
+      {
         fileName: 'malware.exe',
         contentType: 'application/octet-stream',
         body: Buffer.from('nope'),
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-
-    await expect(
-      service.createResume('user-1', {
+      },
+      {
+        fileName: 'legacy.doc',
+        contentType: 'application/msword',
+        body: Buffer.from('legacy'),
+      },
+      {
+        fileName: 'resume.hwp',
+        contentType: 'application/x-hwp',
+        body: Buffer.from('hwp'),
+      },
+      {
+        fileName: 'resume.hwpx',
+        contentType: 'application/haansofthwpx',
+        body: Buffer.from('hwpx'),
+      },
+      {
+        fileName: 'empty.txt',
+        contentType: 'text/plain',
+        body: Buffer.alloc(0),
+      },
+      {
         fileName: 'large.pdf',
         contentType: 'application/pdf',
         body: Buffer.alloc(RESUME_MAX_BYTES + 1),
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+      },
+    ];
+
+    for (const payload of rejectedPayloads) {
+      await expect(
+        service.createResume('user-1', payload),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    }
 
     expect(prisma.resume.create).not.toHaveBeenCalled();
   });
@@ -667,6 +733,7 @@ describe('MypageService job fit analyses', () => {
       findUnique: jest.Mock;
       findMany: jest.Mock;
       create: jest.Mock;
+      update: jest.Mock;
     };
     resume: {
       findFirst: jest.Mock;
@@ -675,14 +742,17 @@ describe('MypageService job fit analyses', () => {
       findFirst: jest.Mock;
     };
   };
+  let tempDir: string;
   let service: MypageService;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'accountit-analysis-'));
     prisma = {
       jobFitAnalysis: {
         findUnique: jest.fn().mockResolvedValue(null),
         findMany: jest.fn().mockResolvedValue([]),
         create: jest.fn(),
+        update: jest.fn(),
       },
       resume: {
         findFirst: jest.fn(),
@@ -693,9 +763,13 @@ describe('MypageService job fit analyses', () => {
     };
     service = new MypageService(
       prisma as unknown as PrismaService,
-      createConfig({}),
+      createConfig({ LOCAL_RESUME_DIR: tempDir }),
       { deleteAsset: jest.fn() } as unknown as AssetsService,
     );
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
   });
 
   it('rejects analyses with resumes owned by another user', async () => {
@@ -763,12 +837,22 @@ describe('MypageService job fit analyses', () => {
     const aiService = { generate: generateMock };
     service = new MypageService(
       prisma as unknown as PrismaService,
-      createConfig({ LOCAL_RESUME_DIR: '/tmp/missing-resumes' }),
+      createConfig({ LOCAL_RESUME_DIR: tempDir }),
       { deleteAsset: jest.fn() } as unknown as AssetsService,
       undefined,
       aiService as unknown as JobFitAnalysisAiService,
     );
-    prisma.resume.findFirst.mockResolvedValue(resumeRecord());
+    const resumeText =
+      '감사 수습 지원자 이력서입니다. 회계감사 인턴으로 매출채권 확인, 비용 분석, 감사조서 정리를 수행했고 KICPA 1차 합격 후 2차 시험을 준비하고 있습니다.';
+    await mkdir(join(tempDir, 'user-1'), { recursive: true });
+    await writeFile(join(tempDir, 'user-1', 'resume-1.txt'), resumeText);
+    prisma.resume.findFirst.mockResolvedValue(
+      resumeRecord({
+        fileName: 'audit-resume.txt',
+        contentType: 'text/plain',
+        byteSize: Buffer.byteLength(resumeText),
+      }),
+    );
     prisma.job.findFirst.mockResolvedValue(jobRecord());
     prisma.jobFitAnalysis.create.mockResolvedValue(
       jobFitAnalysisRecord({ id: 'analysis-created', fitScore: 92 }),
@@ -784,8 +868,8 @@ describe('MypageService job fit analyses', () => {
     const aiInput = aiService.generate.mock.calls[0]?.[0];
     expect(aiInput?.job.title).toBe('Audit associate');
     expect(aiInput?.job.company.name).toBe('Hanbit');
-    expect(aiInput?.resume.fileName).toBe('이력서.pdf');
-    expect(aiInput?.resume.textSample).toBeNull();
+    expect(aiInput?.resume.fileName).toBe('audit-resume.txt');
+    expect(aiInput?.resume.textSample).toContain('회계감사 인턴');
 
     const createArg = firstMockArg<{
       data: Record<string, unknown>;
@@ -799,6 +883,107 @@ describe('MypageService job fit analyses', () => {
       rawJson: { provider: 'openai' },
     });
     expect(createArg.include).toBeDefined();
+  });
+
+  it('updates an existing analysis when refresh is requested', async () => {
+    const generatedAnalysis: GeneratedJobFitAnalysis = {
+      fitScore: 95,
+      summary: 'Refreshed match',
+      strengths: ['Updated audit fit'],
+      companyPriorities: ['Immediate readiness'],
+      gaps: ['Clarify CPA timeline'],
+      recommendation: 'Refresh the summary for this posting.',
+      rawJson: { provider: 'openai', refreshed: true },
+    };
+    const generateMock = jest.fn() as jest.Mock<
+      Promise<GeneratedJobFitAnalysis>,
+      [GenerateJobFitAnalysisInput]
+    >;
+    generateMock.mockResolvedValue(generatedAnalysis);
+    const aiService = { generate: generateMock };
+    service = new MypageService(
+      prisma as unknown as PrismaService,
+      createConfig({ LOCAL_RESUME_DIR: tempDir }),
+      { deleteAsset: jest.fn() } as unknown as AssetsService,
+      undefined,
+      aiService as unknown as JobFitAnalysisAiService,
+    );
+    const resumeText =
+      '세무 주니어 이력서입니다. 원천세, 부가가치세 신고 보조, 법인세 세무조정 자료 취합, ERP 전표 검토 경험이 있으며 세무법인 주니어 포지션을 희망합니다.';
+    await mkdir(join(tempDir, 'user-1'), { recursive: true });
+    await writeFile(join(tempDir, 'user-1', 'resume-1.txt'), resumeText);
+    prisma.jobFitAnalysis.findUnique.mockResolvedValue(
+      jobFitAnalysisRecord({ id: 'analysis-1', fitScore: 70 }),
+    );
+    prisma.resume.findFirst.mockResolvedValue(
+      resumeRecord({
+        fileName: 'tax-resume.txt',
+        contentType: 'text/plain',
+        byteSize: Buffer.byteLength(resumeText),
+      }),
+    );
+    prisma.job.findFirst.mockResolvedValue(jobRecord());
+    prisma.jobFitAnalysis.update.mockResolvedValue(
+      jobFitAnalysisRecord({
+        id: 'analysis-1',
+        fitScore: 95,
+        summary: 'Refreshed match',
+      }),
+    );
+
+    const result = await service.createJobFitAnalysis('user-1', {
+      jobId: 'job-1',
+      resumeId: 'resume-1',
+      refresh: true,
+    });
+
+    expect(result.reused).toBe(false);
+    expect(result.item.fitScore).toBe(95);
+    expect(aiService.generate).toHaveBeenCalledTimes(1);
+    expect(prisma.jobFitAnalysis.update).toHaveBeenCalledWith({
+      where: { id: 'analysis-1' },
+      data: expect.objectContaining({
+        fitScore: 95,
+        rawJson: { provider: 'openai', refreshed: true },
+      }),
+      include: expect.any(Object),
+    });
+    expect(prisma.jobFitAnalysis.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects AI analysis when the resume text is too short to extract', async () => {
+    const generateMock = jest.fn() as jest.Mock<
+      Promise<GeneratedJobFitAnalysis>,
+      [GenerateJobFitAnalysisInput]
+    >;
+    service = new MypageService(
+      prisma as unknown as PrismaService,
+      createConfig({ LOCAL_RESUME_DIR: tempDir }),
+      { deleteAsset: jest.fn() } as unknown as AssetsService,
+      undefined,
+      { generate: generateMock } as unknown as JobFitAnalysisAiService,
+    );
+    await mkdir(join(tempDir, 'user-1'), { recursive: true });
+    await writeFile(join(tempDir, 'user-1', 'resume-1.txt'), '짧음');
+    prisma.resume.findFirst.mockResolvedValue(
+      resumeRecord({
+        fileName: 'short-resume.txt',
+        contentType: 'text/plain',
+        byteSize: Buffer.byteLength('짧음'),
+      }),
+    );
+    prisma.job.findFirst.mockResolvedValue(jobRecord());
+
+    await expect(
+      service.createJobFitAnalysis('user-1', {
+        jobId: 'job-1',
+        resumeId: 'resume-1',
+        refresh: true,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(generateMock).not.toHaveBeenCalled();
+    expect(prisma.jobFitAnalysis.create).not.toHaveBeenCalled();
   });
 
   it('reuses an existing analysis for the same user, job, and resume', async () => {
@@ -832,6 +1017,7 @@ describe('MypageService job fit analyses', () => {
     });
     expect(findUniqueArg.include).toBeDefined();
     expect(prisma.jobFitAnalysis.create).not.toHaveBeenCalled();
+    expect(prisma.jobFitAnalysis.update).not.toHaveBeenCalled();
   });
 
   it('lists only high-fit analyses for mypage recommendations', async () => {

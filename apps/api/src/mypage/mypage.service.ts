@@ -38,7 +38,16 @@ import type {
   ResumeItem,
   ResumeListResponse,
 } from '@cpa/shared';
+import {
+  RESUME_ALLOWED_EXTENSIONS,
+  RESUME_ANALYSIS_MAX_CHARS,
+  RESUME_ANALYSIS_MAX_PAGES,
+  RESUME_ANALYSIS_MIN_CHARS,
+  RESUME_UPLOAD_LIMIT,
+  RESUME_UPLOAD_MAX_BYTES,
+} from '@cpa/shared';
 import argon2 from 'argon2';
+import mammoth from 'mammoth';
 import { randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
@@ -56,17 +65,15 @@ import {
   resolveRuntimeEnvironment,
   resolveWorkspaceRoot,
 } from '../config/runtime-environment';
+import { PDFParse } from 'pdf-parse';
 import { AssetsService } from '../assets/assets.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePersonalVerificationRequestDto } from './dto/create-personal-verification-request.dto';
 import { JobFitAnalysisAiService } from './job-fit-analysis-ai.service';
 
-const RESUME_LIMIT = 5;
-export const RESUME_MAX_BYTES = 10 * 1024 * 1024;
+export const RESUME_MAX_BYTES = RESUME_UPLOAD_MAX_BYTES;
 const DEFAULT_S3_RESUME_KEY_PREFIX = 'resumes';
-const RESUME_TEXT_SAMPLE_MAX_BYTES = 512 * 1024;
-const RESUME_TEXT_SAMPLE_MAX_CHARS = 5000;
 
 type ResumeStorageConfig =
   | {
@@ -104,7 +111,6 @@ type ResumeRecord = {
 
 const RESUME_CONTENT_TYPES_BY_EXTENSION = new Map<string, Set<string>>([
   ['.pdf', new Set(['application/pdf'])],
-  ['.doc', new Set(['application/msword'])],
   [
     '.docx',
     new Set([
@@ -112,16 +118,7 @@ const RESUME_CONTENT_TYPES_BY_EXTENSION = new Map<string, Set<string>>([
       'application/zip',
     ]),
   ],
-  [
-    '.hwp',
-    new Set([
-      'application/haansofthwp',
-      'application/hwp',
-      'application/vnd.hancom.hwp',
-      'application/x-hwp',
-    ]),
-  ],
-  ['.hwpx', new Set(['application/vnd.hancom.hwpx', 'application/zip'])],
+  ['.txt', new Set(['text/plain'])],
 ]);
 
 const FALLBACK_RESUME_CONTENT_TYPE = 'application/octet-stream';
@@ -443,10 +440,11 @@ export class MypageService implements OnModuleInit {
 
   async createJobFitAnalysis(
     userId: string,
-    data: { jobId: string; resumeId: string },
+    data: { jobId: string; resumeId: string; refresh?: boolean },
   ): Promise<CreateJobFitAnalysisResponse> {
     const jobId = data.jobId.trim();
     const resumeId = data.resumeId.trim();
+    const refresh = Boolean(data.refresh);
     if (!jobId || !resumeId) {
       throw new BadRequestException('분석할 공고와 이력서를 선택해 주세요.');
     }
@@ -457,7 +455,7 @@ export class MypageService implements OnModuleInit {
       },
       include: jobFitAnalysisInclude,
     });
-    if (existing) {
+    if (existing && !refresh) {
       return {
         item: this.toJobFitAnalysisItem(existing),
         reused: true,
@@ -508,24 +506,34 @@ export class MypageService implements OnModuleInit {
       },
     });
 
-    const created = await this.prisma.jobFitAnalysis.create({
-      data: {
-        userId,
-        jobId,
-        resumeId,
-        fitScore: generated.fitScore,
-        summary: generated.summary,
-        strengths: generated.strengths,
-        companyPriorities: generated.companyPriorities,
-        gaps: generated.gaps,
-        recommendation: generated.recommendation,
-        rawJson: generated.rawJson as Prisma.InputJsonValue,
-      },
-      include: jobFitAnalysisInclude,
-    });
+    const analysisData = {
+      fitScore: generated.fitScore,
+      summary: generated.summary,
+      strengths: generated.strengths,
+      companyPriorities: generated.companyPriorities,
+      gaps: generated.gaps,
+      recommendation: generated.recommendation,
+      rawJson: generated.rawJson as Prisma.InputJsonValue,
+    };
+
+    const saved = existing
+      ? await this.prisma.jobFitAnalysis.update({
+          where: { id: existing.id },
+          data: analysisData,
+          include: jobFitAnalysisInclude,
+        })
+      : await this.prisma.jobFitAnalysis.create({
+          data: {
+            userId,
+            jobId,
+            resumeId,
+            ...analysisData,
+          },
+          include: jobFitAnalysisInclude,
+        });
 
     return {
-      item: this.toJobFitAnalysisItem(created),
+      item: this.toJobFitAnalysisItem(saved),
       reused: false,
     };
   }
@@ -759,9 +767,9 @@ export class MypageService implements OnModuleInit {
   ): Promise<ResumeItem> {
     const upload = this.normalizeResumeUpload(data);
     const count = await this.prisma.resume.count({ where: { userId } });
-    if (count >= RESUME_LIMIT) {
+    if (count >= RESUME_UPLOAD_LIMIT) {
       throw new BadRequestException(
-        `You can upload up to ${RESUME_LIMIT} resumes.`,
+        `You can upload up to ${RESUME_UPLOAD_LIMIT} resumes.`,
       );
     }
 
@@ -915,35 +923,55 @@ export class MypageService implements OnModuleInit {
     fileName: string;
   }) {
     try {
-      const storageConfig = this.getResumeStorageConfig();
-      const target = this.resolveResumeObjectTarget(
-        storageConfig,
-        resume.userId,
-        resume.id,
+      return await this.extractResumeTextSample(
         resume.fileName,
+        await this.readResumeObjectBuffer(resume),
       );
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      throw new BadRequestException(
+        '이력서 파일을 읽지 못했습니다. 다시 업로드한 뒤 분석해 주세요.',
+      );
+    }
+  }
 
-      if (storageConfig.driver === 'local' && target.driver === 'local') {
-        return this.extractResumeTextSample(await readFile(target.filePath));
-      }
+  private async readResumeObjectBuffer(resume: {
+    id: string;
+    userId: string;
+    fileName: string;
+  }) {
+    const storageConfig = this.getResumeStorageConfig();
+    const target = this.resolveResumeObjectTarget(
+      storageConfig,
+      resume.userId,
+      resume.id,
+      resume.fileName,
+    );
 
-      if (storageConfig.driver === 's3' && target.driver === 's3') {
-        const output = await this.getS3Client(storageConfig.region).send(
-          new GetObjectCommand({
-            Bucket: storageConfig.bucket,
-            Key: target.key,
-          }),
-        );
-        const stream = await this.toReadableStream(output.Body);
-        return this.extractResumeTextSample(
-          await this.readStreamPrefix(stream, RESUME_TEXT_SAMPLE_MAX_BYTES),
-        );
-      }
-    } catch {
-      return null;
+    let buffer: Buffer;
+
+    if (storageConfig.driver === 'local' && target.driver === 'local') {
+      buffer = await readFile(target.filePath);
+    } else if (storageConfig.driver === 's3' && target.driver === 's3') {
+      const output = await this.getS3Client(storageConfig.region).send(
+        new GetObjectCommand({
+          Bucket: storageConfig.bucket,
+          Key: target.key,
+        }),
+      );
+      const stream = await this.toReadableStream(output.Body);
+      buffer = await this.readStreamPrefix(stream, RESUME_UPLOAD_MAX_BYTES + 1);
+    } else {
+      throw new InternalServerErrorException(
+        '이력서 저장소 설정이 올바르지 않습니다.',
+      );
     }
 
-    return null;
+    if (buffer.length > RESUME_UPLOAD_MAX_BYTES) {
+      throw new BadRequestException('Resume files must be 10MB or smaller.');
+    }
+
+    return buffer;
   }
 
   private async readStreamPrefix(stream: Readable, maxBytes: number) {
@@ -968,16 +996,65 @@ export class MypageService implements OnModuleInit {
     return Buffer.concat(chunks);
   }
 
-  private extractResumeTextSample(buffer: Buffer) {
-    const cleaned = buffer
-      .subarray(0, RESUME_TEXT_SAMPLE_MAX_BYTES)
-      .toString('utf8')
-      .replace(/[^\t\n\r -~가-힣ㄱ-ㅎㅏ-ㅣ]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+  private async extractResumeTextSample(fileName: string, buffer: Buffer) {
+    const extension = extname(fileName).toLowerCase();
+    const rawText =
+      extension === '.txt'
+        ? buffer.toString('utf8')
+        : extension === '.docx'
+          ? await this.extractDocxText(buffer)
+          : extension === '.pdf'
+            ? await this.extractPdfText(buffer)
+            : '';
 
-    if (cleaned.length < 30) return null;
-    return cleaned.slice(0, RESUME_TEXT_SAMPLE_MAX_CHARS);
+    if (!rawText) {
+      throw new BadRequestException(
+        'PDF, DOCX, TXT 이력서만 AI 분석에 사용할 수 있습니다.',
+      );
+    }
+
+    const cleaned = this.normalizeResumeText(rawText);
+    if (cleaned.length < RESUME_ANALYSIS_MIN_CHARS) {
+      throw new BadRequestException(
+        '이력서 본문 텍스트를 충분히 추출하지 못했습니다. 스캔 PDF가 아닌 텍스트 기반 PDF, DOCX, TXT 파일을 업로드해 주세요.',
+      );
+    }
+
+    return cleaned.slice(0, RESUME_ANALYSIS_MAX_CHARS);
+  }
+
+  private async extractDocxText(buffer: Buffer) {
+    const result = await mammoth.extractRawText({ buffer });
+    return result.value;
+  }
+
+  private async extractPdfText(buffer: Buffer) {
+    const parser = new PDFParse({ data: new Uint8Array(buffer) });
+    try {
+      const info = await parser.getInfo();
+      if (info.total > RESUME_ANALYSIS_MAX_PAGES) {
+        throw new BadRequestException(
+          `PDF 이력서는 ${RESUME_ANALYSIS_MAX_PAGES}쪽 이하만 분석할 수 있습니다.`,
+        );
+      }
+
+      const result = await parser.getText({
+        first: RESUME_ANALYSIS_MAX_PAGES,
+        pageJoiner: '\n',
+      });
+      return result.text;
+    } finally {
+      await parser.destroy().catch(() => undefined);
+    }
+  }
+
+  private normalizeResumeText(value: string) {
+    return value
+      .replace(/\r\n/g, '\n')
+      .replace(/[^\t\n\r -~가-힣ㄱ-ㅎㅏ-ㅣ]/g, ' ')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
   }
 
   private normalizeResumeUpload(data: {
@@ -995,7 +1072,7 @@ export class MypageService implements OnModuleInit {
       RESUME_CONTENT_TYPES_BY_EXTENSION.get(extension);
     if (!allowedContentTypes) {
       throw new BadRequestException(
-        'Only PDF, DOC, DOCX, HWP, and HWPX resumes can be uploaded.',
+        `Only ${RESUME_ALLOWED_EXTENSIONS.map((item) => item.toUpperCase()).join(', ')} resumes can be uploaded. Convert DOC, HWP, and HWPX files before uploading.`,
       );
     }
     if (data.body.length <= 0) {

@@ -887,8 +887,6 @@ async function upsertJob(jobData: SeedJob, lastCheckedAt = new Date()) {
   const jobPayload = {
     title: jobData.title,
     description: jobData.description,
-    companyId: jobData.company.id,
-    sourceId: jobData.source.id,
     originalUrl: jobData.originalUrl,
     jobFamily: jobData.jobFamily,
     employmentType: jobData.employmentType,
@@ -904,14 +902,24 @@ async function upsertJob(jobData: SeedJob, lastCheckedAt = new Date()) {
     deadline: jobData.deadline,
     lastCheckedAt,
   };
+  const jobRelations = {
+    company: { connect: { id: jobData.company.id } },
+    source: { connect: { id: jobData.source.id } },
+  };
 
   const savedJob = existing
     ? await prisma.job.update({
         where: { id: existing.id },
-        data: jobPayload,
+        data: {
+          ...jobPayload,
+          ...jobRelations,
+        },
       })
     : await prisma.job.create({
-        data: jobPayload,
+        data: {
+          ...jobPayload,
+          ...jobRelations,
+        },
       });
 
   await prisma.jobLabel.deleteMany({ where: { jobId: savedJob.id } });
@@ -931,35 +939,190 @@ type MockAnalysisJob = Job & {
 const mockResumeSeedData = [
   {
     id: "mock-resume-test002-audit-trainee",
-    fileName: "audit-trainee-resume.pdf",
+    fileName: "audit-trainee-resume.txt",
     createdAt: new Date("2026-05-01T01:00:00.000Z"),
+    content: `
+이름: 김서연
+지원 이력서: 감사 수습 CPA 포지션
+
+요약
+KICPA 1차 합격 후 2차 일부 과목을 준비하며 회계감사와 재무제표 검토 업무를 빠르게 익히고 싶은 신입 지원자입니다. 대학 회계학회에서 제조업 모의감사 프로젝트를 수행했고, 매출 인식, 재고자산 실사, 매입채무 확인 절차를 체크리스트로 정리했습니다. 수습 가능 회계법인에서 감사 조서 작성, 자료 요청, 고객 커뮤니케이션을 체계적으로 배우는 것을 목표로 합니다.
+
+CPA 및 학력
+- KICPA 1차 합격, 2차 재무회계와 세법 응시 경험
+- 국민대학교 경영학부 회계전공, 졸업예정
+- 고급회계, 회계감사, 세무회계, 원가관리회계 수강
+
+경험
+- 회계학회 모의감사 팀장, 2025.03-2025.12
+- 가상의 제조업 매출채권 표본 120건을 검토하고 예외 7건을 식별
+- 재고자산 실사 입회 절차를 문서화하고 조서 템플릿 6종 작성
+- 팀원 5명의 조서 품질을 리뷰하고 누락 근거를 체크리스트로 보완
+
+프로젝트
+- 상장사 사업보고서 10개를 비교해 감사의견, 핵심감사사항, 계속기업 불확실성을 요약
+- Excel 피벗과 XLOOKUP으로 거래처별 매출 변동 분석 대시보드 제작
+- 감사 자료 요청 메일 템플릿과 PBC 리스트를 작성해 커뮤니케이션 훈련
+
+기술 및 역량
+- Excel, Google Sheets, PowerPoint, 기초 SQL
+- 한국채택국제회계기준, 감사기준 기본 이해
+- 꼼꼼한 문서화, 일정 관리, 질문 목록 정리
+
+희망 직무
+감사본부 수습 CPA, 중견/성장기업 외부감사, 재무제표 검토 보조
+`,
   },
   {
     id: "mock-resume-test002-tax-junior",
-    fileName: "tax-junior-resume.pdf",
+    fileName: "tax-junior-resume.txt",
     createdAt: new Date("2026-05-02T01:00:00.000Z"),
+    content: `
+이름: 박민재
+지원 이력서: 세무 주니어 포지션
+
+요약
+법인세와 부가가치세 신고 보조 경험을 바탕으로 세무회계법인 주니어 업무에 지원합니다. 스타트업 인턴 기간 동안 매입세금계산서 대사, 원천세 신고 자료 정리, 경비 증빙 누락 확인을 담당했습니다. 세무 이슈를 고객이 이해하기 쉬운 언어로 정리하는 데 강점이 있으며, 기장과 신고 업무를 정확하게 처리하는 세무 전문가로 성장하고자 합니다.
+
+CPA 및 학력
+- KICPA 1차 준비 경험, 세법과 재무회계 집중 학습
+- 숭실대학교 회계세무학과 졸업
+- 법인세법, 소득세법, 부가가치세법, 상법 수강
+
+경험
+- 핀테크 스타트업 재무팀 인턴, 2025.07-2026.01
+- 매입세금계산서 1,800건을 월별로 대사하고 불일치 43건을 정리
+- 원천세 신고용 급여, 프리랜서 지급명세 자료를 취합
+- 법인카드 증빙 누락 건을 부서별로 안내해 월말 마감 지연을 줄임
+
+프로젝트
+- 개인사업자 업종별 부가세 체크리스트 제작
+- 접대비, 복리후생비, 지급수수료 계정 분류 기준표 작성
+- 홈택스 신고 화면 흐름을 캡처해 신규 인턴 교육 자료 제작
+
+기술 및 역량
+- Excel 함수, 더존 Smart A 사용 경험, 홈택스 신고 보조
+- 증빙 검토, 계정 분류, 고객 질의 응대 초안 작성
+- 세법 개정사항을 요약해 실무 체크리스트로 변환
+
+희망 직무
+세무 기장, 법인세/부가세 신고 보조, 스타트업 세무 자문 지원
+`,
   },
   {
     id: "mock-resume-test002-deal-fas",
-    fileName: "deal-fas-resume.pdf",
+    fileName: "deal-fas-resume.txt",
     createdAt: new Date("2026-05-03T01:00:00.000Z"),
+    content: `
+이름: 이준호
+지원 이력서: FAS 및 Deal Advisory 주니어 포지션
+
+요약
+재무제표 분석과 기업가치평가 프로젝트 경험을 보유한 FAS 지향 지원자입니다. 대학 투자동아리에서 인수 후보 기업의 매출 성장률, EBITDA, 운전자본 변동을 분석했고, DCF와 EV/EBITDA 멀티플을 활용한 밸류에이션 보고서를 작성했습니다. 숫자를 근거로 거래 리스크와 실사 질문을 구조화하는 일에 흥미가 있습니다.
+
+CPA 및 학력
+- KICPA 1차 합격, 재무관리와 원가관리회계 우수
+- 중앙대학교 경영학부 졸업
+- 기업재무, 투자론, 고급회계, 재무제표분석 수강
+
+경험
+- 투자동아리 리서치 리드, 2024.09-2025.12
+- 소비재 기업 5개사의 3개년 손익계산서와 현금흐름표 비교
+- 인수 후보 기업의 정상 EBITDA 조정 항목 8개를 도출
+- 경영진 Q&A 예상 질문 20개와 실사 요청자료 목록 작성
+
+프로젝트
+- DCF 모델 작성: 매출 성장률, 영업이익률, CAPEX, WACC 가정 민감도 분석
+- EV/EBITDA 멀티플 비교표 작성 및 Peer group 선정 근거 문서화
+- 매출채권 회전일수와 재고자산 회전일수 변화로 운전자본 리스크 설명
+
+기술 및 역량
+- Excel 재무모델링, PowerPoint 보고서, 기초 SQL
+- 사업보고서와 감사보고서에서 핵심 가정 추출
+- 논리적인 목차 구성, 정량 분석, 빠른 자료 검증
+
+희망 직무
+FDD, Valuation, Transaction Service, Deal Advisory 주니어
+`,
   },
   {
     id: "mock-resume-test002-icfr",
-    fileName: "icfr-internal-accounting-resume.pdf",
+    fileName: "icfr-internal-accounting-resume.txt",
     createdAt: new Date("2026-05-04T01:00:00.000Z"),
+    content: `
+이름: 최하은
+지원 이력서: 내부회계관리제도 및 감사 대응 포지션
+
+요약
+상장사 재무팀 인턴으로 내부회계관리제도 운영평가 문서 정리와 외부감사 대응을 보조했습니다. RCM 통제 설명, 설계평가 증빙, 운영평가 샘플 자료를 정리했고, 미비점 조치 현황을 담당자별로 추적했습니다. 통제 목적과 실제 증빙 사이의 연결을 명확히 설명하는 데 강점이 있습니다.
+
+CPA 및 학력
+- KICPA 1차 합격, 2차 회계감사 응시 경험
+- 이화여자대학교 경영학과 졸업
+- 회계감사, 내부통제, 재무회계, 데이터분석 수강
+
+경험
+- 코스닥 상장사 재무팀 인턴, 2025.02-2025.08
+- 매출, 구매, 자금, 결산 프로세스 RCM 42개 통제 항목 업데이트 보조
+- 운영평가 샘플 160건의 증빙 파일명과 통제 번호를 대사
+- 외부감사인 요청자료 75건을 접수하고 제출 상태를 관리
+- 미비점 6건의 개선 담당자와 완료 예정일을 추적
+
+프로젝트
+- 월마감 체크리스트를 결산 일정, 담당자, 증빙 링크 기준으로 재정리
+- 자금 집행 승인 통제의 누락 승인 사례를 분석해 개선안 제안
+- 내부회계 교육 자료 초안을 작성해 비재무 부서 담당자 이해도 개선
+
+기술 및 역량
+- Excel, Notion, Google Drive 권한 관리, 기초 SQL
+- RCM, 설계평가, 운영평가, 감사 대응 자료 관리
+- 꼼꼼한 파일링, 담당자 커뮤니케이션, 이슈 추적
+
+희망 직무
+내부회계관리제도 운영, 외부감사 대응, 결산 프로세스 개선
+`,
   },
   {
     id: "mock-resume-test002-finance",
-    fileName: "finance-inhouse-resume.pdf",
+    fileName: "finance-inhouse-resume.txt",
     createdAt: new Date("2026-05-05T01:00:00.000Z"),
+    content: `
+이름: 정다인
+지원 이력서: 인하우스 재무회계 포지션
+
+요약
+일반기업 재무회계와 결산 업무를 희망하는 주니어 지원자입니다. SaaS 기업 재무팀 계약직으로 월별 매출 인식 자료, 미수금 내역, 비용 계정 검토를 보조했습니다. 회계법인보다 사업부와 가까운 환경에서 회계 기준을 실제 매출과 비용 프로세스에 연결하는 역할을 선호합니다.
+
+CPA 및 학력
+- KICPA 1차 준비 경험, 재무회계와 원가관리회계 집중
+- 한양대학교 경영학부 졸업
+- 중급회계, 원가관리회계, 회계정보시스템, 비즈니스 애널리틱스 수강
+
+경험
+- SaaS 기업 재무팀 계약직, 2025.04-2026.02
+- 구독 매출 계약 320건의 시작일, 종료일, 할인 조건을 정리
+- 월별 매출 인식 스케줄과 세금계산서 발행 내역을 대사
+- 미수금 aging 리포트를 작성하고 60일 초과 채권을 영업팀에 공유
+- 클라우드 비용, 외주비, 광고비 계정의 월별 변동 사유를 정리
+
+프로젝트
+- 월마감 일정표를 D+1부터 D+7까지 단계별로 재설계
+- 매출채권 회수 현황 대시보드를 만들어 팀 회의에 제공
+- 신규 상품 출시 시 매출 인식 검토 질문지를 작성
+
+기술 및 역량
+- Excel, Google Sheets, Looker Studio, 기초 SQL
+- 매출 인식, 미수금 관리, 비용 분석, 사업부 커뮤니케이션
+- 반복 업무 자동화 아이디어 제안과 문서화
+
+희망 직무
+인하우스 재무회계, 결산, 매출/미수금 관리, 회계 프로세스 개선
+`,
   },
 ] as const;
 
-function buildMockResumeBody(fileName: string) {
-  return Buffer.from(
-    `%PDF-1.4\n% Accountit mock resume: ${fileName}\n1 0 obj\n<<>>\nendobj\n%%EOF\n`,
-  );
+function buildMockResumeBody(content: string) {
+  return Buffer.from(`${content.trim()}\n`, "utf8");
 }
 
 function resolveMockResumeRootDir() {
@@ -972,17 +1135,18 @@ function resolveMockResumeRootDir() {
     : join(process.cwd(), configuredPath);
 }
 
-async function writeMockResumePlaceholder(userId: string, resume: Resume) {
+async function writeMockResumePlaceholder(
+  userId: string,
+  resume: Resume,
+  body: Buffer,
+) {
   if (process.env.RESUME_STORAGE_DRIVER?.trim().toLowerCase() === "s3") return;
 
   const rootDir = resolveMockResumeRootDir();
   const extension = extname(resume.fileName).toLowerCase();
   const targetDir = join(rootDir, userId);
   await mkdir(targetDir, { recursive: true });
-  await writeFile(
-    join(targetDir, `${resume.id}${extension}`),
-    buildMockResumeBody(resume.fileName),
-  );
+  await writeFile(join(targetDir, `${resume.id}${extension}`), body);
 }
 
 async function upsertMockResumes(userId: string) {
@@ -1001,14 +1165,14 @@ async function upsertMockResumes(userId: string) {
   });
 
   for (const [index, seed] of mockResumeSeedData.entries()) {
-    const body = buildMockResumeBody(seed.fileName);
+    const body = buildMockResumeBody(seed.content);
     const resume = await prisma.resume.upsert({
       where: { id: seed.id },
       update: {
         userId,
         fileName: seed.fileName,
         fileUrl: `/mypage/resumes/${seed.id}/download`,
-        contentType: "application/pdf",
+        contentType: "text/plain",
         byteSize: body.length,
         isPrimary: index === 0,
       },
@@ -1017,13 +1181,13 @@ async function upsertMockResumes(userId: string) {
         userId,
         fileName: seed.fileName,
         fileUrl: `/mypage/resumes/${seed.id}/download`,
-        contentType: "application/pdf",
+        contentType: "text/plain",
         byteSize: body.length,
         isPrimary: index === 0,
         createdAt: seed.createdAt,
       },
     });
-    await writeMockResumePlaceholder(userId, resume);
+    await writeMockResumePlaceholder(userId, resume, body);
     resumes.push(resume);
   }
 
@@ -1491,13 +1655,16 @@ function buildGeneratedCommunityPostSeeds(count: number): CommunityPostSeed[] {
             CommunityPostStatus.INFO,
           ];
     const status = statusCycle[localIndex % statusCycle.length];
-    const titleSeed = template.titleSeeds[localIndex % template.titleSeeds.length];
+    const titleSeed =
+      template.titleSeeds[localIndex % template.titleSeeds.length];
     const titleSuffix =
       template.titleSuffixes[
         (localIndex + index) % template.titleSuffixes.length
       ];
     const context =
-      template.contextSeeds[(localIndex + index) % template.contextSeeds.length];
+      template.contextSeeds[
+        (localIndex + index) % template.contextSeeds.length
+      ];
     const tags = template.tagSets[localIndex % template.tagSets.length];
     const answered = status === CommunityPostStatus.ANSWERED;
     const answerBase =
@@ -1734,7 +1901,8 @@ async function seedCommunityData(
     },
     {
       boardType: CommunityBoardType.CPA_PREP,
-      title: "회계법인 지원 전에 자기소개서에서 꼭 보여줘야 하는 역량이 있을까요?",
+      title:
+        "회계법인 지원 전에 자기소개서에서 꼭 보여줘야 하는 역량이 있을까요?",
       content:
         "첫 지원이라 감사조서 경험은 없고 학교 프로젝트와 인턴 경험만 있습니다. 수습 가능 공고에 지원할 때 문제 해결력, 꼼꼼함, 커뮤니케이션 중 어떤 부분을 더 앞에 두면 좋을지 조언 부탁드립니다.",
       status: CommunityPostStatus.ANSWERED,
@@ -1926,7 +2094,8 @@ async function seedCommunityData(
     },
     {
       boardType: CommunityBoardType.SENIOR,
-      title: "Big4 감사 4년차에서 FAS로 이동하려면 어떤 경험을 강조해야 할까요?",
+      title:
+        "Big4 감사 4년차에서 FAS로 이동하려면 어떤 경험을 강조해야 할까요?",
       content:
         "감사 경험은 제조업과 플랫폼 고객사가 많고, 실사 프로젝트는 보조로 한 번 참여했습니다. FAS 주니어/시니어 경계 공고에 지원할 때 어떤 키워드를 앞세우면 좋을까요?",
       status: CommunityPostStatus.ANSWERED,
@@ -2357,12 +2526,7 @@ async function seedBookmarksPresetsAndSubscriptions(
 type AnalyticsSeedUser = { id: string; username: string };
 type AnalyticsSeedJob = Pick<
   Job,
-  | "id"
-  | "companyId"
-  | "companyType"
-  | "jobFamily"
-  | "deadlineType"
-  | "status"
+  "id" | "companyId" | "companyType" | "jobFamily" | "deadlineType" | "status"
 >;
 
 const companyTypeAnalyticsWeight: Record<CompanyType, number> = {
@@ -2426,7 +2590,7 @@ function calculateDailyAnalyticsCounts(
   dayOffset: number,
 ) {
   const weekdayPattern = [1.2, 0.9, 1.05, 1.25, 1.15, 0.65, 0.75];
-  const recencyBoost = 1 + ((ANALYTICS_SEED_DAYS - dayOffset) / 100);
+  const recencyBoost = 1 + (ANALYTICS_SEED_DAYS - dayOffset) / 100;
   const campaignPulse =
     (jobIndex + dayOffset) % 11 === 0
       ? 1.45
@@ -2500,10 +2664,7 @@ function appendAnalyticsEvents(
         eventIndex,
         allowAnonymous,
       ),
-      createdAt: createAnalyticsEventDate(
-        dayOffset,
-        sequenceBase + eventIndex,
-      ),
+      createdAt: createAnalyticsEventDate(dayOffset, sequenceBase + eventIndex),
     });
   }
 }

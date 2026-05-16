@@ -160,8 +160,8 @@ export class MypageController {
   @Post('resumes')
   @ApiConsumes(
     'application/pdf',
-    'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain',
     'application/octet-stream',
   )
   @ApiHeader({

@@ -843,6 +843,7 @@ describe('MypageService job fit analyses', () => {
       findMany: jest.Mock;
       create: jest.Mock;
       update: jest.Mock;
+      delete: jest.Mock;
     };
     resume: {
       findFirst: jest.Mock;
@@ -862,6 +863,7 @@ describe('MypageService job fit analyses', () => {
         findMany: jest.fn().mockResolvedValue([]),
         create: jest.fn(),
         update: jest.fn(),
+        delete: jest.fn(),
       },
       resume: {
         findFirst: jest.fn(),
@@ -1215,8 +1217,13 @@ describe('MypageService job fit analyses', () => {
     expect(prisma.jobFitAnalysis.update).not.toHaveBeenCalled();
   });
 
-  it('lists only high-fit analyses for mypage recommendations', async () => {
+  it('lists only real high-fit analyses for mypage recommendations', async () => {
     prisma.jobFitAnalysis.findMany.mockResolvedValue([
+      jobFitAnalysisRecord({
+        id: 'analysis-mock',
+        fitScore: 96,
+        rawJson: { source: 'prisma/mock.ts', version: 'mock-seed-v1' },
+      }),
       jobFitAnalysisRecord({ id: 'analysis-1', fitScore: 91 }),
       jobFitAnalysisRecord({ id: 'analysis-2', fitScore: 78 }),
     ]);
@@ -1235,7 +1242,7 @@ describe('MypageService job fit analyses', () => {
         fitScore: { gte: 75 },
       },
       orderBy: [{ fitScore: 'desc' }, { createdAt: 'desc' }],
-      take: 5,
+      take: 10,
     });
     expect(findManyArg.include).toBeDefined();
     expect(result.items.map((item) => item.fitScore)).toEqual([91, 78]);

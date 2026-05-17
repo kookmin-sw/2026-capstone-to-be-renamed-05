@@ -1011,7 +1011,8 @@ function MyPageContent() {
               </div>
             ) : (
               <div className={styles.empty}>
-                아직 합격확률 75% 이상으로 분석된 공고가 없습니다.
+                아직 내 이력서로 적합도 75% 이상 분석된 공고가 없습니다.
+                공고 상세에서 AI 적합도 분석을 실행하면 여기에 표시됩니다.
               </div>
             )}
           </section>

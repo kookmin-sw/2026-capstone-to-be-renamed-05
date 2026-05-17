@@ -432,7 +432,9 @@ export class MypageService implements OnModuleInit {
     });
 
     return {
-      items: analyses.map((analysis) => this.toJobFitAnalysisItem(analysis)),
+      items: analyses
+        .filter((analysis) => !this.isMockJobFitAnalysis(analysis))
+        .map((analysis) => this.toJobFitAnalysisItem(analysis)),
     };
   }
 
@@ -440,6 +442,7 @@ export class MypageService implements OnModuleInit {
     userId: string,
     take?: number,
   ): Promise<JobFitAnalysisListResponse> {
+    const takeLimit = this.clampPositiveInt(take, 5, 10);
     const analyses = await this.prisma.jobFitAnalysis.findMany({
       where: {
         userId,
@@ -447,11 +450,14 @@ export class MypageService implements OnModuleInit {
       },
       include: jobFitAnalysisInclude,
       orderBy: [{ fitScore: 'desc' }, { createdAt: 'desc' }],
-      take: this.clampPositiveInt(take, 5, 10),
+      take: takeLimit * 2,
     });
 
     return {
-      items: analyses.map((analysis) => this.toJobFitAnalysisItem(analysis)),
+      items: analyses
+        .filter((analysis) => !this.isMockJobFitAnalysis(analysis))
+        .slice(0, takeLimit)
+        .map((analysis) => this.toJobFitAnalysisItem(analysis)),
     };
   }
 
@@ -466,12 +472,18 @@ export class MypageService implements OnModuleInit {
       throw new BadRequestException('분석할 공고와 이력서를 선택해 주세요.');
     }
 
-    const existing = await this.prisma.jobFitAnalysis.findUnique({
+    let existing = await this.prisma.jobFitAnalysis.findUnique({
       where: {
         userId_jobId_resumeId: { userId, jobId, resumeId },
       },
       include: jobFitAnalysisInclude,
     });
+
+    if (existing && this.isMockJobFitAnalysis(existing)) {
+      await this.prisma.jobFitAnalysis.delete({ where: { id: existing.id } });
+      existing = null;
+    }
+
     if (existing && !refresh) {
       return {
         item: this.toJobFitAnalysisItem(existing),
@@ -1400,6 +1412,16 @@ export class MypageService implements OnModuleInit {
       createdAt: resume.createdAt.toISOString(),
       updatedAt: resume.updatedAt.toISOString(),
     };
+  }
+
+  private isMockJobFitAnalysis(analysis: { rawJson: Prisma.JsonValue }) {
+    const rawJson = analysis.rawJson;
+    if (!rawJson || typeof rawJson !== 'object' || Array.isArray(rawJson)) {
+      return false;
+    }
+
+    const raw = rawJson as Record<string, unknown>;
+    return raw.source === 'prisma/mock.ts' || raw.version === 'mock-seed-v1';
   }
 
   private toJobFitAnalysisItem(

@@ -37,17 +37,27 @@ import { Readable } from 'node:stream';
 import { text } from 'node:stream/consumers';
 import { AssetsService } from '../assets/assets.service';
 import { PrismaService } from '../prisma/prisma.service';
-import type {
-  GeneratedJobFitAnalysis,
-  GenerateJobFitAnalysisInput,
+import {
   JobFitAnalysisAiService,
+  type GeneratedJobFitAnalysis,
+  type GenerateJobFitAnalysisInput,
 } from './job-fit-analysis-ai.service';
 import { MypageService, RESUME_MAX_BYTES } from './mypage.service';
 
+const mockResponsesCreate = jest.fn();
 const mockS3Send = jest.fn((command: unknown): Promise<unknown> => {
   void command;
   return Promise.resolve(undefined);
 });
+
+jest.mock('openai', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(() => ({
+    responses: {
+      create: mockResponsesCreate,
+    },
+  })),
+}));
 
 jest.mock('@aws-sdk/client-s3', () => {
   const actual =
@@ -61,15 +71,99 @@ jest.mock('@aws-sdk/client-s3', () => {
 });
 
 jest.mock('@cpa/shared', () => ({
-  RESUME_ALLOWED_EXTENSIONS: ['pdf', 'docx', 'txt'],
-  RESUME_ANALYSIS_MAX_CHARS: 12_000,
-  RESUME_ANALYSIS_MAX_PAGES: 10,
-  RESUME_ANALYSIS_MIN_CHARS: 80,
+  RESUME_ALLOWED_EXTENSIONS: ['pdf', 'doc', 'docx', 'txt', 'hwp', 'hwpx'],
+  RESUME_ANALYSIS_FILE_EXTENSIONS: ['pdf', 'docx', 'txt'],
   RESUME_UPLOAD_LIMIT: 5,
   RESUME_UPLOAD_MAX_BYTES: 10 * 1024 * 1024,
 }));
 
 const createdAt = new Date('2026-05-10T00:00:00.000Z');
+
+describe('JobFitAnalysisAiService file inputs', () => {
+  beforeEach(() => {
+    mockResponsesCreate.mockReset();
+  });
+
+  it('sends the resume as a Responses API input_file and parses JSON output', async () => {
+    mockResponsesCreate.mockResolvedValue({
+      id: 'resp-1',
+      output_text: JSON.stringify({
+        fitScore: 91,
+        summary: 'Strong fit',
+        strengths: ['Audit-ready resume'],
+        companyPriorities: ['CPA readiness'],
+        gaps: ['Clarify timeline'],
+        recommendation: 'Tailor the opening summary.',
+      }),
+      usage: { total_tokens: 1234 },
+    });
+    const service = new JobFitAnalysisAiService(
+      createConfig({ OPENAI_API_KEY: 'test-key' }),
+    );
+
+    const result = await service.generate({
+      job: jobFitAiInput(),
+      resume: {
+        fileName: 'audit-resume.txt',
+        contentType: 'text/plain',
+        byteSize: 11,
+        fileBase64: Buffer.from('resume-body').toString('base64'),
+      },
+    });
+
+    expect(result.fitScore).toBe(91);
+    expect(result.rawJson).toMatchObject({
+      provider: 'openai',
+      api: 'responses',
+      responseId: 'resp-1',
+    });
+    expect(mockResponsesCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'gpt-4o',
+        store: false,
+        text: expect.objectContaining({
+          format: expect.objectContaining({
+            type: 'json_schema',
+            name: 'job_fit_analysis',
+          }),
+        }),
+        input: [
+          expect.objectContaining({
+            role: 'user',
+            content: expect.arrayContaining([
+              expect.objectContaining({
+                type: 'input_file',
+                filename: 'audit-resume.txt',
+                file_data: `data:text/plain;base64,${Buffer.from(
+                  'resume-body',
+                ).toString('base64')}`,
+              }),
+            ]),
+          }),
+        ],
+      }),
+    );
+  });
+
+  it('maps OpenAI file input rejection to a bad request', async () => {
+    mockResponsesCreate.mockRejectedValue({ status: 400 });
+    const service = new JobFitAnalysisAiService(
+      createConfig({ OPENAI_API_KEY: 'test-key' }),
+    );
+
+    await expect(
+      service.generate({
+        job: jobFitAiInput(),
+        resume: {
+          fileName: 'resume.hwp',
+          contentType: 'application/x-hwp',
+          byteSize: 8,
+          fileBase64: Buffer.from('hwp-body').toString('base64'),
+        },
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+});
 
 describe('MypageService resumes', () => {
   let tempDir: string;
@@ -142,7 +236,7 @@ describe('MypageService resumes', () => {
     expect(stored.toString()).toBe('%PDF');
   });
 
-  it('accepts TXT and DOCX resume uploads', async () => {
+  it('accepts all supported resume upload formats', async () => {
     prisma.resume.create.mockImplementation(
       ({ data }: { data: Record<string, unknown> }) =>
         Promise.resolve({
@@ -152,6 +246,16 @@ describe('MypageService resumes', () => {
         }),
     );
 
+    const pdf = await service.createResume('user-1', {
+      fileName: 'audit-resume.pdf',
+      contentType: 'application/pdf',
+      body: Buffer.from('%PDF'),
+    });
+    const doc = await service.createResume('user-1', {
+      fileName: 'legacy-resume.doc',
+      contentType: 'application/msword',
+      body: Buffer.from('doc-bytes'),
+    });
     const txt = await service.createResume('user-1', {
       fileName: 'audit-resume.txt',
       contentType: 'text/plain; charset=utf-8',
@@ -163,17 +267,37 @@ describe('MypageService resumes', () => {
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       body: Buffer.from('docx-bytes'),
     });
+    const hwp = await service.createResume('user-1', {
+      fileName: 'korean-resume.hwp',
+      contentType: 'application/x-hwp',
+      body: Buffer.from('hwp-bytes'),
+    });
+    const hwpx = await service.createResume('user-1', {
+      fileName: 'korean-resume.hwpx',
+      contentType: 'application/vnd.hancom.hwpx',
+      body: Buffer.from('hwpx-bytes'),
+    });
 
+    expect(pdf.contentType).toBe('application/pdf');
+    expect(doc.contentType).toBe('application/msword');
     expect(txt.contentType).toBe('text/plain');
     expect(docx.contentType).toBe(
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     );
+    expect(hwp.contentType).toBe('application/x-hwp');
+    expect(hwpx.contentType).toBe('application/vnd.hancom.hwpx');
     await expect(
       readFile(join(tempDir, 'user-1', `${txt.id}.txt`), 'utf8'),
     ).resolves.toBe('감사 수습 이력서 본문');
     await expect(
       readFile(join(tempDir, 'user-1', `${docx.id}.docx`), 'utf8'),
     ).resolves.toBe('docx-bytes');
+    await expect(
+      readFile(join(tempDir, 'user-1', `${hwp.id}.hwp`), 'utf8'),
+    ).resolves.toBe('hwp-bytes');
+    await expect(
+      readFile(join(tempDir, 'user-1', `${hwpx.id}.hwpx`), 'utf8'),
+    ).resolves.toBe('hwpx-bytes');
   });
 
   it('rejects unsupported resume files before creating records', async () => {
@@ -182,21 +306,6 @@ describe('MypageService resumes', () => {
         fileName: 'malware.exe',
         contentType: 'application/octet-stream',
         body: Buffer.from('nope'),
-      },
-      {
-        fileName: 'legacy.doc',
-        contentType: 'application/msword',
-        body: Buffer.from('legacy'),
-      },
-      {
-        fileName: 'resume.hwp',
-        contentType: 'application/x-hwp',
-        body: Buffer.from('hwp'),
-      },
-      {
-        fileName: 'resume.hwpx',
-        contentType: 'application/haansofthwpx',
-        body: Buffer.from('hwpx'),
       },
       {
         fileName: 'empty.txt',
@@ -869,7 +978,10 @@ describe('MypageService job fit analyses', () => {
     expect(aiInput?.job.title).toBe('Audit associate');
     expect(aiInput?.job.company.name).toBe('Hanbit');
     expect(aiInput?.resume.fileName).toBe('audit-resume.txt');
-    expect(aiInput?.resume.textSample).toContain('회계감사 인턴');
+    expect(aiInput?.resume.contentType).toBe('text/plain');
+    expect(aiInput?.resume.fileBase64).toBe(
+      Buffer.from(resumeText).toString('base64'),
+    );
 
     const createArg = firstMockArg<{
       data: Record<string, unknown>;
@@ -951,7 +1063,55 @@ describe('MypageService job fit analyses', () => {
     expect(prisma.jobFitAnalysis.create).not.toHaveBeenCalled();
   });
 
-  it('rejects AI analysis when the resume text is too short to extract', async () => {
+  it('passes OpenAI file recognition failures through as user input errors', async () => {
+    const generateMock = jest.fn() as jest.Mock<
+      Promise<GeneratedJobFitAnalysis>,
+      [GenerateJobFitAnalysisInput]
+    >;
+    generateMock.mockRejectedValue(
+      new BadRequestException(
+        '이력서 파일을 OpenAI가 읽지 못했습니다. PDF, DOCX, TXT 등으로 변환해 다시 업로드해 주세요.',
+      ),
+    );
+    service = new MypageService(
+      prisma as unknown as PrismaService,
+      createConfig({ LOCAL_RESUME_DIR: tempDir }),
+      { deleteAsset: jest.fn() } as unknown as AssetsService,
+      undefined,
+      { generate: generateMock } as unknown as JobFitAnalysisAiService,
+    );
+    const resumeText =
+      'Even when OpenAI cannot read the uploaded PDF, the original bytes are sent as an input_file.';
+    await mkdir(join(tempDir, 'user-1'), { recursive: true });
+    await writeFile(join(tempDir, 'user-1', 'resume-1.pdf'), resumeText);
+    prisma.resume.findFirst.mockResolvedValue(
+      resumeRecord({
+        fileName: 'unsupported-openai-resume.pdf',
+        contentType: 'application/pdf',
+        byteSize: Buffer.byteLength(resumeText),
+      }),
+    );
+    prisma.job.findFirst.mockResolvedValue(jobRecord());
+
+    await expect(
+      service.createJobFitAnalysis('user-1', {
+        jobId: 'job-1',
+        resumeId: 'resume-1',
+        refresh: true,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(generateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resume: expect.objectContaining({
+          fileBase64: Buffer.from(resumeText).toString('base64'),
+        }),
+      }),
+    );
+    expect(prisma.jobFitAnalysis.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects HWP analysis before calling OpenAI file input', async () => {
     const generateMock = jest.fn() as jest.Mock<
       Promise<GeneratedJobFitAnalysis>,
       [GenerateJobFitAnalysisInput]
@@ -964,12 +1124,47 @@ describe('MypageService job fit analyses', () => {
       { generate: generateMock } as unknown as JobFitAnalysisAiService,
     );
     await mkdir(join(tempDir, 'user-1'), { recursive: true });
-    await writeFile(join(tempDir, 'user-1', 'resume-1.txt'), '짧음');
+    await writeFile(join(tempDir, 'user-1', 'resume-1.hwp'), 'hwp body');
     prisma.resume.findFirst.mockResolvedValue(
       resumeRecord({
-        fileName: 'short-resume.txt',
-        contentType: 'text/plain',
-        byteSize: Buffer.byteLength('짧음'),
+        fileName: 'korean-resume.hwp',
+        contentType: 'application/x-hwp',
+        byteSize: Buffer.byteLength('hwp body'),
+      }),
+    );
+    prisma.job.findFirst.mockResolvedValue(jobRecord());
+
+    await expect(
+      service.createJobFitAnalysis('user-1', {
+        jobId: 'job-1',
+        resumeId: 'resume-1',
+        refresh: true,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(generateMock).not.toHaveBeenCalled();
+    expect(prisma.jobFitAnalysis.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects DOC analysis before calling OpenAI file input', async () => {
+    const generateMock = jest.fn() as jest.Mock<
+      Promise<GeneratedJobFitAnalysis>,
+      [GenerateJobFitAnalysisInput]
+    >;
+    service = new MypageService(
+      prisma as unknown as PrismaService,
+      createConfig({ LOCAL_RESUME_DIR: tempDir }),
+      { deleteAsset: jest.fn() } as unknown as AssetsService,
+      undefined,
+      { generate: generateMock } as unknown as JobFitAnalysisAiService,
+    );
+    await mkdir(join(tempDir, 'user-1'), { recursive: true });
+    await writeFile(join(tempDir, 'user-1', 'resume-1.doc'), 'doc body');
+    prisma.resume.findFirst.mockResolvedValue(
+      resumeRecord({
+        fileName: 'legacy-resume.doc',
+        contentType: 'application/msword',
+        byteSize: Buffer.byteLength('doc body'),
       }),
     );
     prisma.job.findFirst.mockResolvedValue(jobRecord());
@@ -1196,6 +1391,31 @@ function resumeRecord(overrides: Record<string, unknown> = {}) {
     createdAt,
     updatedAt: createdAt,
     ...overrides,
+  };
+}
+
+function jobFitAiInput(): GenerateJobFitAnalysisInput['job'] {
+  return {
+    title: 'Audit associate',
+    description: 'Audit work',
+    jobFamily: 'AUDIT',
+    employmentType: 'FULL_TIME',
+    companyType: 'LOCAL_ACCOUNTING_FIRM',
+    kicpaCondition: 'PREFERRED',
+    traineeStatus: 'AVAILABLE',
+    practicalTrainingInstitution: true,
+    minExperienceYears: 0,
+    maxExperienceYears: 1,
+    location: 'Seoul',
+    deadlineType: 'FIXED_DATE',
+    deadline: '2026-05-31T14:59:59.000Z',
+    labels: ['audit'],
+    company: {
+      name: 'Hanbit',
+      type: 'LOCAL_ACCOUNTING_FIRM',
+      tags: ['audit'],
+      description: 'Local accounting firm',
+    },
   };
 }
 

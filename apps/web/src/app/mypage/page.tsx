@@ -1842,7 +1842,7 @@ function notificationTypeLabel(type: NotificationItem["type"]) {
 function validateResumeFile(file: File) {
   const extension = file.name.split(".").pop()?.toLowerCase();
   if (!extension || !RESUME_EXTENSIONS.has(extension)) {
-    return `이력서는 ${RESUME_FORMAT_LABEL} 파일만 업로드할 수 있습니다. DOC, HWP, HWPX는 PDF 또는 DOCX로 변환해주세요.`;
+    return `이력서는 ${RESUME_FORMAT_LABEL} 파일만 업로드할 수 있습니다.`;
   }
   if (file.size <= 0) {
     return "빈 이력서 파일은 업로드할 수 없습니다.";

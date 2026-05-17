@@ -33,7 +33,7 @@ import {
   resolvePrismaPostgresConfig,
 } from "../apps/api/src/config/runtime-environment";
 import { statSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { extname, isAbsolute, join } from "node:path";
 
 for (const envFilePath of resolveEnvFilePaths()) {
@@ -939,7 +939,8 @@ type MockAnalysisJob = Job & {
 const mockResumeSeedData = [
   {
     id: "mock-resume-test002-audit-trainee",
-    fileName: "audit-trainee-resume.txt",
+    fileName: "audit-trainee-resume.pdf",
+    contentType: "application/pdf",
     createdAt: new Date("2026-05-01T01:00:00.000Z"),
     content: `
 이름: 김서연
@@ -975,7 +976,9 @@ CPA 및 학력
   },
   {
     id: "mock-resume-test002-tax-junior",
-    fileName: "tax-junior-resume.txt",
+    fileName: "tax-junior-resume.docx",
+    contentType:
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     createdAt: new Date("2026-05-02T01:00:00.000Z"),
     content: `
 이름: 박민재
@@ -1011,7 +1014,8 @@ CPA 및 학력
   },
   {
     id: "mock-resume-test002-deal-fas",
-    fileName: "deal-fas-resume.txt",
+    fileName: "deal-fas-resume.doc",
+    contentType: "application/msword",
     createdAt: new Date("2026-05-03T01:00:00.000Z"),
     content: `
 이름: 이준호
@@ -1047,7 +1051,8 @@ FDD, Valuation, Transaction Service, Deal Advisory 주니어
   },
   {
     id: "mock-resume-test002-icfr",
-    fileName: "icfr-internal-accounting-resume.txt",
+    fileName: "icfr-internal-accounting-resume.hwp",
+    contentType: "application/x-hwp",
     createdAt: new Date("2026-05-04T01:00:00.000Z"),
     content: `
 이름: 최하은
@@ -1084,7 +1089,8 @@ CPA 및 학력
   },
   {
     id: "mock-resume-test002-finance",
-    fileName: "finance-inhouse-resume.txt",
+    fileName: "finance-inhouse-resume.hwpx",
+    contentType: "application/vnd.hancom.hwpx",
     createdAt: new Date("2026-05-05T01:00:00.000Z"),
     content: `
 이름: 정다인
@@ -1121,8 +1127,260 @@ CPA 및 학력
   },
 ] as const;
 
-function buildMockResumeBody(content: string) {
-  return Buffer.from(`${content.trim()}\n`, "utf8");
+const mockResumeDetailSection = `
+
+상세 경력 기술
+- 업무 배경: 지원 직무와 연결되는 회계, 세무, 감사, 재무 분석 업무를 실제 채용 담당자가 빠르게 스캔할 수 있도록 프로젝트별 목적, 본인 역할, 사용 도구, 산출물을 함께 정리했습니다.
+- 문제 해결: 원자료의 누락, 계정 분류 오류, 일정 지연, 담당자 간 커뮤니케이션 공백을 발견했을 때 체크리스트와 대사표를 만들어 재발 가능성을 줄였습니다.
+- 협업 방식: 요청자료 목록을 우선순위별로 나누고, 담당자에게 필요한 맥락을 먼저 설명한 뒤 마감일과 증빙 형식을 명확히 공유했습니다.
+- 문서화 습관: 분석 파일에는 가정, 원천 데이터, 검토 기준, 예외 처리 내역을 시트별로 남겨 다음 담당자가 같은 결론을 재현할 수 있도록 관리했습니다.
+
+대표 성과
+- 숫자로 설명 가능한 경험을 우선 배치했습니다. 표본 검토 건수, 대사 항목, 보고서 수, 마감 단축 효과, 예외 사항 식별 건수를 함께 적어 실무 투입 가능성을 보여줍니다.
+- 공고별 키워드에 맞춰 감사, 세무, FAS, 내부회계, 인하우스 재무회계 중 가장 관련 높은 경험을 첫 페이지 상단에 재배치할 수 있습니다.
+- KICPA 준비 현황과 실무수습 가능 여부는 지원서 앞부분에 별도 라벨로 표시해 채용 담당자가 자격 요건을 바로 확인할 수 있게 구성했습니다.
+
+지원 동기 및 성장 계획
+회계 전문성을 단순한 지식 암기가 아니라 고객과 조직의 의사결정을 돕는 언어로 사용하고 싶습니다. 입사 후 3개월 동안은 회사의 조서, 결산, 신고, 리포팅 템플릿을 빠르게 익히고, 6개월 이후에는 반복 검토 항목을 표준화해 팀의 마감 안정성에 기여하겠습니다. 장기적으로는 KICPA 전문성과 데이터 분석 역량을 함께 키워 근거가 명확한 재무 판단을 제시하는 실무자가 되는 것이 목표입니다.
+`;
+
+type MockResumeSeed = (typeof mockResumeSeedData)[number];
+
+function buildMockResumeBody(seed: MockResumeSeed) {
+  const content = expandMockResumeContent(seed.content);
+  const extension = extname(seed.fileName).toLowerCase();
+
+  if (extension === ".pdf") return buildMockPdf(content);
+  if (extension === ".docx") return buildMockDocx(content);
+  if (extension === ".doc") return buildMockDoc(content);
+  if (extension === ".hwpx") return buildMockHwpx(content);
+  return Buffer.from(`${content}\n`, "utf8");
+}
+
+function expandMockResumeContent(content: string) {
+  return `${content.trim()}\n${mockResumeDetailSection.trim()}`;
+}
+
+function buildMockDoc(content: string) {
+  return Buffer.from(
+    `{\\rtf1\\ansi\\ansicpg949\\deff0{\\fonttbl{\\f0 Arial;}}\n${escapeRtf(
+      content,
+    )}\n}`,
+    "utf8",
+  );
+}
+
+function buildMockDocx(content: string) {
+  const paragraphs = content
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map(
+      (line) =>
+        `<w:p><w:r><w:t xml:space="preserve">${escapeXml(line)}</w:t></w:r></w:p>`,
+    )
+    .join("");
+
+  return buildZip([
+    {
+      name: "[Content_Types].xml",
+      content:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+        '<Default Extension="xml" ContentType="application/xml"/>' +
+        '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+        "</Types>",
+    },
+    {
+      name: "_rels/.rels",
+      content:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
+        "</Relationships>",
+    },
+    {
+      name: "word/document.xml",
+      content:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' +
+        paragraphs +
+        "<w:sectPr/></w:body></w:document>",
+    },
+  ]);
+}
+
+function buildMockHwpx(content: string) {
+  const paragraphs = content
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => `<hp:p><hp:t>${escapeXml(line)}</hp:t></hp:p>`)
+    .join("");
+
+  return buildZip([
+    { name: "mimetype", content: "application/hwp+zip" },
+    {
+      name: "version.xml",
+      content:
+        '<?xml version="1.0" encoding="UTF-8"?>' +
+        '<hv:version xmlns:hv="http://www.hancom.co.kr/hwpml/2011/version" app="Accountit mock" version="1.0"/>',
+    },
+    {
+      name: "Contents/section0.xml",
+      content:
+        '<?xml version="1.0" encoding="UTF-8"?>' +
+        '<hp:sec xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph">' +
+        paragraphs +
+        "</hp:sec>",
+    },
+  ]);
+}
+
+function buildMockPdf(content: string) {
+  const lines = content
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 42);
+  const stream = [
+    "BT",
+    "/F1 9 Tf",
+    "50 780 Td",
+    ...lines.flatMap((line, index) => [
+      index === 0 ? "" : "0 -15 Td",
+      `<${toUtf16BeHex(line)}> Tj`,
+    ]),
+    "ET",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const objects = [
+    "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+    "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+    "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n",
+    "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
+    `5 0 obj\n<< /Length ${Buffer.byteLength(stream, "binary")} >>\nstream\n${stream}\nendstream\nendobj\n`,
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  for (const object of objects) {
+    offsets.push(Buffer.byteLength(pdf, "binary"));
+    pdf += object;
+  }
+  const xrefOffset = Buffer.byteLength(pdf, "binary");
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (let index = 1; index < offsets.length; index += 1) {
+    pdf += `${String(offsets[index]).padStart(10, "0")} 00000 n \n`;
+  }
+  pdf += `trailer\n<< /Root 1 0 R /Size ${objects.length + 1} >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  return Buffer.from(pdf, "binary");
+}
+
+function buildZip(
+  files: Array<{
+    name: string;
+    content: string | Buffer;
+  }>,
+) {
+  const localParts: Buffer[] = [];
+  const centralParts: Buffer[] = [];
+  let offset = 0;
+
+  for (const file of files) {
+    const name = Buffer.from(file.name, "utf8");
+    const content = Buffer.isBuffer(file.content)
+      ? file.content
+      : Buffer.from(file.content, "utf8");
+    const crc = crc32(content);
+    const localHeader = Buffer.alloc(30);
+    localHeader.writeUInt32LE(0x04034b50, 0);
+    localHeader.writeUInt16LE(20, 4);
+    localHeader.writeUInt16LE(0x0800, 6);
+    localHeader.writeUInt16LE(0, 8);
+    localHeader.writeUInt16LE(0, 10);
+    localHeader.writeUInt16LE(0, 12);
+    localHeader.writeUInt32LE(crc, 14);
+    localHeader.writeUInt32LE(content.length, 18);
+    localHeader.writeUInt32LE(content.length, 22);
+    localHeader.writeUInt16LE(name.length, 26);
+
+    const centralHeader = Buffer.alloc(46);
+    centralHeader.writeUInt32LE(0x02014b50, 0);
+    centralHeader.writeUInt16LE(20, 4);
+    centralHeader.writeUInt16LE(20, 6);
+    centralHeader.writeUInt16LE(0x0800, 8);
+    centralHeader.writeUInt16LE(0, 10);
+    centralHeader.writeUInt16LE(0, 12);
+    centralHeader.writeUInt16LE(0, 14);
+    centralHeader.writeUInt32LE(crc, 16);
+    centralHeader.writeUInt32LE(content.length, 20);
+    centralHeader.writeUInt32LE(content.length, 24);
+    centralHeader.writeUInt16LE(name.length, 28);
+    centralHeader.writeUInt32LE(offset, 42);
+
+    localParts.push(localHeader, name, content);
+    centralParts.push(centralHeader, name);
+    offset += localHeader.length + name.length + content.length;
+  }
+
+  const centralDirectory = Buffer.concat(centralParts);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(files.length, 8);
+  end.writeUInt16LE(files.length, 10);
+  end.writeUInt32LE(centralDirectory.length, 12);
+  end.writeUInt32LE(offset, 16);
+
+  return Buffer.concat([...localParts, centralDirectory, end]);
+}
+
+function crc32(buffer: Buffer) {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc = (crc >>> 8) ^ crc32Table[(crc ^ byte) & 0xff];
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+const crc32Table = Array.from({ length: 256 }, (_, index) => {
+  let value = index;
+  for (let bit = 0; bit < 8; bit += 1) {
+    value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
+  }
+  return value >>> 0;
+});
+
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function escapeRtf(value: string) {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/{/g, "\\{")
+    .replace(/}/g, "\\}")
+    .replace(/\n/g, "\\line\n");
+}
+
+function toUtf16BeHex(value: string) {
+  const hex = ["feff"];
+  for (const char of value) {
+    const codePoint = char.codePointAt(0) ?? 0x20;
+    if (codePoint <= 0xffff) {
+      hex.push(codePoint.toString(16).padStart(4, "0"));
+      continue;
+    }
+    const adjusted = codePoint - 0x10000;
+    hex.push((0xd800 + (adjusted >> 10)).toString(16).padStart(4, "0"));
+    hex.push((0xdc00 + (adjusted & 0x3ff)).toString(16).padStart(4, "0"));
+  }
+  return hex.join("");
 }
 
 function resolveMockResumeRootDir() {
@@ -1145,8 +1403,18 @@ async function writeMockResumePlaceholder(
   const rootDir = resolveMockResumeRootDir();
   const extension = extname(resume.fileName).toLowerCase();
   const targetDir = join(rootDir, userId);
+  const targetName = `${resume.id}${extension}`;
   await mkdir(targetDir, { recursive: true });
-  await writeFile(join(targetDir, `${resume.id}${extension}`), body);
+  const staleFiles = (await readdir(targetDir)).filter(
+    (fileName) =>
+      fileName.startsWith(`${resume.id}.`) && fileName !== targetName,
+  );
+  await Promise.all(
+    staleFiles.map((fileName) =>
+      rm(join(targetDir, fileName), { force: true }),
+    ),
+  );
+  await writeFile(join(targetDir, targetName), body);
 }
 
 async function upsertMockResumes(userId: string) {
@@ -1165,14 +1433,14 @@ async function upsertMockResumes(userId: string) {
   });
 
   for (const [index, seed] of mockResumeSeedData.entries()) {
-    const body = buildMockResumeBody(seed.content);
+    const body = buildMockResumeBody(seed);
     const resume = await prisma.resume.upsert({
       where: { id: seed.id },
       update: {
         userId,
         fileName: seed.fileName,
         fileUrl: `/mypage/resumes/${seed.id}/download`,
-        contentType: "text/plain",
+        contentType: seed.contentType,
         byteSize: body.length,
         isPrimary: index === 0,
       },
@@ -1181,7 +1449,7 @@ async function upsertMockResumes(userId: string) {
         userId,
         fileName: seed.fileName,
         fileUrl: `/mypage/resumes/${seed.id}/download`,
-        contentType: "text/plain",
+        contentType: seed.contentType,
         byteSize: body.length,
         isPrimary: index === 0,
         createdAt: seed.createdAt,
@@ -1271,6 +1539,10 @@ async function upsertMockJobFitAnalyses(userId: string, resumes: Resume[]) {
     include: { company: { select: { name: true } } },
   });
   const jobByUrl = new Map(jobs.map((job) => [job.originalUrl, job]));
+  const resumeIds = resumes.map((resume) => resume.id);
+  await prisma.jobFitAnalysis.deleteMany({
+    where: { userId, resumeId: { in: resumeIds } },
+  });
   let analysisCount = 0;
 
   for (const [index, resume] of resumes.entries()) {

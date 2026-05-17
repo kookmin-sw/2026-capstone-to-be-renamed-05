@@ -12,6 +12,11 @@ import type {
   ResumeItem,
 } from "@cpa/shared";
 import {
+  RESUME_ALLOWED_EXTENSIONS,
+  RESUME_UPLOAD_LIMIT,
+  RESUME_UPLOAD_MAX_BYTES,
+} from "@cpa/shared";
+import {
   Award,
   Bell,
   Bookmark,
@@ -70,15 +75,19 @@ import {
 } from "@/lib/routes";
 import styles from "./mypage.module.css";
 
-const RESUME_MAX_BYTES = 10 * 1024 * 1024;
-const RESUME_EXTENSIONS = new Set(["pdf", "doc", "docx", "hwp", "hwpx"]);
+const RESUME_EXTENSIONS = new Set<string>(RESUME_ALLOWED_EXTENSIONS);
+const RESUME_ACCEPT = RESUME_ALLOWED_EXTENSIONS.map(
+  (extension) => `.${extension}`,
+).join(",");
+const RESUME_FORMAT_LABEL = RESUME_ALLOWED_EXTENSIONS.map((extension) =>
+  extension.toUpperCase(),
+).join(", ");
+const RESUME_UPLOAD_MAX_MB = Math.floor(
+  RESUME_UPLOAD_MAX_BYTES / (1024 * 1024),
+);
 const PROFILE_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
 const PROFILE_IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "webp"]);
-const PROFILE_IMAGE_TYPES = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-]);
+const PROFILE_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 const PASSWORD_MIN_LENGTH = 8;
 const PASSWORD_MAX_LENGTH = 128;
 const PASSWORD_LENGTH_TEXT = `${PASSWORD_MIN_LENGTH}자 이상 ${PASSWORD_MAX_LENGTH}자 이하`;
@@ -146,9 +155,22 @@ const boardLabels: Record<CommunityBoardType, string> = {
 
 export default function MyPage() {
   return (
-    <Suspense fallback={<main className={styles.page} />}>
+    <Suspense fallback={<MyPageFallback />}>
       <MyPageContent />
     </Suspense>
+  );
+}
+
+function MyPageFallback() {
+  return (
+    <>
+      <SiteNav />
+      <main className={styles.page}>
+        <div className={styles.container}>
+          <p className={styles.loadingText}>마이페이지를 불러오는 중입니다.</p>
+        </div>
+      </main>
+    </>
   );
 }
 
@@ -157,9 +179,9 @@ function MyPageContent() {
   const [profile, setProfile] = useState<MyProfileResponse | null>(null);
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [resumes, setResumes] = useState<ResumeItem[]>([]);
-  const [highFitAnalyses, setHighFitAnalyses] = useState<
-    JobFitAnalysisItem[]
-  >([]);
+  const [highFitAnalyses, setHighFitAnalyses] = useState<JobFitAnalysisItem[]>(
+    [],
+  );
   const [communityActivity, setCommunityActivity] = useState<
     MyCommunityActivityItem[]
   >([]);
@@ -214,24 +236,19 @@ function MyPageContent() {
         if (!ignore) setAuthorized(true);
 
         const [
-          
           profileResult,
-         
           bookmarkResult,
-         
           resumeResult,
           highFitResult,
-         
           activityResult,
           notificationResult,
-        ,
         ] = await Promise.allSettled([
           fetchMyProfile(),
           fetchMyBookmarks(),
           fetchMyResumes(),
           fetchMyHighFitJobAnalyses(5),
           fetchMyCommunityActivity(5),
-            fetchNotifications({ page: 1, pageSize: 3 }),
+          fetchNotifications({ page: 1, pageSize: 3 }),
         ]);
 
         if (ignore) return;
@@ -270,7 +287,9 @@ function MyPageContent() {
             : [],
         );
         setCommunityActivityTotal(
-          activityResult.status === "fulfilled" ? activityResult.value.total : 0,
+          activityResult.status === "fulfilled"
+            ? activityResult.value.total
+            : 0,
         );
         setNotificationUnreadCount(
           notificationResult.status === "fulfilled"
@@ -560,8 +579,10 @@ function MyPageContent() {
     if (!file) return;
     setMessage("");
 
-    if (resumes.length >= 5) {
-      setMessage("이력서는 최대 5개까지 등록할 수 있습니다.");
+    if (resumes.length >= RESUME_UPLOAD_LIMIT) {
+      setMessage(
+        `이력서는 최대 ${RESUME_UPLOAD_LIMIT}개까지 등록할 수 있습니다.`,
+      );
       if (resumeFileInputRef.current) resumeFileInputRef.current.value = "";
       return;
     }
@@ -650,8 +671,10 @@ function MyPageContent() {
     }
     if (action === "resume") {
       if (uploadingResume) return;
-      if (resumes.length >= 5) {
-        setMessage("이력서는 최대 5개까지 업로드할 수 있습니다.");
+      if (resumes.length >= RESUME_UPLOAD_LIMIT) {
+        setMessage(
+          `이력서는 최대 ${RESUME_UPLOAD_LIMIT}개까지 업로드할 수 있습니다.`,
+        );
         return;
       }
       resumeFileInputRef.current?.click();
@@ -762,11 +785,11 @@ function MyPageContent() {
   const displayNameDirty =
     displayNameInput.trim() !== (profile.displayName ?? "");
   const profileComplete = profileCompletion.score === 100;
-  const resumeLimitReached = resumes.length >= 5;
+  const resumeLimitReached = resumes.length >= RESUME_UPLOAD_LIMIT;
   const resumeUploadButtonLabel = uploadingResume
     ? "업로드 중"
     : resumeLimitReached
-      ? "5개 등록 완료"
+      ? `${RESUME_UPLOAD_LIMIT}개 등록 완료`
       : "파일 선택";
 
   function openVerificationModal() {
@@ -865,16 +888,16 @@ function MyPageContent() {
               </div>
               <div className={styles.statGrid}>
                 <StatItem label="이력서" value={`${resumes.length}/5`} />
-                <StatItem label="AI 분석" value={`${highFitAnalyses.length}개`} />
+                <StatItem
+                  label="AI 분석"
+                  value={`${highFitAnalyses.length}개`}
+                />
                 <StatItem label="북마크" value={`${bookmarks.length}개`} />
                 <StatItem
                   label="CPA"
                   value={verificationLabels[profile.cpaVerificationStatus]}
                 />
-                <StatItem
-                  label="활동"
-                  value={`${communityActivityTotal}개`}
-                />
+                <StatItem label="활동" value={`${communityActivityTotal}개`} />
               </div>
               <div className={styles.profileBoostStrip}>
                 <div className={styles.profileBoostCopy}>
@@ -906,7 +929,10 @@ function MyPageContent() {
                   <Bell size={17} />
                   알림
                 </h2>
-                <Link href="/mypage/notifications" className={styles.textButton}>
+                <Link
+                  href="/mypage/notifications"
+                  className={styles.textButton}
+                >
                   전체 보기
                 </Link>
               </div>
@@ -985,7 +1011,8 @@ function MyPageContent() {
               </div>
             ) : (
               <div className={styles.empty}>
-                아직 합격확률 75% 이상으로 분석된 공고가 없습니다.
+                아직 내 이력서로 적합도 75% 이상 분석된 공고가 없습니다.
+                공고 상세에서 AI 적합도 분석을 실행하면 여기에 표시됩니다.
               </div>
             )}
           </section>
@@ -1061,7 +1088,9 @@ function MyPageContent() {
                 </div>
                 <p className={styles.passwordHint}>{PASSWORD_HELP_TEXT}</p>
                 <label className={styles.field}>
-                  <span>현재 비밀번호 <span className={styles.required}>*</span></span>
+                  <span>
+                    현재 비밀번호 <span className={styles.required}>*</span>
+                  </span>
                   <input
                     className={styles.input}
                     type="password"
@@ -1076,7 +1105,9 @@ function MyPageContent() {
                   />
                 </label>
                 <label className={styles.field}>
-                  <span>새 비밀번호 <span className={styles.required}>*</span></span>
+                  <span>
+                    새 비밀번호 <span className={styles.required}>*</span>
+                  </span>
                   <input
                     className={styles.input}
                     type="password"
@@ -1091,7 +1122,9 @@ function MyPageContent() {
                   />
                 </label>
                 <label className={styles.field}>
-                  <span>새 비밀번호 확인 <span className={styles.required}>*</span></span>
+                  <span>
+                    새 비밀번호 확인 <span className={styles.required}>*</span>
+                  </span>
                   <input
                     className={styles.input}
                     type="password"
@@ -1133,7 +1166,8 @@ function MyPageContent() {
                   이력서
                 </h2>
                 <p className={styles.resumeLimitText}>
-                  {resumes.length}/5개 등록 · 대표 이력서를 선택해 공고 분석에 사용합니다.
+                  {resumes.length}/{RESUME_UPLOAD_LIMIT}개 등록 ·{" "}
+                  {RESUME_FORMAT_LABEL} · {RESUME_UPLOAD_MAX_MB}MB 이하
                 </p>
               </div>
               <ActionButton
@@ -1144,7 +1178,9 @@ function MyPageContent() {
                 onClick={() => {
                   if (uploadingResume) return;
                   if (resumeLimitReached) {
-                    setMessage("이력서는 최대 5개까지 업로드할 수 있습니다.");
+                    setMessage(
+                      `이력서는 최대 ${RESUME_UPLOAD_LIMIT}개까지 업로드할 수 있습니다.`,
+                    );
                     return;
                   }
                   resumeFileInputRef.current?.click();
@@ -1157,7 +1193,7 @@ function MyPageContent() {
             <input
               ref={resumeFileInputRef}
               type="file"
-              accept=".pdf,.doc,.docx,.hwp,.hwpx"
+              accept={RESUME_ACCEPT}
               className={styles.hiddenInput}
               onChange={handleUploadResume}
             />
@@ -1186,7 +1222,9 @@ function MyPageContent() {
                       <button
                         type="button"
                         className={`${styles.primaryResumeButton} ${
-                          resume.isPrimary ? styles.primaryResumeButtonActive : ""
+                          resume.isPrimary
+                            ? styles.primaryResumeButtonActive
+                            : ""
                         }`}
                         onClick={() => void handleSetPrimaryResume(resume.id)}
                         disabled={
@@ -1441,7 +1479,9 @@ function MyPageContent() {
                     <Award size={17} />
                     <div>
                       <strong>골드 포커스 프레임</strong>
-                      <span>프로필 사진 외곽에 완성 전용 프레임을 착용합니다.</span>
+                      <span>
+                        프로필 사진 외곽에 완성 전용 프레임을 착용합니다.
+                      </span>
                     </div>
                   </div>
                   <div className={styles.rewardItem}>
@@ -1456,7 +1496,8 @@ function MyPageContent() {
                     <div>
                       <strong>커뮤니티 이름표 후보</strong>
                       <span>
-                        다음 단계에서 글쓴이 옆에 붙일 수 있는 보상으로 확장합니다.
+                        다음 단계에서 글쓴이 옆에 붙일 수 있는 보상으로
+                        확장합니다.
                       </span>
                     </div>
                   </div>
@@ -1802,13 +1843,13 @@ function notificationTypeLabel(type: NotificationItem["type"]) {
 function validateResumeFile(file: File) {
   const extension = file.name.split(".").pop()?.toLowerCase();
   if (!extension || !RESUME_EXTENSIONS.has(extension)) {
-    return "이력서는 PDF, DOC, DOCX, HWP, HWPX 파일만 업로드할 수 있습니다.";
+    return `이력서는 ${RESUME_FORMAT_LABEL} 파일만 업로드할 수 있습니다.`;
   }
   if (file.size <= 0) {
     return "빈 이력서 파일은 업로드할 수 없습니다.";
   }
-  if (file.size > RESUME_MAX_BYTES) {
-    return "이력서는 10MB 이하로 업로드해주세요.";
+  if (file.size > RESUME_UPLOAD_MAX_BYTES) {
+    return `이력서는 ${RESUME_UPLOAD_MAX_MB}MB 이하로 업로드해주세요.`;
   }
   return "";
 }

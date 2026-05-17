@@ -116,7 +116,10 @@ function companyDetail(overrides: Record<string, unknown> = {}) {
 
 describe('CompaniesService submission ownership', () => {
   let prisma: {
+    $transaction: jest.Mock;
     company: {
+      count: jest.Mock;
+      findMany: jest.Mock;
       findUnique: jest.Mock;
       update: jest.Mock;
     };
@@ -150,7 +153,12 @@ describe('CompaniesService submission ownership', () => {
 
   beforeEach(() => {
     prisma = {
+      $transaction: jest.fn((queries: Promise<unknown>[]) =>
+        Promise.all(queries),
+      ),
       company: {
+        count: jest.fn(),
+        findMany: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
       },
@@ -181,6 +189,85 @@ describe('CompaniesService submission ownership', () => {
       },
     };
     service = new CompaniesService(prisma as unknown as PrismaService);
+  });
+
+  it('matches company tag filters case-insensitively', async () => {
+    prisma.company.findMany
+      .mockResolvedValueOnce([
+        { id: 'company-esg', tags: ['ESG'] },
+        { id: 'company-tax', tags: ['Tax'] },
+      ])
+      .mockResolvedValueOnce([
+        companyDetail({
+          id: 'company-esg',
+          name: 'ESG 회계법인',
+          tags: ['ESG'],
+        }),
+      ]);
+    prisma.company.count
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(1);
+
+    const result = await service.list({ tag: 'esg' });
+
+    expect(prisma.company.findMany).toHaveBeenNthCalledWith(1, {
+      where: { tags: { isEmpty: false } },
+      select: { id: true, tags: true },
+    });
+    expect(prisma.company.findMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: {
+          AND: [{ id: { in: ['company-esg'] } }],
+        },
+      }),
+    );
+    expect(result.total).toBe(1);
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        id: 'company-esg',
+        tags: ['ESG'],
+      }),
+    ]);
+  });
+
+  it('matches company search against tags case-insensitively', async () => {
+    prisma.company.findMany
+      .mockResolvedValueOnce([
+        { id: 'company-esg', tags: ['ESG'] },
+        { id: 'company-tax', tags: ['Tax'] },
+      ])
+      .mockResolvedValueOnce([
+        companyDetail({
+          id: 'company-esg',
+          name: 'ESG 회계법인',
+          tags: ['ESG'],
+        }),
+      ]);
+    prisma.company.count
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(1);
+
+    await service.list({ search: 'esg' });
+
+    expect(prisma.company.findMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: {
+          AND: [
+            {
+              OR: [
+                { name: { contains: 'esg', mode: 'insensitive' } },
+                { description: { contains: 'esg', mode: 'insensitive' } },
+                { id: { in: ['company-esg'] } },
+              ],
+            },
+          ],
+        },
+      }),
+    );
   });
 
   it('rejects company submission when the user does not own a company', async () => {

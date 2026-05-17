@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Verge logo">
+  <rect width="96" height="96" rx="22" fill="#fefce8"/>
+  <path d="M18 24h60L52 76H34L18 24Z" fill="#ca8a04"/>
+  <path d="M34 24h44L52 76 34 24Z" fill="#facc15"/>
+  <path d="M28 39h38" stroke="#713f12" stroke-width="7" stroke-linecap="round"/>
+</svg>

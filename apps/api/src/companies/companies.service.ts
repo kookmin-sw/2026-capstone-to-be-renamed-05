@@ -151,7 +151,7 @@ export class CompaniesService {
   ) {}
 
   async list(query: ListCompaniesDto) {
-    const where = this.buildWhere(query);
+    const where = await this.buildWhere(query);
 
     const [companies, total, openTotal, noJobTotal] =
       await this.prisma.$transaction([
@@ -720,11 +720,14 @@ export class CompaniesService {
     };
   }
 
-  private buildWhere(query: ListCompaniesDto): Prisma.CompanyWhereInput {
+  private async buildWhere(
+    query: ListCompaniesDto,
+  ): Promise<Prisma.CompanyWhereInput> {
     const where: Prisma.CompanyWhereInput = {};
+    const tag = query.tag?.trim();
     const and: Prisma.CompanyWhereInput[] = [
       ...(query.companyType ? [{ type: query.companyType }] : []),
-      ...(query.tag ? [{ tags: { has: query.tag } }] : []),
+      ...(tag ? [await this.buildCaseInsensitiveTagWhere(tag)] : []),
       ...(query.hasOpenJobs === true
         ? [{ jobs: { some: { status: JobStatus.OPEN } } }]
         : []),
@@ -739,7 +742,7 @@ export class CompaniesService {
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
           { description: { contains: search, mode: 'insensitive' } },
-          { tags: { has: search } },
+          await this.buildCaseInsensitiveTagWhere(search),
         ],
       });
     }
@@ -802,6 +805,29 @@ export class CompaniesService {
     }
 
     return where;
+  }
+
+  private async buildCaseInsensitiveTagWhere(
+    tag: string,
+  ): Promise<Prisma.CompanyWhereInput> {
+    const companyIds = await this.findCompanyIdsByTag(tag);
+    return { id: { in: companyIds } };
+  }
+
+  private async findCompanyIdsByTag(tag: string) {
+    const normalizedTag = tag.toLocaleLowerCase();
+    const companies = await this.prisma.company.findMany({
+      where: { tags: { isEmpty: false } },
+      select: { id: true, tags: true },
+    });
+
+    return companies
+      .filter((company) =>
+        company.tags.some(
+          (companyTag) => companyTag.toLocaleLowerCase() === normalizedTag,
+        ),
+      )
+      .map((company) => company.id);
   }
 
   private buildOrderBy(sort: ListCompaniesDto['sort']) {

@@ -361,6 +361,7 @@
   margin-top: 1.65rem;
 }
 
+.homeActionPurple.homeActionPurple,
 .intelligenceActions .intelligenceActionPurple {
   border-color: #6366f1;
   background: #6366f1;
@@ -368,6 +369,7 @@
   box-shadow: 0 10px 24px rgba(99, 102, 241, 0.2);
 }
 
+.homeActionPurple.homeActionPurple:hover,
 .intelligenceActions .intelligenceActionPurple:hover {
   border-color: #4f46e5;
   background: #4f46e5;
@@ -377,7 +379,7 @@
 .intelligenceActions .intelligenceSubtlePurple {
   border-color: rgba(99, 102, 241, 0.2);
   background: rgba(255, 255, 255, 0.9);
-  color: #4f46e5;
+
 }
 
 .intelligenceActions .intelligenceSubtlePurple:hover {

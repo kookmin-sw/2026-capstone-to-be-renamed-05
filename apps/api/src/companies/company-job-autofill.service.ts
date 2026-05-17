@@ -5,6 +5,11 @@ import type {
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
+import {
+  resolveOpenAIModel,
+  resolveOpenAIReasoningEffort,
+  usesOpenAIReasoning,
+} from '../config/openai-runtime';
 
 type AutofillInput = {
   companyName?: string | null;
@@ -14,7 +19,6 @@ type AutofillInput = {
 
 type RawObject = Record<string, unknown>;
 
-const DEFAULT_OPENAI_MODEL = 'gpt-4o-mini';
 const MAX_WARNINGS = 5;
 const JOB_FAMILY_VALUES = [
   'AUDIT',
@@ -57,13 +61,18 @@ export class CompanyJobAutofillService {
     input: AutofillInput,
   ): Promise<CompanyJobAutofillResponse> {
     const openai = this.getClient();
-    const model =
-      this.config.get<string>('OPENAI_MODEL')?.trim() || DEFAULT_OPENAI_MODEL;
+    const model = resolveOpenAIModel(this.config.get<string>('OPENAI_MODEL'));
+    const reasoningEffort = resolveOpenAIReasoningEffort(
+      this.config.get<string>('OPENAI_REASONING_EFFORT'),
+    );
+    const useReasoning = usesOpenAIReasoning(model);
 
     try {
       const completion = await openai.chat.completions.create({
         model,
-        temperature: 0.1,
+        ...(useReasoning
+          ? { reasoning_effort: reasoningEffort }
+          : { temperature: 0.1 }),
         response_format: { type: 'json_object' },
         messages: [
           {

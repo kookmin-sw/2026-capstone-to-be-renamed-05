@@ -162,6 +162,13 @@ export class MypageController {
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain',
+    'application/haansofthwp',
+    'application/hwp',
+    'application/vnd.hancom.hwp',
+    'application/x-hwp',
+    'application/haansofthwpx',
+    'application/vnd.hancom.hwpx',
     'application/octet-stream',
   )
   @ApiHeader({

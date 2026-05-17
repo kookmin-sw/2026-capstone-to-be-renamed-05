@@ -38,6 +38,12 @@ import type {
   ResumeItem,
   ResumeListResponse,
 } from '@cpa/shared';
+import {
+  RESUME_ALLOWED_EXTENSIONS,
+  RESUME_ANALYSIS_FILE_EXTENSIONS,
+  RESUME_UPLOAD_LIMIT,
+  RESUME_UPLOAD_MAX_BYTES,
+} from '@cpa/shared';
 import argon2 from 'argon2';
 import { randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
@@ -62,11 +68,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreatePersonalVerificationRequestDto } from './dto/create-personal-verification-request.dto';
 import { JobFitAnalysisAiService } from './job-fit-analysis-ai.service';
 
-const RESUME_LIMIT = 5;
-export const RESUME_MAX_BYTES = 10 * 1024 * 1024;
+export const RESUME_MAX_BYTES = RESUME_UPLOAD_MAX_BYTES;
 const DEFAULT_S3_RESUME_KEY_PREFIX = 'resumes';
-const RESUME_TEXT_SAMPLE_MAX_BYTES = 512 * 1024;
-const RESUME_TEXT_SAMPLE_MAX_CHARS = 5000;
 
 type ResumeStorageConfig =
   | {
@@ -112,6 +115,7 @@ const RESUME_CONTENT_TYPES_BY_EXTENSION = new Map<string, Set<string>>([
       'application/zip',
     ]),
   ],
+  ['.txt', new Set(['text/plain'])],
   [
     '.hwp',
     new Set([
@@ -121,10 +125,20 @@ const RESUME_CONTENT_TYPES_BY_EXTENSION = new Map<string, Set<string>>([
       'application/x-hwp',
     ]),
   ],
-  ['.hwpx', new Set(['application/vnd.hancom.hwpx', 'application/zip'])],
+  [
+    '.hwpx',
+    new Set([
+      'application/haansofthwpx',
+      'application/vnd.hancom.hwpx',
+      'application/zip',
+    ]),
+  ],
 ]);
 
 const FALLBACK_RESUME_CONTENT_TYPE = 'application/octet-stream';
+const RESUME_ANALYSIS_EXTENSIONS = new Set<string>(
+  RESUME_ANALYSIS_FILE_EXTENSIONS.map((extension) => `.${extension}`),
+);
 
 const verificationRequestInclude = {
   user: { select: { username: true, displayName: true } },
@@ -418,7 +432,9 @@ export class MypageService implements OnModuleInit {
     });
 
     return {
-      items: analyses.map((analysis) => this.toJobFitAnalysisItem(analysis)),
+      items: analyses
+        .filter((analysis) => !this.isMockJobFitAnalysis(analysis))
+        .map((analysis) => this.toJobFitAnalysisItem(analysis)),
     };
   }
 
@@ -426,6 +442,7 @@ export class MypageService implements OnModuleInit {
     userId: string,
     take?: number,
   ): Promise<JobFitAnalysisListResponse> {
+    const takeLimit = this.clampPositiveInt(take, 5, 10);
     const analyses = await this.prisma.jobFitAnalysis.findMany({
       where: {
         userId,
@@ -433,31 +450,41 @@ export class MypageService implements OnModuleInit {
       },
       include: jobFitAnalysisInclude,
       orderBy: [{ fitScore: 'desc' }, { createdAt: 'desc' }],
-      take: this.clampPositiveInt(take, 5, 10),
+      take: takeLimit * 2,
     });
 
     return {
-      items: analyses.map((analysis) => this.toJobFitAnalysisItem(analysis)),
+      items: analyses
+        .filter((analysis) => !this.isMockJobFitAnalysis(analysis))
+        .slice(0, takeLimit)
+        .map((analysis) => this.toJobFitAnalysisItem(analysis)),
     };
   }
 
   async createJobFitAnalysis(
     userId: string,
-    data: { jobId: string; resumeId: string },
+    data: { jobId: string; resumeId: string; refresh?: boolean },
   ): Promise<CreateJobFitAnalysisResponse> {
     const jobId = data.jobId.trim();
     const resumeId = data.resumeId.trim();
+    const refresh = Boolean(data.refresh);
     if (!jobId || !resumeId) {
       throw new BadRequestException('분석할 공고와 이력서를 선택해 주세요.');
     }
 
-    const existing = await this.prisma.jobFitAnalysis.findUnique({
+    let existing = await this.prisma.jobFitAnalysis.findUnique({
       where: {
         userId_jobId_resumeId: { userId, jobId, resumeId },
       },
       include: jobFitAnalysisInclude,
     });
-    if (existing) {
+
+    if (existing && this.isMockJobFitAnalysis(existing)) {
+      await this.prisma.jobFitAnalysis.delete({ where: { id: existing.id } });
+      existing = null;
+    }
+
+    if (existing && !refresh) {
       return {
         item: this.toJobFitAnalysisItem(existing),
         reused: true,
@@ -491,6 +518,7 @@ export class MypageService implements OnModuleInit {
         '분석 가능한 공개 채용공고를 찾을 수 없습니다.',
       );
     }
+    this.assertResumeAnalysisSupported(resume.fileName);
 
     if (!this.jobFitAnalysisAiService) {
       throw new InternalServerErrorException(
@@ -498,34 +526,45 @@ export class MypageService implements OnModuleInit {
       );
     }
 
+    const resumeBuffer = await this.readResumeObjectBuffer(resume);
     const generated = await this.jobFitAnalysisAiService.generate({
       job: this.toJobFitAnalysisAiJob(job),
       resume: {
         fileName: resume.fileName,
         contentType: resume.contentType,
         byteSize: resume.byteSize,
-        textSample: await this.readResumeTextSample(resume),
+        fileBase64: resumeBuffer.toString('base64'),
       },
     });
 
-    const created = await this.prisma.jobFitAnalysis.create({
-      data: {
-        userId,
-        jobId,
-        resumeId,
-        fitScore: generated.fitScore,
-        summary: generated.summary,
-        strengths: generated.strengths,
-        companyPriorities: generated.companyPriorities,
-        gaps: generated.gaps,
-        recommendation: generated.recommendation,
-        rawJson: generated.rawJson as Prisma.InputJsonValue,
-      },
-      include: jobFitAnalysisInclude,
-    });
+    const analysisData = {
+      fitScore: generated.fitScore,
+      summary: generated.summary,
+      strengths: generated.strengths,
+      companyPriorities: generated.companyPriorities,
+      gaps: generated.gaps,
+      recommendation: generated.recommendation,
+      rawJson: generated.rawJson as Prisma.InputJsonValue,
+    };
+
+    const saved = existing
+      ? await this.prisma.jobFitAnalysis.update({
+          where: { id: existing.id },
+          data: analysisData,
+          include: jobFitAnalysisInclude,
+        })
+      : await this.prisma.jobFitAnalysis.create({
+          data: {
+            userId,
+            jobId,
+            resumeId,
+            ...analysisData,
+          },
+          include: jobFitAnalysisInclude,
+        });
 
     return {
-      item: this.toJobFitAnalysisItem(created),
+      item: this.toJobFitAnalysisItem(saved),
       reused: false,
     };
   }
@@ -759,9 +798,9 @@ export class MypageService implements OnModuleInit {
   ): Promise<ResumeItem> {
     const upload = this.normalizeResumeUpload(data);
     const count = await this.prisma.resume.count({ where: { userId } });
-    if (count >= RESUME_LIMIT) {
+    if (count >= RESUME_UPLOAD_LIMIT) {
       throw new BadRequestException(
-        `You can upload up to ${RESUME_LIMIT} resumes.`,
+        `You can upload up to ${RESUME_UPLOAD_LIMIT} resumes.`,
       );
     }
 
@@ -909,25 +948,25 @@ export class MypageService implements OnModuleInit {
     };
   }
 
-  private async readResumeTextSample(resume: {
+  private async readResumeObjectBuffer(resume: {
     id: string;
     userId: string;
     fileName: string;
   }) {
+    const storageConfig = this.getResumeStorageConfig();
+    const target = this.resolveResumeObjectTarget(
+      storageConfig,
+      resume.userId,
+      resume.id,
+      resume.fileName,
+    );
+
+    let buffer: Buffer;
+
     try {
-      const storageConfig = this.getResumeStorageConfig();
-      const target = this.resolveResumeObjectTarget(
-        storageConfig,
-        resume.userId,
-        resume.id,
-        resume.fileName,
-      );
-
       if (storageConfig.driver === 'local' && target.driver === 'local') {
-        return this.extractResumeTextSample(await readFile(target.filePath));
-      }
-
-      if (storageConfig.driver === 's3' && target.driver === 's3') {
+        buffer = await readFile(target.filePath);
+      } else if (storageConfig.driver === 's3' && target.driver === 's3') {
         const output = await this.getS3Client(storageConfig.region).send(
           new GetObjectCommand({
             Bucket: storageConfig.bucket,
@@ -935,15 +974,41 @@ export class MypageService implements OnModuleInit {
           }),
         );
         const stream = await this.toReadableStream(output.Body);
-        return this.extractResumeTextSample(
-          await this.readStreamPrefix(stream, RESUME_TEXT_SAMPLE_MAX_BYTES),
+        buffer = await this.readStreamPrefix(
+          stream,
+          RESUME_UPLOAD_MAX_BYTES + 1,
+        );
+      } else {
+        throw new InternalServerErrorException(
+          '이력서 저장소 설정이 올바르지 않습니다.',
         );
       }
-    } catch {
-      return null;
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof InternalServerErrorException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException(
+        '이력서 파일을 읽지 못했습니다. 다시 업로드한 뒤 분석해 주세요.',
+      );
     }
 
-    return null;
+    if (buffer.length > RESUME_UPLOAD_MAX_BYTES) {
+      throw new BadRequestException('Resume files must be 10MB or smaller.');
+    }
+
+    return buffer;
+  }
+
+  private assertResumeAnalysisSupported(fileName: string) {
+    const extension = extname(fileName).toLowerCase();
+    if (RESUME_ANALYSIS_EXTENSIONS.has(extension)) return;
+
+    throw new BadRequestException(
+      `AI 분석은 ${RESUME_ANALYSIS_FILE_EXTENSIONS.map((item) => item.toUpperCase()).join(', ')} 이력서만 지원합니다. DOC, HWP, HWPX 파일은 PDF 또는 DOCX로 변환해 다시 업로드해 주세요.`,
+    );
   }
 
   private async readStreamPrefix(stream: Readable, maxBytes: number) {
@@ -968,18 +1033,6 @@ export class MypageService implements OnModuleInit {
     return Buffer.concat(chunks);
   }
 
-  private extractResumeTextSample(buffer: Buffer) {
-    const cleaned = buffer
-      .subarray(0, RESUME_TEXT_SAMPLE_MAX_BYTES)
-      .toString('utf8')
-      .replace(/[^\t\n\r -~가-힣ㄱ-ㅎㅏ-ㅣ]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    if (cleaned.length < 30) return null;
-    return cleaned.slice(0, RESUME_TEXT_SAMPLE_MAX_CHARS);
-  }
-
   private normalizeResumeUpload(data: {
     fileName: string;
     contentType: string | string[] | undefined;
@@ -995,7 +1048,7 @@ export class MypageService implements OnModuleInit {
       RESUME_CONTENT_TYPES_BY_EXTENSION.get(extension);
     if (!allowedContentTypes) {
       throw new BadRequestException(
-        'Only PDF, DOC, DOCX, HWP, and HWPX resumes can be uploaded.',
+        `Only ${RESUME_ALLOWED_EXTENSIONS.map((item) => item.toUpperCase()).join(', ')} resumes can be uploaded.`,
       );
     }
     if (data.body.length <= 0) {
@@ -1359,6 +1412,16 @@ export class MypageService implements OnModuleInit {
       createdAt: resume.createdAt.toISOString(),
       updatedAt: resume.updatedAt.toISOString(),
     };
+  }
+
+  private isMockJobFitAnalysis(analysis: { rawJson: Prisma.JsonValue }) {
+    const rawJson = analysis.rawJson;
+    if (!rawJson || typeof rawJson !== 'object' || Array.isArray(rawJson)) {
+      return false;
+    }
+
+    const raw = rawJson as Record<string, unknown>;
+    return raw.source === 'prisma/mock.ts' || raw.version === 'mock-seed-v1';
   }
 
   private toJobFitAnalysisItem(

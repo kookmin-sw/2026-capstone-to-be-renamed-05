@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Nova logo">
+  <rect width="96" height="96" rx="22" fill="#2e1065"/>
+  <path d="M48 14 57 39l25 9-25 9-9 25-9-25-25-9 25-9 9-25Z" fill="#c4b5fd"/>
+  <circle cx="48" cy="48" r="9" fill="#fef08a"/>
+</svg>

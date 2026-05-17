@@ -1,6 +1,15 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
+import {
+  resolveOpenAIModel,
+  resolveOpenAIReasoningEffort,
+  usesOpenAIReasoning,
+} from '../config/openai-runtime';
 
 type JobFitAnalysisAiJob = {
   title: string;
@@ -29,7 +38,7 @@ type JobFitAnalysisAiResume = {
   fileName: string;
   contentType: string;
   byteSize: number;
-  textSample: string | null;
+  fileBase64: string;
 };
 
 export type GenerateJobFitAnalysisInput = {
@@ -49,8 +58,8 @@ export type GeneratedJobFitAnalysis = {
 
 type RawObject = Record<string, unknown>;
 
-const DEFAULT_OPENAI_MODEL = 'gpt-4o-mini';
 const MAX_ITEMS = 4;
+const FILE_INPUT_BAD_REQUEST_STATUSES = new Set([400, 415, 422]);
 
 @Injectable()
 export class JobFitAnalysisAiService {
@@ -62,69 +71,53 @@ export class JobFitAnalysisAiService {
     input: GenerateJobFitAnalysisInput,
   ): Promise<GeneratedJobFitAnalysis> {
     const openai = this.getClient();
-    const model =
-      this.config.get<string>('OPENAI_JOB_FIT_MODEL')?.trim() ||
-      this.config.get<string>('OPENAI_MODEL')?.trim() ||
-      DEFAULT_OPENAI_MODEL;
+    const model = resolveOpenAIModel(
+      this.config.get<string>('OPENAI_JOB_FIT_MODEL'),
+      this.config.get<string>('OPENAI_MODEL'),
+    );
+    const reasoningEffort = resolveOpenAIReasoningEffort(
+      this.config.get<string>('OPENAI_JOB_FIT_REASONING_EFFORT'),
+      this.config.get<string>('OPENAI_REASONING_EFFORT'),
+    );
+    const useReasoning = usesOpenAIReasoning(model);
 
     try {
-      const completion = await openai.chat.completions.create({
+      const response = await openai.responses.create({
         model,
-        temperature: 0.2,
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
+        store: false,
+        ...(useReasoning
+          ? { reasoning: { effort: reasoningEffort } }
+          : { temperature: 0.2 }),
+        text: {
+          format: {
+            type: 'json_schema',
             name: 'job_fit_analysis',
             strict: true,
-            schema: {
-              type: 'object',
-              additionalProperties: false,
-              required: [
-                'fitScore',
-                'summary',
-                'strengths',
-                'companyPriorities',
-                'gaps',
-                'recommendation',
-              ],
-              properties: {
-                fitScore: {
-                  type: 'integer',
-                  description:
-                    '공고와 이력서 텍스트의 상대 적합도 점수. 실제 합격 확률이 아니다.',
-                },
-                summary: { type: 'string' },
-                strengths: {
-                  type: 'array',
-                  items: { type: 'string' },
-                },
-                companyPriorities: {
-                  type: 'array',
-                  items: { type: 'string' },
-                },
-                gaps: {
-                  type: 'array',
-                  items: { type: 'string' },
-                },
-                recommendation: { type: 'string' },
-              },
-            },
+            schema: this.responseSchema(),
           },
         },
-        messages: [
-          {
-            role: 'system',
-            content:
-              '너는 CPA 채용공고와 이력서를 비교하는 한국어 커리어 분석 도우미다. 개인 식별 정보는 출력하지 말고, 근거가 부족하면 그 한계를 보완점에 명시한다. 반드시 JSON만 반환한다.',
-          },
+        instructions:
+          'You are a Korean career analyst for CPA/accounting job seekers. Compare the job posting with the attached resume file. Do not expose unnecessary personal data. If the file is hard to read, mention that limitation in gaps. Return only JSON.',
+        input: [
           {
             role: 'user',
-            content: this.buildPrompt(input),
+            content: [
+              {
+                type: 'input_text',
+                text: this.buildPrompt(input),
+              },
+              {
+                type: 'input_file',
+                filename: input.resume.fileName,
+                file_data: this.buildFileData(input.resume),
+                detail: 'low',
+              },
+            ],
           },
         ],
       });
 
-      const content = completion.choices[0]?.message?.content;
+      const content = response.output_text;
       if (!content) throw new Error('empty OpenAI response');
 
       const parsed = this.asObject(JSON.parse(content)) ?? {};
@@ -134,12 +127,20 @@ export class JobFitAnalysisAiService {
         ...normalized,
         rawJson: {
           provider: 'openai',
+          api: 'responses',
           model,
-          responseId: completion.id,
+          reasoningEffort: useReasoning ? reasoningEffort : null,
+          responseId: response.id,
+          usage: response.usage ?? null,
           parsed,
         },
       };
-    } catch {
+    } catch (error) {
+      if (this.isFileInputBadRequest(error)) {
+        throw new BadRequestException(
+          '이력서 파일을 OpenAI가 읽지 못했습니다. PDF, DOCX, TXT 형식인지 확인해 주세요. DOC, HWP, HWPX는 PDF 또는 DOCX로 변환해 다시 업로드해 주세요.',
+        );
+      }
       throw new ServiceUnavailableException(
         'AI 적합도 분석 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.',
       );
@@ -168,18 +169,15 @@ export class JobFitAnalysisAiService {
   private buildPrompt(input: GenerateJobFitAnalysisInput) {
     const job = input.job;
     const resume = input.resume;
-    const resumeText =
-      resume.textSample ??
-      '이력서 본문 텍스트를 추출하지 못했습니다. 파일명과 공고 조건만 참고하세요.';
 
     return [
-      '아래 채용공고와 이력서 텍스트 샘플을 비교해 구직자에게 보여줄 적합도 분석 JSON을 작성하세요.',
+      '첨부 이력서 파일과 아래 채용공고를 비교해 구직자에게 보여줄 적합도 분석 JSON을 작성하세요.',
       '',
       '분석 규칙:',
       '- fitScore는 실제 합격 확률이 아니라 공고 요건과 이력서 근거의 상대 적합도 점수입니다.',
       '- summary와 recommendation은 한국어 한두 문장으로 작성합니다.',
       '- strengths, companyPriorities, gaps는 각각 짧은 한국어 문장 배열로 작성합니다.',
-      '- 이력서 텍스트가 부족하면 gaps에 "이력서 본문 근거가 부족하다"는 취지의 보완점을 포함합니다.',
+      '- 이력서 파일을 읽기 어렵거나 구조가 불명확하면 gaps에 파일 품질 또는 변환 필요성을 포함합니다.',
       '- KICPA, 수습 가능 여부, 경력 연수, 직무군, 회사 유형을 우선 비교합니다.',
       '',
       '공고:',
@@ -210,18 +208,60 @@ export class JobFitAnalysisAiService {
         2,
       ),
       '',
-      '이력서:',
+      '첨부 이력서 메타데이터:',
       JSON.stringify(
         {
           fileName: resume.fileName,
           contentType: resume.contentType,
           byteSize: resume.byteSize,
-          textSample: this.limit(resumeText, 5000),
         },
         null,
         2,
       ),
     ].join('\n');
+  }
+
+  private responseSchema() {
+    return {
+      type: 'object',
+      additionalProperties: false,
+      required: [
+        'fitScore',
+        'summary',
+        'strengths',
+        'companyPriorities',
+        'gaps',
+        'recommendation',
+      ],
+      properties: {
+        fitScore: {
+          type: 'integer',
+          description:
+            '공고와 이력서 파일의 직무 적합도 점수. 실제 합격 확률이 아닙니다.',
+        },
+        summary: { type: 'string' },
+        strengths: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+        companyPriorities: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+        gaps: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+        recommendation: { type: 'string' },
+      },
+    };
+  }
+
+  private buildFileData(resume: JobFitAnalysisAiResume) {
+    const contentType = resume.contentType.includes('/')
+      ? resume.contentType
+      : 'application/octet-stream';
+    return `data:${contentType};base64,${resume.fileBase64}`;
   }
 
   private normalize(raw: RawObject): Omit<GeneratedJobFitAnalysis, 'rawJson'> {
@@ -269,5 +309,13 @@ export class JobFitAnalysisAiService {
 
   private limit(value: string, maxLength: number) {
     return value.length > maxLength ? value.slice(0, maxLength) : value;
+  }
+
+  private isFileInputBadRequest(error: unknown) {
+    const status =
+      typeof (error as { status?: unknown })?.status === 'number'
+        ? (error as { status: number }).status
+        : null;
+    return status !== null && FILE_INPUT_BAD_REQUEST_STATUSES.has(status);
   }
 }

@@ -21,10 +21,17 @@ const env = {
   NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || "/api",
 };
 
-const result = spawnSync("npm", ["run", "build", "--workspace", "@cpa/web"], {
-  env,
-  shell: process.platform === "win32",
-  stdio: "inherit",
-});
+function runNpm(args) {
+  return spawnSync("npm", args, {
+    env,
+    shell: process.platform === "win32",
+    stdio: "inherit",
+  });
+}
+
+const sharedBuild = runNpm(["run", "build", "--workspace", "@cpa/shared"]);
+if (sharedBuild.status !== 0) process.exit(sharedBuild.status ?? 1);
+
+const result = runNpm(["run", "build", "--workspace", "@cpa/web"]);
 
 process.exit(result.status ?? 1);

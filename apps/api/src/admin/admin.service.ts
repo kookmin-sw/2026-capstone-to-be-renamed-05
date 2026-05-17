@@ -235,6 +235,12 @@ export class AdminService {
   }
 
   async refreshJobCheckedAt(id: string) {
+    const existing = await this.prisma.job.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!existing) throw new NotFoundException('Job not found.');
+
     const job = await this.prisma.job.update({
       where: { id },
       data: { lastCheckedAt: new Date() },

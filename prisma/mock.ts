@@ -33,7 +33,7 @@ import {
   resolvePrismaPostgresConfig,
 } from "../apps/api/src/config/runtime-environment";
 import { statSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { extname, isAbsolute, join } from "node:path";
 
 for (const envFilePath of resolveEnvFilePaths()) {
@@ -158,6 +158,7 @@ type SeedJob = {
   minExperienceYears: number;
   maxExperienceYears: number | null;
   location: string;
+  aiSummary: string;
   deadlineType: DeadlineType;
   deadline: Date | null;
   labels: Label[];
@@ -335,8 +336,13 @@ const companyLogoByName = new Map<string, MockImageAsset>([
 
 const companyLogoPalette: MockImageAsset[] = [
   { fileName: "mock-logo-apex.svg", originalName: "Apex mock logo" },
+  { fileName: "mock-logo-axis.svg", originalName: "Axis mock logo" },
+  { fileName: "mock-logo-beacon.svg", originalName: "Beacon mock logo" },
+  { fileName: "mock-logo-bloom.svg", originalName: "Bloom mock logo" },
   { fileName: "mock-logo-bridge.svg", originalName: "Bridge mock logo" },
+  { fileName: "mock-logo-cipher.svg", originalName: "Cipher mock logo" },
   { fileName: "mock-logo-core.svg", originalName: "Core mock logo" },
+  { fileName: "mock-logo-crest.svg", originalName: "Crest mock logo" },
   { fileName: "mock-logo-delta.svg", originalName: "Delta mock logo" },
   { fileName: "mock-logo-eon.svg", originalName: "Eon mock logo" },
   { fileName: "mock-logo-firm.svg", originalName: "Firm mock logo" },
@@ -344,6 +350,19 @@ const companyLogoPalette: MockImageAsset[] = [
   { fileName: "mock-logo-halo.svg", originalName: "Halo mock logo" },
   { fileName: "mock-logo-ion.svg", originalName: "Ion mock logo" },
   { fileName: "mock-logo-juno.svg", originalName: "Juno mock logo" },
+  { fileName: "mock-logo-ledger.svg", originalName: "Ledger mock logo" },
+  { fileName: "mock-logo-lumen.svg", originalName: "Lumen mock logo" },
+  { fileName: "mock-logo-matrix.svg", originalName: "Matrix mock logo" },
+  { fileName: "mock-logo-nova.svg", originalName: "Nova mock logo" },
+  { fileName: "mock-logo-pillar.svg", originalName: "Pillar mock logo" },
+  { fileName: "mock-logo-prism.svg", originalName: "Prism mock logo" },
+  { fileName: "mock-logo-quartz.svg", originalName: "Quartz mock logo" },
+  { fileName: "mock-logo-ridge.svg", originalName: "Ridge mock logo" },
+  { fileName: "mock-logo-signal.svg", originalName: "Signal mock logo" },
+  { fileName: "mock-logo-sprout.svg", originalName: "Sprout mock logo" },
+  { fileName: "mock-logo-stack.svg", originalName: "Stack mock logo" },
+  { fileName: "mock-logo-vault.svg", originalName: "Vault mock logo" },
+  { fileName: "mock-logo-verge.svg", originalName: "Verge mock logo" },
 ];
 
 function buildMockPublicAssetUrl(path: string) {
@@ -608,6 +627,63 @@ function getSourceForJob(
   return sources.saraminSource;
 }
 
+function buildMockJobAiSummary({
+  title,
+  companyName,
+  jobFamilyLabel,
+  companyTypeLabel,
+  kicpaCondition,
+  traineeStatus,
+  practicalTrainingInstitution,
+  minExperienceYears,
+  maxExperienceYears,
+  location,
+  deadlineType,
+}: {
+  title: string;
+  companyName: string;
+  jobFamilyLabel: string;
+  companyTypeLabel: string;
+  kicpaCondition: KicpaCondition;
+  traineeStatus: TraineeStatus;
+  practicalTrainingInstitution: boolean;
+  minExperienceYears: number;
+  maxExperienceYears: number | null;
+  location: string;
+  deadlineType: DeadlineType;
+}) {
+  const experienceText =
+    minExperienceYears === 0
+      ? "신입·수습 지원자"
+      : maxExperienceYears
+        ? `${minExperienceYears}~${maxExperienceYears}년 경력자`
+        : `${minExperienceYears}년 이상 경력자`;
+  const kicpaText =
+    kicpaCondition === KicpaCondition.REQUIRED
+      ? "KICPA 자격이 필수라 자격 보유 여부가 핵심입니다"
+      : kicpaCondition === KicpaCondition.PREFERRED
+        ? "KICPA 보유자나 준비 이력이 우대 포인트입니다"
+        : kicpaCondition === KicpaCondition.UNCLEAR
+          ? "KICPA 조건은 공고 본문에서 추가 확인이 필요합니다"
+          : "KICPA 조건보다는 직무 경험과 업무 적합도가 더 중요합니다";
+  const traineeText =
+    traineeStatus === TraineeStatus.AVAILABLE
+      ? practicalTrainingInstitution
+        ? "실무수습기관 인정 가능성이 있어 수습 CPA가 우선 검토하기 좋습니다"
+        : "수습 CPA 지원은 가능하지만 실무수습기관 인정 여부는 확인이 필요합니다"
+      : traineeStatus === TraineeStatus.UNCLEAR
+        ? "수습 CPA 가능 여부가 불명확해 지원 전 확인이 필요합니다"
+        : "수습 목적보다는 즉시 투입 가능한 실무 경력에 초점이 있습니다";
+  const deadlineText =
+    deadlineType === DeadlineType.FIXED_DATE
+      ? "마감일이 정해져 있어 지원 서류를 빠르게 정리해야 합니다"
+      : deadlineType === DeadlineType.UNTIL_FILLED
+        ? "채용 시 마감 공고라 적합하면 조기 지원이 유리합니다"
+        : "상시 채용형 공고라 이력서 완성도를 높여 지원해도 좋습니다";
+
+  return `${companyName}의 ${title} 공고는 ${companyTypeLabel}의 ${jobFamilyLabel} 포지션으로, ${experienceText}에게 맞춰져 있습니다. ${kicpaText}. ${traineeText}. 근무지는 ${location}이며, ${deadlineText}.`;
+}
+
 function createGeneratedJob(
   index: number,
   companies: Company[],
@@ -704,12 +780,21 @@ function createGeneratedJob(
     [JobFamily.INTERNAL_ACCOUNTING]: "내부회계",
     [JobFamily.IN_HOUSE]: "인하우스",
   };
+  const companyTypeLabels: Record<CompanyType, string> = {
+    [CompanyType.BIG4]: "Big4 회계법인",
+    [CompanyType.LOCAL_ACCOUNTING_FIRM]: "로컬 회계법인",
+    [CompanyType.MID_SMALL_ACCOUNTING_FIRM]: "중소형 세무회계법인",
+    [CompanyType.FINANCIAL_COMPANY]: "금융회사",
+    [CompanyType.GENERAL_COMPANY]: "일반기업",
+    [CompanyType.PUBLIC_INSTITUTION]: "공공기관",
+  };
 
   const company = companies[(index * 7 + 3) % companies.length];
   const jobFamily = jobFamilies[index % jobFamilies.length];
   const titleOptions = titleByFamily[jobFamily];
   const title =
     titleOptions[Math.floor(index / jobFamilies.length) % titleOptions.length];
+  const location = locations[index % locations.length];
   const minExperienceYears = index % 5 === 0 ? 0 : (index % 7) + 1;
   const maxExperienceYears =
     index % 9 === 0 ? null : minExperienceYears + 1 + (index % 3);
@@ -740,6 +825,24 @@ function createGeneratedJob(
         : EmploymentType.FULL_TIME;
   const { deadlineType, deadline } = createDeadline(index);
   const source = getSourceForJob(company.type, jobFamily, sources);
+  const practicalTrainingInstitution =
+    traineeStatus === TraineeStatus.AVAILABLE &&
+    (company.type === CompanyType.BIG4 ||
+      company.type === CompanyType.LOCAL_ACCOUNTING_FIRM ||
+      company.type === CompanyType.MID_SMALL_ACCOUNTING_FIRM);
+  const aiSummary = buildMockJobAiSummary({
+    title,
+    companyName: company.name,
+    jobFamilyLabel: familyLabels[jobFamily],
+    companyTypeLabel: companyTypeLabels[company.type],
+    kicpaCondition,
+    traineeStatus,
+    practicalTrainingInstitution,
+    minExperienceYears,
+    maxExperienceYears,
+    location,
+    deadlineType,
+  });
   const labelNames = [
     familyLabels[jobFamily],
     minExperienceYears === 0 ? "신입" : "경력",
@@ -755,7 +858,7 @@ function createGeneratedJob(
 
   return {
     title,
-    description: `${company.name} ${title} 포지션입니다. ${familyDescriptions[jobFamily]} 주요 업무는 월별 산출물 관리, 실무 자료 검토, 이해관계자 커뮤니케이션입니다. 지원자는 ${minExperienceYears === 0 ? "신입 또는 수습 CPA 지원자" : `${minExperienceYears}년 이상 실무 경험자`}를 우선 검토하며, KICPA 조건과 수습 가능 여부는 공고 조건에 맞춰 명시했습니다. 근무지는 ${locations[index % locations.length]}이며 서류 검토 후 실무 인터뷰와 처우 협의를 진행합니다.`,
+    description: `${company.name} ${title} 포지션입니다. ${familyDescriptions[jobFamily]} 주요 업무는 월별 산출물 관리, 실무 자료 검토, 이해관계자 커뮤니케이션입니다. 지원자는 ${minExperienceYears === 0 ? "신입 또는 수습 CPA 지원자" : `${minExperienceYears}년 이상 실무 경험자`}를 우선 검토하며, KICPA 조건과 수습 가능 여부는 공고 조건에 맞춰 명시했습니다. 근무지는 ${location}이며 서류 검토 후 실무 인터뷰와 처우 협의를 진행합니다.`,
     company,
     source,
     originalUrl: `https://example.com/generated/jobs/${pad(index + 1, 4)}`,
@@ -764,14 +867,11 @@ function createGeneratedJob(
     companyType: company.type,
     kicpaCondition,
     traineeStatus,
-    practicalTrainingInstitution:
-      traineeStatus === TraineeStatus.AVAILABLE &&
-      (company.type === CompanyType.BIG4 ||
-        company.type === CompanyType.LOCAL_ACCOUNTING_FIRM ||
-        company.type === CompanyType.MID_SMALL_ACCOUNTING_FIRM),
+    practicalTrainingInstitution,
     minExperienceYears,
     maxExperienceYears,
-    location: locations[index % locations.length],
+    location,
+    aiSummary,
     deadlineType,
     deadline,
     labels: labelNames
@@ -787,8 +887,6 @@ async function upsertJob(jobData: SeedJob, lastCheckedAt = new Date()) {
   const jobPayload = {
     title: jobData.title,
     description: jobData.description,
-    companyId: jobData.company.id,
-    sourceId: jobData.source.id,
     originalUrl: jobData.originalUrl,
     jobFamily: jobData.jobFamily,
     employmentType: jobData.employmentType,
@@ -799,18 +897,29 @@ async function upsertJob(jobData: SeedJob, lastCheckedAt = new Date()) {
     minExperienceYears: jobData.minExperienceYears,
     maxExperienceYears: jobData.maxExperienceYears,
     location: jobData.location,
+    aiSummary: jobData.aiSummary,
     deadlineType: jobData.deadlineType,
     deadline: jobData.deadline,
     lastCheckedAt,
+  };
+  const jobRelations = {
+    company: { connect: { id: jobData.company.id } },
+    source: { connect: { id: jobData.source.id } },
   };
 
   const savedJob = existing
     ? await prisma.job.update({
         where: { id: existing.id },
-        data: jobPayload,
+        data: {
+          ...jobPayload,
+          ...jobRelations,
+        },
       })
     : await prisma.job.create({
-        data: jobPayload,
+        data: {
+          ...jobPayload,
+          ...jobRelations,
+        },
       });
 
   await prisma.jobLabel.deleteMany({ where: { jobId: savedJob.id } });
@@ -823,42 +932,451 @@ async function upsertJob(jobData: SeedJob, lastCheckedAt = new Date()) {
   });
 }
 
-type MockAnalysisJob = Job & {
-  company: { name: string };
-};
-
 const mockResumeSeedData = [
   {
     id: "mock-resume-test002-audit-trainee",
     fileName: "audit-trainee-resume.pdf",
+    contentType: "application/pdf",
     createdAt: new Date("2026-05-01T01:00:00.000Z"),
+    content: `
+이름: 김서연
+지원 이력서: 감사 수습 CPA 포지션
+
+요약
+KICPA 1차 합격 후 2차 일부 과목을 준비하며 회계감사와 재무제표 검토 업무를 빠르게 익히고 싶은 신입 지원자입니다. 대학 회계학회에서 제조업 모의감사 프로젝트를 수행했고, 매출 인식, 재고자산 실사, 매입채무 확인 절차를 체크리스트로 정리했습니다. 수습 가능 회계법인에서 감사 조서 작성, 자료 요청, 고객 커뮤니케이션을 체계적으로 배우는 것을 목표로 합니다.
+
+CPA 및 학력
+- KICPA 1차 합격, 2차 재무회계와 세법 응시 경험
+- 국민대학교 경영학부 회계전공, 졸업예정
+- 고급회계, 회계감사, 세무회계, 원가관리회계 수강
+
+경험
+- 회계학회 모의감사 팀장, 2025.03-2025.12
+- 가상의 제조업 매출채권 표본 120건을 검토하고 예외 7건을 식별
+- 재고자산 실사 입회 절차를 문서화하고 조서 템플릿 6종 작성
+- 팀원 5명의 조서 품질을 리뷰하고 누락 근거를 체크리스트로 보완
+
+프로젝트
+- 상장사 사업보고서 10개를 비교해 감사의견, 핵심감사사항, 계속기업 불확실성을 요약
+- Excel 피벗과 XLOOKUP으로 거래처별 매출 변동 분석 대시보드 제작
+- 감사 자료 요청 메일 템플릿과 PBC 리스트를 작성해 커뮤니케이션 훈련
+
+기술 및 역량
+- Excel, Google Sheets, PowerPoint, 기초 SQL
+- 한국채택국제회계기준, 감사기준 기본 이해
+- 꼼꼼한 문서화, 일정 관리, 질문 목록 정리
+
+희망 직무
+감사본부 수습 CPA, 중견/성장기업 외부감사, 재무제표 검토 보조
+`,
   },
   {
     id: "mock-resume-test002-tax-junior",
-    fileName: "tax-junior-resume.pdf",
+    fileName: "tax-junior-resume.docx",
+    contentType:
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     createdAt: new Date("2026-05-02T01:00:00.000Z"),
+    content: `
+이름: 박민재
+지원 이력서: 세무 주니어 포지션
+
+요약
+법인세와 부가가치세 신고 보조 경험을 바탕으로 세무회계법인 주니어 업무에 지원합니다. 스타트업 인턴 기간 동안 매입세금계산서 대사, 원천세 신고 자료 정리, 경비 증빙 누락 확인을 담당했습니다. 세무 이슈를 고객이 이해하기 쉬운 언어로 정리하는 데 강점이 있으며, 기장과 신고 업무를 정확하게 처리하는 세무 전문가로 성장하고자 합니다.
+
+CPA 및 학력
+- KICPA 1차 준비 경험, 세법과 재무회계 집중 학습
+- 숭실대학교 회계세무학과 졸업
+- 법인세법, 소득세법, 부가가치세법, 상법 수강
+
+경험
+- 핀테크 스타트업 재무팀 인턴, 2025.07-2026.01
+- 매입세금계산서 1,800건을 월별로 대사하고 불일치 43건을 정리
+- 원천세 신고용 급여, 프리랜서 지급명세 자료를 취합
+- 법인카드 증빙 누락 건을 부서별로 안내해 월말 마감 지연을 줄임
+
+프로젝트
+- 개인사업자 업종별 부가세 체크리스트 제작
+- 접대비, 복리후생비, 지급수수료 계정 분류 기준표 작성
+- 홈택스 신고 화면 흐름을 캡처해 신규 인턴 교육 자료 제작
+
+기술 및 역량
+- Excel 함수, 더존 Smart A 사용 경험, 홈택스 신고 보조
+- 증빙 검토, 계정 분류, 고객 질의 응대 초안 작성
+- 세법 개정사항을 요약해 실무 체크리스트로 변환
+
+희망 직무
+세무 기장, 법인세/부가세 신고 보조, 스타트업 세무 자문 지원
+`,
   },
   {
     id: "mock-resume-test002-deal-fas",
-    fileName: "deal-fas-resume.pdf",
+    fileName: "deal-fas-resume.doc",
+    contentType: "application/msword",
     createdAt: new Date("2026-05-03T01:00:00.000Z"),
+    content: `
+이름: 이준호
+지원 이력서: FAS 및 Deal Advisory 주니어 포지션
+
+요약
+재무제표 분석과 기업가치평가 프로젝트 경험을 보유한 FAS 지향 지원자입니다. 대학 투자동아리에서 인수 후보 기업의 매출 성장률, EBITDA, 운전자본 변동을 분석했고, DCF와 EV/EBITDA 멀티플을 활용한 밸류에이션 보고서를 작성했습니다. 숫자를 근거로 거래 리스크와 실사 질문을 구조화하는 일에 흥미가 있습니다.
+
+CPA 및 학력
+- KICPA 1차 합격, 재무관리와 원가관리회계 우수
+- 중앙대학교 경영학부 졸업
+- 기업재무, 투자론, 고급회계, 재무제표분석 수강
+
+경험
+- 투자동아리 리서치 리드, 2024.09-2025.12
+- 소비재 기업 5개사의 3개년 손익계산서와 현금흐름표 비교
+- 인수 후보 기업의 정상 EBITDA 조정 항목 8개를 도출
+- 경영진 Q&A 예상 질문 20개와 실사 요청자료 목록 작성
+
+프로젝트
+- DCF 모델 작성: 매출 성장률, 영업이익률, CAPEX, WACC 가정 민감도 분석
+- EV/EBITDA 멀티플 비교표 작성 및 Peer group 선정 근거 문서화
+- 매출채권 회전일수와 재고자산 회전일수 변화로 운전자본 리스크 설명
+
+기술 및 역량
+- Excel 재무모델링, PowerPoint 보고서, 기초 SQL
+- 사업보고서와 감사보고서에서 핵심 가정 추출
+- 논리적인 목차 구성, 정량 분석, 빠른 자료 검증
+
+희망 직무
+FDD, Valuation, Transaction Service, Deal Advisory 주니어
+`,
   },
   {
     id: "mock-resume-test002-icfr",
-    fileName: "icfr-internal-accounting-resume.pdf",
+    fileName: "icfr-internal-accounting-resume.hwp",
+    contentType: "application/x-hwp",
     createdAt: new Date("2026-05-04T01:00:00.000Z"),
+    content: `
+이름: 최하은
+지원 이력서: 내부회계관리제도 및 감사 대응 포지션
+
+요약
+상장사 재무팀 인턴으로 내부회계관리제도 운영평가 문서 정리와 외부감사 대응을 보조했습니다. RCM 통제 설명, 설계평가 증빙, 운영평가 샘플 자료를 정리했고, 미비점 조치 현황을 담당자별로 추적했습니다. 통제 목적과 실제 증빙 사이의 연결을 명확히 설명하는 데 강점이 있습니다.
+
+CPA 및 학력
+- KICPA 1차 합격, 2차 회계감사 응시 경험
+- 이화여자대학교 경영학과 졸업
+- 회계감사, 내부통제, 재무회계, 데이터분석 수강
+
+경험
+- 코스닥 상장사 재무팀 인턴, 2025.02-2025.08
+- 매출, 구매, 자금, 결산 프로세스 RCM 42개 통제 항목 업데이트 보조
+- 운영평가 샘플 160건의 증빙 파일명과 통제 번호를 대사
+- 외부감사인 요청자료 75건을 접수하고 제출 상태를 관리
+- 미비점 6건의 개선 담당자와 완료 예정일을 추적
+
+프로젝트
+- 월마감 체크리스트를 결산 일정, 담당자, 증빙 링크 기준으로 재정리
+- 자금 집행 승인 통제의 누락 승인 사례를 분석해 개선안 제안
+- 내부회계 교육 자료 초안을 작성해 비재무 부서 담당자 이해도 개선
+
+기술 및 역량
+- Excel, Notion, Google Drive 권한 관리, 기초 SQL
+- RCM, 설계평가, 운영평가, 감사 대응 자료 관리
+- 꼼꼼한 파일링, 담당자 커뮤니케이션, 이슈 추적
+
+희망 직무
+내부회계관리제도 운영, 외부감사 대응, 결산 프로세스 개선
+`,
   },
   {
     id: "mock-resume-test002-finance",
-    fileName: "finance-inhouse-resume.pdf",
+    fileName: "finance-inhouse-resume.hwpx",
+    contentType: "application/vnd.hancom.hwpx",
     createdAt: new Date("2026-05-05T01:00:00.000Z"),
+    content: `
+이름: 정다인
+지원 이력서: 인하우스 재무회계 포지션
+
+요약
+일반기업 재무회계와 결산 업무를 희망하는 주니어 지원자입니다. SaaS 기업 재무팀 계약직으로 월별 매출 인식 자료, 미수금 내역, 비용 계정 검토를 보조했습니다. 회계법인보다 사업부와 가까운 환경에서 회계 기준을 실제 매출과 비용 프로세스에 연결하는 역할을 선호합니다.
+
+CPA 및 학력
+- KICPA 1차 준비 경험, 재무회계와 원가관리회계 집중
+- 한양대학교 경영학부 졸업
+- 중급회계, 원가관리회계, 회계정보시스템, 비즈니스 애널리틱스 수강
+
+경험
+- SaaS 기업 재무팀 계약직, 2025.04-2026.02
+- 구독 매출 계약 320건의 시작일, 종료일, 할인 조건을 정리
+- 월별 매출 인식 스케줄과 세금계산서 발행 내역을 대사
+- 미수금 aging 리포트를 작성하고 60일 초과 채권을 영업팀에 공유
+- 클라우드 비용, 외주비, 광고비 계정의 월별 변동 사유를 정리
+
+프로젝트
+- 월마감 일정표를 D+1부터 D+7까지 단계별로 재설계
+- 매출채권 회수 현황 대시보드를 만들어 팀 회의에 제공
+- 신규 상품 출시 시 매출 인식 검토 질문지를 작성
+
+기술 및 역량
+- Excel, Google Sheets, Looker Studio, 기초 SQL
+- 매출 인식, 미수금 관리, 비용 분석, 사업부 커뮤니케이션
+- 반복 업무 자동화 아이디어 제안과 문서화
+
+희망 직무
+인하우스 재무회계, 결산, 매출/미수금 관리, 회계 프로세스 개선
+`,
   },
 ] as const;
 
-function buildMockResumeBody(fileName: string) {
+const mockResumeDetailSection = `
+
+상세 경력 기술
+- 업무 배경: 지원 직무와 연결되는 회계, 세무, 감사, 재무 분석 업무를 실제 채용 담당자가 빠르게 스캔할 수 있도록 프로젝트별 목적, 본인 역할, 사용 도구, 산출물을 함께 정리했습니다.
+- 문제 해결: 원자료의 누락, 계정 분류 오류, 일정 지연, 담당자 간 커뮤니케이션 공백을 발견했을 때 체크리스트와 대사표를 만들어 재발 가능성을 줄였습니다.
+- 협업 방식: 요청자료 목록을 우선순위별로 나누고, 담당자에게 필요한 맥락을 먼저 설명한 뒤 마감일과 증빙 형식을 명확히 공유했습니다.
+- 문서화 습관: 분석 파일에는 가정, 원천 데이터, 검토 기준, 예외 처리 내역을 시트별로 남겨 다음 담당자가 같은 결론을 재현할 수 있도록 관리했습니다.
+
+대표 성과
+- 숫자로 설명 가능한 경험을 우선 배치했습니다. 표본 검토 건수, 대사 항목, 보고서 수, 마감 단축 효과, 예외 사항 식별 건수를 함께 적어 실무 투입 가능성을 보여줍니다.
+- 공고별 키워드에 맞춰 감사, 세무, FAS, 내부회계, 인하우스 재무회계 중 가장 관련 높은 경험을 첫 페이지 상단에 재배치할 수 있습니다.
+- KICPA 준비 현황과 실무수습 가능 여부는 지원서 앞부분에 별도 라벨로 표시해 채용 담당자가 자격 요건을 바로 확인할 수 있게 구성했습니다.
+
+지원 동기 및 성장 계획
+회계 전문성을 단순한 지식 암기가 아니라 고객과 조직의 의사결정을 돕는 언어로 사용하고 싶습니다. 입사 후 3개월 동안은 회사의 조서, 결산, 신고, 리포팅 템플릿을 빠르게 익히고, 6개월 이후에는 반복 검토 항목을 표준화해 팀의 마감 안정성에 기여하겠습니다. 장기적으로는 KICPA 전문성과 데이터 분석 역량을 함께 키워 근거가 명확한 재무 판단을 제시하는 실무자가 되는 것이 목표입니다.
+`;
+
+type MockResumeSeed = (typeof mockResumeSeedData)[number];
+
+function buildMockResumeBody(seed: MockResumeSeed) {
+  const content = expandMockResumeContent(seed.content);
+  const extension = extname(seed.fileName).toLowerCase();
+
+  if (extension === ".pdf") return buildMockPdf(content);
+  if (extension === ".docx") return buildMockDocx(content);
+  if (extension === ".doc") return buildMockDoc(content);
+  if (extension === ".hwpx") return buildMockHwpx(content);
+  return Buffer.from(`${content}\n`, "utf8");
+}
+
+function expandMockResumeContent(content: string) {
+  return `${content.trim()}\n${mockResumeDetailSection.trim()}`;
+}
+
+function buildMockDoc(content: string) {
   return Buffer.from(
-    `%PDF-1.4\n% Accountit mock resume: ${fileName}\n1 0 obj\n<<>>\nendobj\n%%EOF\n`,
+    `{\\rtf1\\ansi\\ansicpg949\\deff0{\\fonttbl{\\f0 Arial;}}\n${escapeRtf(
+      content,
+    )}\n}`,
+    "utf8",
   );
+}
+
+function buildMockDocx(content: string) {
+  const paragraphs = content
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map(
+      (line) =>
+        `<w:p><w:r><w:t xml:space="preserve">${escapeXml(line)}</w:t></w:r></w:p>`,
+    )
+    .join("");
+
+  return buildZip([
+    {
+      name: "[Content_Types].xml",
+      content:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+        '<Default Extension="xml" ContentType="application/xml"/>' +
+        '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+        "</Types>",
+    },
+    {
+      name: "_rels/.rels",
+      content:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
+        "</Relationships>",
+    },
+    {
+      name: "word/document.xml",
+      content:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' +
+        paragraphs +
+        "<w:sectPr/></w:body></w:document>",
+    },
+  ]);
+}
+
+function buildMockHwpx(content: string) {
+  const paragraphs = content
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => `<hp:p><hp:t>${escapeXml(line)}</hp:t></hp:p>`)
+    .join("");
+
+  return buildZip([
+    { name: "mimetype", content: "application/hwp+zip" },
+    {
+      name: "version.xml",
+      content:
+        '<?xml version="1.0" encoding="UTF-8"?>' +
+        '<hv:version xmlns:hv="http://www.hancom.co.kr/hwpml/2011/version" app="Accountit mock" version="1.0"/>',
+    },
+    {
+      name: "Contents/section0.xml",
+      content:
+        '<?xml version="1.0" encoding="UTF-8"?>' +
+        '<hp:sec xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph">' +
+        paragraphs +
+        "</hp:sec>",
+    },
+  ]);
+}
+
+function buildMockPdf(content: string) {
+  const lines = content
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 42);
+  const stream = [
+    "BT",
+    "/F1 9 Tf",
+    "50 780 Td",
+    ...lines.flatMap((line, index) => [
+      index === 0 ? "" : "0 -15 Td",
+      `<${toUtf16BeHex(line)}> Tj`,
+    ]),
+    "ET",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const objects = [
+    "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+    "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+    "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n",
+    "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
+    `5 0 obj\n<< /Length ${Buffer.byteLength(stream, "binary")} >>\nstream\n${stream}\nendstream\nendobj\n`,
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  for (const object of objects) {
+    offsets.push(Buffer.byteLength(pdf, "binary"));
+    pdf += object;
+  }
+  const xrefOffset = Buffer.byteLength(pdf, "binary");
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (let index = 1; index < offsets.length; index += 1) {
+    pdf += `${String(offsets[index]).padStart(10, "0")} 00000 n \n`;
+  }
+  pdf += `trailer\n<< /Root 1 0 R /Size ${objects.length + 1} >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  return Buffer.from(pdf, "binary");
+}
+
+function buildZip(
+  files: Array<{
+    name: string;
+    content: string | Buffer;
+  }>,
+) {
+  const localParts: Buffer[] = [];
+  const centralParts: Buffer[] = [];
+  let offset = 0;
+
+  for (const file of files) {
+    const name = Buffer.from(file.name, "utf8");
+    const content = Buffer.isBuffer(file.content)
+      ? file.content
+      : Buffer.from(file.content, "utf8");
+    const crc = crc32(content);
+    const localHeader = Buffer.alloc(30);
+    localHeader.writeUInt32LE(0x04034b50, 0);
+    localHeader.writeUInt16LE(20, 4);
+    localHeader.writeUInt16LE(0x0800, 6);
+    localHeader.writeUInt16LE(0, 8);
+    localHeader.writeUInt16LE(0, 10);
+    localHeader.writeUInt16LE(0, 12);
+    localHeader.writeUInt32LE(crc, 14);
+    localHeader.writeUInt32LE(content.length, 18);
+    localHeader.writeUInt32LE(content.length, 22);
+    localHeader.writeUInt16LE(name.length, 26);
+
+    const centralHeader = Buffer.alloc(46);
+    centralHeader.writeUInt32LE(0x02014b50, 0);
+    centralHeader.writeUInt16LE(20, 4);
+    centralHeader.writeUInt16LE(20, 6);
+    centralHeader.writeUInt16LE(0x0800, 8);
+    centralHeader.writeUInt16LE(0, 10);
+    centralHeader.writeUInt16LE(0, 12);
+    centralHeader.writeUInt16LE(0, 14);
+    centralHeader.writeUInt32LE(crc, 16);
+    centralHeader.writeUInt32LE(content.length, 20);
+    centralHeader.writeUInt32LE(content.length, 24);
+    centralHeader.writeUInt16LE(name.length, 28);
+    centralHeader.writeUInt32LE(offset, 42);
+
+    localParts.push(localHeader, name, content);
+    centralParts.push(centralHeader, name);
+    offset += localHeader.length + name.length + content.length;
+  }
+
+  const centralDirectory = Buffer.concat(centralParts);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(files.length, 8);
+  end.writeUInt16LE(files.length, 10);
+  end.writeUInt32LE(centralDirectory.length, 12);
+  end.writeUInt32LE(offset, 16);
+
+  return Buffer.concat([...localParts, centralDirectory, end]);
+}
+
+function crc32(buffer: Buffer) {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc = (crc >>> 8) ^ crc32Table[(crc ^ byte) & 0xff];
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+const crc32Table = Array.from({ length: 256 }, (_, index) => {
+  let value = index;
+  for (let bit = 0; bit < 8; bit += 1) {
+    value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
+  }
+  return value >>> 0;
+});
+
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function escapeRtf(value: string) {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/{/g, "\\{")
+    .replace(/}/g, "\\}")
+    .replace(/\n/g, "\\line\n");
+}
+
+function toUtf16BeHex(value: string) {
+  const hex = ["feff"];
+  for (const char of value) {
+    const codePoint = char.codePointAt(0) ?? 0x20;
+    if (codePoint <= 0xffff) {
+      hex.push(codePoint.toString(16).padStart(4, "0"));
+      continue;
+    }
+    const adjusted = codePoint - 0x10000;
+    hex.push((0xd800 + (adjusted >> 10)).toString(16).padStart(4, "0"));
+    hex.push((0xdc00 + (adjusted & 0x3ff)).toString(16).padStart(4, "0"));
+  }
+  return hex.join("");
 }
 
 function resolveMockResumeRootDir() {
@@ -871,17 +1389,28 @@ function resolveMockResumeRootDir() {
     : join(process.cwd(), configuredPath);
 }
 
-async function writeMockResumePlaceholder(userId: string, resume: Resume) {
+async function writeMockResumePlaceholder(
+  userId: string,
+  resume: Resume,
+  body: Buffer,
+) {
   if (process.env.RESUME_STORAGE_DRIVER?.trim().toLowerCase() === "s3") return;
 
   const rootDir = resolveMockResumeRootDir();
   const extension = extname(resume.fileName).toLowerCase();
   const targetDir = join(rootDir, userId);
+  const targetName = `${resume.id}${extension}`;
   await mkdir(targetDir, { recursive: true });
-  await writeFile(
-    join(targetDir, `${resume.id}${extension}`),
-    buildMockResumeBody(resume.fileName),
+  const staleFiles = (await readdir(targetDir)).filter(
+    (fileName) =>
+      fileName.startsWith(`${resume.id}.`) && fileName !== targetName,
   );
+  await Promise.all(
+    staleFiles.map((fileName) =>
+      rm(join(targetDir, fileName), { force: true }),
+    ),
+  );
+  await writeFile(join(targetDir, targetName), body);
 }
 
 async function upsertMockResumes(userId: string) {
@@ -900,14 +1429,14 @@ async function upsertMockResumes(userId: string) {
   });
 
   for (const [index, seed] of mockResumeSeedData.entries()) {
-    const body = buildMockResumeBody(seed.fileName);
+    const body = buildMockResumeBody(seed);
     const resume = await prisma.resume.upsert({
       where: { id: seed.id },
       update: {
         userId,
         fileName: seed.fileName,
         fileUrl: `/mypage/resumes/${seed.id}/download`,
-        contentType: "application/pdf",
+        contentType: seed.contentType,
         byteSize: body.length,
         isPrimary: index === 0,
       },
@@ -916,123 +1445,25 @@ async function upsertMockResumes(userId: string) {
         userId,
         fileName: seed.fileName,
         fileUrl: `/mypage/resumes/${seed.id}/download`,
-        contentType: "application/pdf",
+        contentType: seed.contentType,
         byteSize: body.length,
         isPrimary: index === 0,
         createdAt: seed.createdAt,
       },
     });
-    await writeMockResumePlaceholder(userId, resume);
+    await writeMockResumePlaceholder(userId, resume, body);
     resumes.push(resume);
   }
 
   return resumes;
 }
 
-function buildMockAnalysisPayload(
-  index: number,
-  job: MockAnalysisJob,
-  resume: Resume,
-) {
-  const scores = [92, 88, 84, 80, 76];
-  const score = scores[index % scores.length];
-  const familyLabel = jobFamilyDisplayNamesForMock[job.jobFamily];
-  const summary =
-    score >= 85
-      ? `${job.company.name} ${job.title}와 ${resume.fileName}의 적합도가 매우 높습니다. ${familyLabel} 경험을 전면에 세우면 강한 지원 시그널이 됩니다.`
-      : `${job.company.name} ${job.title}는 합격 가능성이 높은 편입니다. 핵심 요건은 맞지만 경력 근거를 더 구체화하면 좋습니다.`;
-
-  const strengths = [
-    `${familyLabel} 직무와 연결되는 이력서 버전이 선택되어 공고 키워드 매칭이 좋습니다.`,
-    job.kicpaCondition === KicpaCondition.REQUIRED
-      ? "KICPA 필수 조건을 지원서 상단에서 바로 증빙할 수 있습니다."
-      : "KICPA 우대/회계 전문성 신호를 강점으로 활용할 수 있습니다.",
-    job.traineeStatus === TraineeStatus.AVAILABLE
-      ? "수습 가능 공고라 초기 커리어 설계와 실무수습 니즈가 잘 맞습니다."
-      : "실무 투입 가능성을 프로젝트 산출물 중심으로 설명하기 좋습니다.",
-  ];
-  const companyPriorities = [
-    `${job.company.name}는 ${familyLabel} 실무를 빠르게 맡을 수 있는 지원자를 우선적으로 볼 가능성이 높습니다.`,
-    "마감 전형에서는 직무 경험, 자격 요건, 커뮤니케이션 안정성을 짧은 시간 안에 확인하려 합니다.",
-    "공고 본문 기준으로 증빙 가능한 경험과 지원 동기의 구체성이 중요합니다.",
-  ];
-  const gaps = [
-    job.minExperienceYears && job.minExperienceYears > 0
-      ? `요구 경력 ${job.minExperienceYears}년 이상을 충족한다는 근거를 숫자와 산출물로 보강해야 합니다.`
-      : "신입/주니어 가능성이 높지만 지원 동기와 학습 속도 근거를 더 선명하게 보여줘야 합니다.",
-    "이력서 첫 페이지에서 회사 선택 이유가 약하면 최종 설득력이 떨어질 수 있습니다.",
-  ];
-
-  return {
-    fitScore: score,
-    summary,
-    strengths,
-    companyPriorities,
-    gaps,
-    recommendation:
-      "지원 전 이력서 첫 페이지에 직무 관련 프로젝트 2개, KICPA/수습 가능 여부, 회사 선택 이유를 함께 배치하세요.",
-    rawJson: {
-      version: "mock-seed-v1",
-      source: "prisma/mock.ts",
-      inputs: {
-        jobId: job.id,
-        resumeId: resume.id,
-        jobFamily: job.jobFamily,
-        score,
-      },
-    },
-  };
-}
-
-const jobFamilyDisplayNamesForMock: Record<JobFamily, string> = {
-  [JobFamily.AUDIT]: "감사",
-  [JobFamily.TAX]: "세무",
-  [JobFamily.FAS]: "FAS",
-  [JobFamily.DEAL]: "Deal Advisory",
-  [JobFamily.INTERNAL_ACCOUNTING]: "내부회계관리제도",
-  [JobFamily.IN_HOUSE]: "인하우스 재무회계",
-};
-
-async function upsertMockJobFitAnalyses(userId: string, resumes: Resume[]) {
-  const analysisJobUrls = [
-    "https://example.com/jobs/hanbit-audit-trainee",
-    "https://example.com/jobs/samil-deal-junior",
-    "https://example.com/jobs/dunamu-icfr",
-    "https://example.com/generated/jobs/0001",
-    "https://example.com/generated/jobs/0002",
-  ];
-  const jobs = await prisma.job.findMany({
-    where: { originalUrl: { in: analysisJobUrls } },
-    include: { company: { select: { name: true } } },
-  });
-  const jobByUrl = new Map(jobs.map((job) => [job.originalUrl, job]));
-  let analysisCount = 0;
-
-  for (const [index, resume] of resumes.entries()) {
-    const job = jobByUrl.get(analysisJobUrls[index]);
-    if (!job) continue;
-    const payload = buildMockAnalysisPayload(index, job, resume);
-
-    await prisma.jobFitAnalysis.upsert({
-      where: {
-        userId_jobId_resumeId: {
-          userId,
-          jobId: job.id,
-          resumeId: resume.id,
-        },
-      },
-      update: payload,
-      create: {
-        userId,
-        jobId: job.id,
-        resumeId: resume.id,
-        ...payload,
-      },
-    });
-    analysisCount += 1;
-  }
-
-  return analysisCount;
+async function deleteSeededJobFitAnalyses() {
+  return prisma.$executeRaw`
+    DELETE FROM "JobFitAnalysis"
+    WHERE "rawJson"->>'source' = 'prisma/mock.ts'
+       OR "rawJson"->>'version' = 'mock-seed-v1'
+  `;
 }
 
 function buildCareerVerificationMetadata(company: Company) {
@@ -1150,9 +1581,295 @@ async function upsertCompanyLogoAsset(
 }
 
 const communitySeedUsernames = jobSeekerMockUsers.map((user) => user.username);
+const GENERATED_COMMUNITY_POST_COUNT = 100;
 
 function seedDate(dayOffset: number, hour = 9) {
   return new Date(Date.UTC(2026, 4, 13 - dayOffset, hour, 0, 0));
+}
+
+type CommunityAnswerSeed = {
+  authorIndex: number;
+  content: string;
+  isAnonymous: boolean;
+  likeCount: number;
+  isAccepted?: boolean;
+};
+
+type CommunityPostSeed = {
+  boardType: CommunityBoardType;
+  title: string;
+  content: string;
+  status: CommunityPostStatus;
+  tags: string[];
+  authorIndex: number;
+  isAnonymous: boolean;
+  viewCount: number;
+  likeCount: number;
+  dayOffset: number;
+  answers: CommunityAnswerSeed[];
+};
+
+type GeneratedCommunityTemplate = {
+  boardType: CommunityBoardType;
+  titleSeeds: string[];
+  titleSuffixes: string[];
+  contentSeeds: string[];
+  contextSeeds: string[];
+  tagSets: string[][];
+  answerSeeds: string[];
+};
+
+function buildGeneratedCommunityPostSeeds(count: number): CommunityPostSeed[] {
+  const templates: GeneratedCommunityTemplate[] = [
+    {
+      boardType: CommunityBoardType.CPA_PREP,
+      titleSeeds: [
+        "감사 신입 공고를 비교할 때 어디를 먼저 보시나요",
+        "세무팀 지원 전에 준비하면 좋은 실무 키워드",
+        "KICPA 우대 공고와 필수 공고 차이가 궁금합니다",
+        "수습 가능 로컬 회계법인 찾는 기준 공유 부탁드립니다",
+        "FAS 관심자가 감사 공고도 같이 봐야 할까요",
+        "면접에서 시험 일정 질문을 받으면 어떻게 답하시나요",
+      ],
+      titleSuffixes: [
+        "지원 전 체크",
+        "서류 준비",
+        "면접 대비",
+        "초보 질문",
+        "경험 공유 요청",
+      ],
+      contentSeeds: [
+        "공고가 많아지니 어떤 조건을 우선해야 할지 헷갈립니다.",
+        "비슷한 직무명이어도 실제 업무 범위가 달라 보여서 고민입니다.",
+        "첫 지원이라 지원서에 어떤 경험을 앞세울지 정리하고 있습니다.",
+        "마감일이 가까운 공고와 상시채용 공고를 같이 보니 우선순위가 어렵습니다.",
+        "관심 공고를 저장해두고 비교하는 중인데 실무자 관점이 궁금합니다.",
+      ],
+      contextSeeds: [
+        "서울권 로컬 회계법인",
+        "Big4 감사본부",
+        "세무회계 사무소",
+        "FAS 주니어 포지션",
+        "KICPA 우대 신입 공고",
+      ],
+      tagSets: [
+        ["신입", "감사", "공고비교"],
+        ["세무", "면접준비", "엑셀"],
+        ["KICPA", "수습", "지원전략"],
+        ["FAS", "Deal", "주니어"],
+        ["자기소개서", "커리어", "초보질문"],
+      ],
+      answerSeeds: [
+        "공고의 담당 업무, 수습 가능 여부, 마감 방식을 먼저 나눠 보면 판단이 쉬워집니다.",
+        "지원 전에 원문 링크와 회사 페이지를 같이 열어두면 면접 준비까지 이어가기 좋습니다.",
+        "우대 조건은 점수표처럼 보기보다 본인이 설명할 수 있는 경험과 연결하는 편이 좋았습니다.",
+        "비슷한 공고라도 교육 체계와 리뷰어 구조가 다르니 면접에서 꼭 물어보세요.",
+      ],
+    },
+    {
+      boardType: CommunityBoardType.TRAINEE,
+      titleSeeds: [
+        "수습 기간 중 업무 기록은 어느 정도 자세히 남기시나요",
+        "첫 감사 현장 투입 전에 확인할 체크리스트",
+        "실무수습기관 인정 여부를 다시 확인하는 방법",
+        "성수기 일정 관리가 어려울 때 도움이 된 방식",
+        "리뷰 코멘트를 빠르게 반영하는 노하우가 궁금합니다",
+        "수습 중 관심 공고를 계속 봐도 괜찮을까요",
+      ],
+      titleSuffixes: [
+        "현장 질문",
+        "수습 일지",
+        "업무 루틴",
+        "멘토 조언",
+        "경험 공유",
+      ],
+      contentSeeds: [
+        "요즘 맡는 업무가 늘어나면서 기록과 복습을 어떻게 해야 할지 고민입니다.",
+        "현장에서 바로 물어보기 애매한 내용이 있어 선배님들 경험을 듣고 싶습니다.",
+        "공고에서 본 내용과 실제 배정 업무가 조금 달라 확인할 기준을 찾고 있습니다.",
+        "마감 일정과 리뷰 일정이 겹칠 때 우선순위를 잡는 방식이 궁금합니다.",
+        "처음 보는 절차가 많아서 실수하지 않으려면 어떤 준비가 필요할지 알고 싶습니다.",
+      ],
+      contextSeeds: [
+        "재고실사",
+        "매출 테스트",
+        "계정별 조서 작성",
+        "수습 인정 자료",
+        "성수기 감사팀",
+      ],
+      tagSets: [
+        ["수습", "감사", "기록"],
+        ["실무수습", "멘토링", "질문"],
+        ["성수기", "일정관리", "리뷰"],
+        ["재고실사", "체크리스트", "현장"],
+        ["조서작성", "업무루틴", "피드백"],
+      ],
+      answerSeeds: [
+        "날짜, 고객사, 절차, 산출물을 한 줄로 남기고 주간 단위로 다시 정리하면 좋았습니다.",
+        "리뷰 코멘트는 바로 고치기보다 왜 나온 지적이었는지 한 줄 메모를 남겨두면 반복이 줄었습니다.",
+        "수습 인정과 관련된 내용은 담당자에게 메일로 확인해 기록을 남기는 편이 안전합니다.",
+        "현장 업무는 준비물과 연락처, 표본 리스트를 전날에 다시 확인하는 것만으로도 실수가 줄었습니다.",
+      ],
+    },
+    {
+      boardType: CommunityBoardType.SENIOR,
+      titleSeeds: [
+        "감사 경력으로 내부회계 포지션 지원할 때 강조할 점",
+        "FAS 이직 준비 시 포트폴리오처럼 정리할 수 있는 경험",
+        "상장사 공시 담당 공고에서 꼭 확인하는 조건",
+        "금융사 회계 포지션은 어떤 역량을 더 보나요",
+        "로컬에서 Big4로 이동한 분들 경험이 궁금합니다",
+        "공공기관 회계직으로 전환할 때 준비한 것",
+      ],
+      titleSuffixes: [
+        "경력 이직",
+        "실무 관점",
+        "면접 포인트",
+        "조건 비교",
+        "경험 질문",
+      ],
+      contentSeeds: [
+        "공고를 읽다 보면 기존 경험이 어느 정도 인정될지 판단하기 어렵습니다.",
+        "직무명은 비슷하지만 요구하는 산출물과 협업 방식이 달라 보여 고민입니다.",
+        "이직 준비를 하면서 경력기술서에 어떤 프로젝트를 앞에 둘지 정리하고 있습니다.",
+        "회사 유형별로 기대하는 회계사 역할이 달라지는지 경험을 듣고 싶습니다.",
+        "면접에서 실무 깊이를 어떻게 보여주면 좋을지 사례가 궁금합니다.",
+      ],
+      contextSeeds: [
+        "내부회계 운영",
+        "FAS 재무실사",
+        "연결결산",
+        "공시 담당",
+        "금융 리스크 관리",
+      ],
+      tagSets: [
+        ["이직", "내부회계", "경력"],
+        ["FAS", "재무실사", "Big4"],
+        ["공시", "상장사", "연결결산"],
+        ["금융사", "리스크", "회계"],
+        ["공공기관", "정산", "커리어"],
+      ],
+      answerSeeds: [
+        "감사 경험은 테스트 절차보다 쟁점을 어떻게 정리하고 설득했는지까지 설명하면 강점이 됩니다.",
+        "프로젝트명보다 본인이 맡은 판단, 산출물, 이해관계자 조율을 구체적으로 쓰는 편이 좋았습니다.",
+        "공고에 적힌 시스템이나 산업 경험이 부족해도 유사한 검증 경험을 연결해서 말할 수 있습니다.",
+        "경력직 면접에서는 성과보다도 재현 가능한 업무 방식과 리스크 감각을 많이 봤습니다.",
+      ],
+    },
+    {
+      boardType: CommunityBoardType.FREE,
+      titleSeeds: [
+        "오늘 본 공고 중 저장해둘 만한 조건 공유합니다",
+        "커뮤니티에 있으면 좋을 기능 아이디어",
+        "회사 상세 페이지를 볼 때 제일 유용했던 정보",
+        "면접 일정 관리할 때 쓰는 작은 습관",
+        "마감 임박 공고를 놓치지 않는 방법",
+        "공고 원문 링크를 같이 정리하니 편하네요",
+      ],
+      titleSuffixes: [
+        "잡담",
+        "팁 공유",
+        "데이터 후기",
+        "사용 경험",
+        "가벼운 메모",
+      ],
+      contentSeeds: [
+        "공고를 여러 개 보다 보니 작은 기준 하나가 지원 판단에 꽤 도움이 됐습니다.",
+        "오늘 커뮤니티와 공고 목록을 같이 보면서 느낀 점을 남깁니다.",
+        "회사 정보와 공고 정보를 함께 비교하니 생각보다 빠르게 후보가 줄었습니다.",
+        "마감일과 원문 링크를 같이 관리하니 지원 일정이 훨씬 덜 헷갈립니다.",
+        "다른 분들은 어떤 방식으로 관심 공고를 정리하는지 궁금합니다.",
+      ],
+      contextSeeds: [
+        "마감순 정렬",
+        "관심 공고",
+        "회사 연봉 정보",
+        "직무 태그",
+        "캘린더 화면",
+      ],
+      tagSets: [
+        ["잡담", "공고탐색", "팁"],
+        ["관심공고", "마감관리", "원문링크"],
+        ["회사정보", "연봉", "후기"],
+        ["커뮤니티", "아이디어", "사용성"],
+        ["캘린더", "D-day", "지원관리"],
+      ],
+      answerSeeds: [
+        "저도 비슷하게 쓰고 있는데 태그와 마감일을 같이 보면 놓치는 공고가 줄었습니다.",
+        "원문 링크를 따로 저장해두면 면접 직전에 공고 내용을 다시 확인하기 좋았습니다.",
+        "회사 상세 정보까지 같이 보면 단순히 유명한 회사보다 나에게 맞는 공고를 찾기 쉽습니다.",
+        "관심 공고를 너무 많이 저장하면 다시 헷갈려서 주 1회 정리하는 편이 좋았습니다.",
+      ],
+    },
+  ];
+
+  return Array.from({ length: count }, (_, index) => {
+    const template = templates[index % templates.length];
+    const localIndex = Math.floor(index / templates.length);
+    const statusCycle =
+      template.boardType === CommunityBoardType.FREE
+        ? [
+            CommunityPostStatus.FREE,
+            CommunityPostStatus.INFO,
+            CommunityPostStatus.FREE,
+            CommunityPostStatus.INFO,
+          ]
+        : [
+            CommunityPostStatus.QUESTION,
+            CommunityPostStatus.ANSWERED,
+            CommunityPostStatus.QUESTION,
+            CommunityPostStatus.INFO,
+          ];
+    const status = statusCycle[localIndex % statusCycle.length];
+    const titleSeed =
+      template.titleSeeds[localIndex % template.titleSeeds.length];
+    const titleSuffix =
+      template.titleSuffixes[
+        (localIndex + index) % template.titleSuffixes.length
+      ];
+    const context =
+      template.contextSeeds[
+        (localIndex + index) % template.contextSeeds.length
+      ];
+    const tags = template.tagSets[localIndex % template.tagSets.length];
+    const answered = status === CommunityPostStatus.ANSWERED;
+    const answerBase =
+      template.answerSeeds[(localIndex + 1) % template.answerSeeds.length];
+    const firstAnswer: CommunityAnswerSeed = {
+      authorIndex: (localIndex + index + 2) % communitySeedUsernames.length,
+      content: `${answerBase} ${context} 기준으로도 먼저 확인할 항목을 정해두면 비교가 훨씬 편합니다.`,
+      isAnonymous: (localIndex + index) % 2 === 0,
+      likeCount: 3 + ((localIndex * 5 + index) % 18),
+      isAccepted: answered,
+    };
+    const secondAnswer: CommunityAnswerSeed = {
+      authorIndex: (localIndex + index + 4) % communitySeedUsernames.length,
+      content:
+        "저는 공고 원문, 회사 페이지, 마감일을 한 번에 열어두고 지원 여부를 판단하는 방식이 제일 안정적이었습니다.",
+      isAnonymous: (localIndex + index) % 3 === 0,
+      likeCount: 1 + ((localIndex * 3 + index) % 10),
+    };
+    const answers =
+      answered || localIndex % 3 === 0
+        ? [firstAnswer, ...(localIndex % 5 === 0 ? [secondAnswer] : [])]
+        : [];
+
+    return {
+      boardType: template.boardType,
+      title: `${titleSeed} - ${titleSuffix}`,
+      content: `${
+        template.contentSeeds[localIndex % template.contentSeeds.length]
+      } 특히 ${context} 기준으로 보면 어떤 신호를 먼저 봐야 할지 의견을 듣고 싶습니다.`,
+      status,
+      tags,
+      authorIndex: (localIndex + index + 1) % communitySeedUsernames.length,
+      isAnonymous: (localIndex + index) % 4 === 0,
+      viewCount: 24 + ((index * 17 + localIndex * 11) % 360),
+      likeCount: 1 + ((index * 7 + localIndex * 3) % 42),
+      dayOffset: 9 + index,
+      answers,
+    };
+  });
 }
 
 async function seedCommunityData(
@@ -1171,7 +1888,7 @@ async function seedCommunityData(
     where: { authorId: { in: authors.map((author) => author.id) } },
   });
 
-  const postSeeds = [
+  const postSeeds: CommunityPostSeed[] = [
     {
       boardType: CommunityBoardType.CPA_PREP,
       title: "1차 합격 후 수습 공고를 언제부터 봐야 할까요?",
@@ -1348,6 +2065,377 @@ async function seedCommunityData(
       dayOffset: 8,
       answers: [],
     },
+    {
+      boardType: CommunityBoardType.CPA_PREP,
+      title:
+        "회계법인 지원 전에 자기소개서에서 꼭 보여줘야 하는 역량이 있을까요?",
+      content:
+        "첫 지원이라 감사조서 경험은 없고 학교 프로젝트와 인턴 경험만 있습니다. 수습 가능 공고에 지원할 때 문제 해결력, 꼼꼼함, 커뮤니케이션 중 어떤 부분을 더 앞에 두면 좋을지 조언 부탁드립니다.",
+      status: CommunityPostStatus.ANSWERED,
+      tags: ["자기소개서", "수습", "신입"],
+      authorIndex: 1,
+      isAnonymous: false,
+      viewCount: 243,
+      likeCount: 24,
+      dayOffset: 0,
+      answers: [
+        {
+          authorIndex: 3,
+          content:
+            "감사 신입은 완성된 실무 역량보다 자료를 끝까지 추적한 경험을 구체적으로 쓰는 게 좋았습니다. 숫자 오류를 찾아낸 사례나 일정 관리 사례를 짧게 넣어 보세요.",
+          isAnonymous: false,
+          likeCount: 15,
+          isAccepted: true,
+        },
+        {
+          authorIndex: 6,
+          content:
+            "커뮤니케이션은 추상적으로 쓰기보다 요청 자료 목록을 정리하고 확인한 방식처럼 실제 행동으로 보여주는 편이 설득력 있습니다.",
+          isAnonymous: true,
+          likeCount: 8,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.CPA_PREP,
+      title: "세무팀 신입은 엑셀을 어느 정도까지 준비해야 하나요?",
+      content:
+        "세무조정이나 신고 업무를 바로 맡지는 않더라도 엑셀 테스트가 있다는 얘기를 들었습니다. 피벗, XLOOKUP, SUMIFS 정도면 충분한지 궁금합니다.",
+      status: CommunityPostStatus.QUESTION,
+      tags: ["세무", "엑셀", "면접준비"],
+      authorIndex: 0,
+      isAnonymous: true,
+      viewCount: 158,
+      likeCount: 13,
+      dayOffset: 1,
+      answers: [
+        {
+          authorIndex: 3,
+          content:
+            "기본 함수와 피벗은 꼭 익히고, 신고 자료를 거래처별/계정별로 정리하는 연습을 해두면 좋습니다. 실무에서는 파일 구조를 흐트러뜨리지 않는 습관도 중요합니다.",
+          isAnonymous: false,
+          likeCount: 10,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.CPA_PREP,
+      title: "면접에서 KICPA 유예생이라고 말할 때 불리하지 않을까요?",
+      content:
+        "2차 일부 과목을 남겨둔 상태입니다. 공고에는 KICPA 우대라고 되어 있는데 유예생도 긍정적으로 봐주는지, 시험 일정은 어떻게 설명하면 좋을지 궁금합니다.",
+      status: CommunityPostStatus.QUESTION,
+      tags: ["KICPA", "유예생", "면접"],
+      authorIndex: 1,
+      isAnonymous: true,
+      viewCount: 121,
+      likeCount: 7,
+      dayOffset: 2,
+      answers: [
+        {
+          authorIndex: 2,
+          content:
+            "시험 일정을 숨기기보다 성수기와 겹치지 않는 준비 계획을 말하는 편이 낫습니다. 팀에서는 예측 가능한 일정 공유를 더 중요하게 봅니다.",
+          isAnonymous: false,
+          likeCount: 6,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.CPA_PREP,
+      title: "로컬 회계법인과 중소 세무법인 중 첫 커리어 선택 고민",
+      content:
+        "감사 경험을 쌓고 싶지만 세무 실무도 배우고 싶습니다. 로컬 회계법인 감사팀과 중소 세무법인 컨설팅팀 중 첫 커리어로 어떤 선택이 확장성이 있을까요?",
+      status: CommunityPostStatus.ANSWERED,
+      tags: ["커리어", "로컬", "세무법인"],
+      authorIndex: 5,
+      isAnonymous: false,
+      viewCount: 302,
+      likeCount: 31,
+      dayOffset: 3,
+      answers: [
+        {
+          authorIndex: 4,
+          content:
+            "감사 커리어를 열어두고 싶다면 외부감사 경험을 먼저 확보하는 쪽이 선택지가 넓었습니다. 세무는 이후에도 프로젝트나 이직으로 보완할 기회가 많습니다.",
+          isAnonymous: false,
+          likeCount: 18,
+          isAccepted: true,
+        },
+        {
+          authorIndex: 3,
+          content:
+            "세무 쪽이 명확히 맞다면 신고 시즌을 겪어보는 것도 좋습니다. 다만 공고 설명에서 담당 업무 범위가 너무 기장 위주인지 확인하세요.",
+          isAnonymous: false,
+          likeCount: 12,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.TRAINEE,
+      title: "수습 일지 작성할 때 어떤 단위로 정리하시나요?",
+      content:
+        "업무가 여러 고객사로 나뉘다 보니 하루 단위로 쓰면 너무 길어지고, 프로젝트 단위로 쓰면 날짜 흐름이 안 보입니다. 실제 수습 인정 받을 때 보기 좋은 형식이 있을까요?",
+      status: CommunityPostStatus.ANSWERED,
+      tags: ["수습일지", "감사", "기록"],
+      authorIndex: 2,
+      isAnonymous: false,
+      viewCount: 177,
+      likeCount: 19,
+      dayOffset: 0,
+      answers: [
+        {
+          authorIndex: 6,
+          content:
+            "날짜, 고객사, 주요 절차, 산출물을 한 줄로 남기고 주말에 프로젝트별로 묶어 요약했습니다. 나중에 증빙 찾기가 훨씬 쉽습니다.",
+          isAnonymous: false,
+          likeCount: 14,
+          isAccepted: true,
+        },
+        {
+          authorIndex: 4,
+          content:
+            "리뷰 받은 사항을 별도 칸에 적어두면 같은 지적을 줄이는 데 도움이 됩니다.",
+          isAnonymous: true,
+          likeCount: 6,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.TRAINEE,
+      title: "첫 재고실사 배정 전에 준비할 체크리스트 공유 부탁드립니다",
+      content:
+        "이번 주말에 처음 재고실사를 나갑니다. 전표나 장부보다 현장 대응이 걱정되는데, 챙겨야 할 물품이나 확인해야 할 절차가 있을까요?",
+      status: CommunityPostStatus.QUESTION,
+      tags: ["재고실사", "감사절차", "수습"],
+      authorIndex: 5,
+      isAnonymous: true,
+      viewCount: 99,
+      likeCount: 8,
+      dayOffset: 1,
+      answers: [
+        {
+          authorIndex: 2,
+          content:
+            "실사표, 표본 리스트, 필기구, 보조배터리, 담당자 연락처는 기본이고 사진 촬영 가능 여부를 미리 확인하세요. 이동 동선도 생각보다 중요합니다.",
+          isAnonymous: false,
+          likeCount: 9,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.TRAINEE,
+      title: "성수기 야근이 많은 팀인지 공고만 보고 가늠할 수 있나요?",
+      content:
+        "수습 기간에는 배우는 게 우선이라고 생각하지만 팀별 업무량 차이가 너무 크다는 얘기를 들어 걱정됩니다. 공고에서 체크할 수 있는 표현이 있을까요?",
+      status: CommunityPostStatus.QUESTION,
+      tags: ["성수기", "팀문화", "공고읽기"],
+      authorIndex: 2,
+      isAnonymous: true,
+      viewCount: 141,
+      likeCount: 10,
+      dayOffset: 3,
+      answers: [
+        {
+          authorIndex: 6,
+          content:
+            "상장사 감사, 연결 패키지, IPO, 대형 고객사 상주 표현이 많으면 바쁜 편일 수 있습니다. 면접에서 최근 3개월 평균 투입 프로젝트 수를 물어보는 것도 괜찮습니다.",
+          isAnonymous: false,
+          likeCount: 11,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.TRAINEE,
+      title: "수습 가능 공고 중 재택/하이브리드는 실제로 얼마나 지켜지나요?",
+      content:
+        "공고에는 하이브리드라고 되어 있어도 감사 현장은 출장이 많다고 들었습니다. 수습 회계사에게도 재택이 현실적으로 가능한지 궁금합니다.",
+      status: CommunityPostStatus.QUESTION,
+      tags: ["하이브리드", "근무환경", "수습"],
+      authorIndex: 5,
+      isAnonymous: false,
+      viewCount: 112,
+      likeCount: 5,
+      dayOffset: 5,
+      answers: [],
+    },
+    {
+      boardType: CommunityBoardType.SENIOR,
+      title:
+        "Big4 감사 4년차에서 FAS로 이동하려면 어떤 경험을 강조해야 할까요?",
+      content:
+        "감사 경험은 제조업과 플랫폼 고객사가 많고, 실사 프로젝트는 보조로 한 번 참여했습니다. FAS 주니어/시니어 경계 공고에 지원할 때 어떤 키워드를 앞세우면 좋을까요?",
+      status: CommunityPostStatus.ANSWERED,
+      tags: ["FAS", "Big4", "이직"],
+      authorIndex: 3,
+      isAnonymous: false,
+      viewCount: 331,
+      likeCount: 35,
+      dayOffset: 0,
+      answers: [
+        {
+          authorIndex: 6,
+          content:
+            "매출 인식, 운전자본, 우발부채처럼 실사에서 바로 쓰이는 감사 포인트를 거래 관점으로 설명해 보세요. 데이터룸 자료 검토 경험도 좋습니다.",
+          isAnonymous: false,
+          likeCount: 22,
+          isAccepted: true,
+        },
+        {
+          authorIndex: 4,
+          content:
+            "보고서 작성 경험이 있다면 목차 구성과 쟁점 요약을 해본 사례를 강조하는 게 좋았습니다.",
+          isAnonymous: true,
+          likeCount: 9,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.SENIOR,
+      title: "내부회계 운영 담당으로 옮긴 뒤 가장 크게 달라진 점",
+      content:
+        "감사할 때는 테스트 결과를 전달하는 입장이었는데, 회사 안에서는 통제 설계와 현업 설득이 훨씬 중요했습니다. 이직 준비하시는 분들은 RCM과 프로세스 문서화 경험을 꼭 정리해 두세요.",
+      status: CommunityPostStatus.INFO,
+      tags: ["내부회계", "인하우스", "경험공유"],
+      authorIndex: 4,
+      isAnonymous: false,
+      viewCount: 268,
+      likeCount: 29,
+      dayOffset: 1,
+      answers: [
+        {
+          authorIndex: 6,
+          content:
+            "동의합니다. 운영 담당은 예외사항을 고치는 일정 조율까지 해야 해서 현업 언어로 설명하는 능력이 정말 중요했습니다.",
+          isAnonymous: false,
+          likeCount: 13,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.SENIOR,
+      title: "연결결산 공고에서 ERP 전환 경험 우대는 어느 정도 의미인가요?",
+      content:
+        "SAP나 Oracle 전환 경험 우대라고 적힌 공고가 많습니다. 실제로는 결산 프로세스 개선 경험 정도여도 지원해볼 만한지 궁금합니다.",
+      status: CommunityPostStatus.QUESTION,
+      tags: ["연결결산", "ERP", "상장사"],
+      authorIndex: 6,
+      isAnonymous: true,
+      viewCount: 186,
+      likeCount: 12,
+      dayOffset: 2,
+      answers: [
+        {
+          authorIndex: 4,
+          content:
+            "전환 프로젝트 풀타임 경험이 아니어도 계정 매핑, 결산 체크리스트 개선, 데이터 검증 경험이 있으면 충분히 이야기해볼 수 있습니다.",
+          isAnonymous: false,
+          likeCount: 10,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.SENIOR,
+      title: "공공기관 회계직은 민간 감사 경력을 어떻게 보나요?",
+      content:
+        "공공기관 회계/정산 담당 공고를 보고 있습니다. 민간 외부감사 경력이 보조금 정산이나 예산 업무로 연결될 수 있을까요?",
+      status: CommunityPostStatus.QUESTION,
+      tags: ["공공기관", "정산", "커리어전환"],
+      authorIndex: 3,
+      isAnonymous: true,
+      viewCount: 147,
+      likeCount: 9,
+      dayOffset: 4,
+      answers: [
+        {
+          authorIndex: 6,
+          content:
+            "증빙 검토와 감사 대응 경험은 연결됩니다. 다만 예산 집행 규정, 보조금 시스템, 공공기관 평가 일정은 별도로 학습하면 좋습니다.",
+          isAnonymous: false,
+          likeCount: 8,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.FREE,
+      title: "오늘 마감 D-day 공고만 모아서 보니 지원 우선순위가 확 잡히네요",
+      content:
+        "마감순 정렬에서 D-day 0 공고를 먼저 보고, 원문 지원 버튼을 누른 공고는 따로 체크했습니다. 급한 공고와 상시채용을 분리해서 보니 훨씬 덜 헷갈립니다.",
+      status: CommunityPostStatus.INFO,
+      tags: ["D-day", "마감순", "지원관리"],
+      authorIndex: 0,
+      isAnonymous: false,
+      viewCount: 205,
+      likeCount: 27,
+      dayOffset: 0,
+      answers: [
+        {
+          authorIndex: 1,
+          content:
+            "저도 상시채용은 따로 저장해두고 고정 마감 공고부터 처리합니다. 캘린더 화면이 같이 보이면 일정 잡기 편하더라고요.",
+          isAnonymous: false,
+          likeCount: 11,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.FREE,
+      title: "회사 페이지에서 평균 연봉과 직원 추이를 같이 보니 좋네요",
+      content:
+        "공고만 볼 때보다 회사 상세에서 직원 수, 평균 연봉, 최근 추이를 같이 보니 지원 판단이 빨라졌습니다. 특히 성장 중인 로컬 법인을 찾을 때 유용했습니다.",
+      status: CommunityPostStatus.FREE,
+      tags: ["회사정보", "연봉", "직원추이"],
+      authorIndex: 5,
+      isAnonymous: false,
+      viewCount: 184,
+      likeCount: 20,
+      dayOffset: 2,
+      answers: [
+        {
+          authorIndex: 3,
+          content:
+            "저는 공고의 업무 범위와 회사 페이지의 태그가 일치하는지도 봅니다. 데이터가 맞물리면 신뢰가 더 가는 것 같아요.",
+          isAnonymous: false,
+          likeCount: 7,
+        },
+      ],
+    },
+    {
+      boardType: CommunityBoardType.FREE,
+      title: "면접 일정 잡을 때 원문 링크를 같이 남겨두면 편합니다",
+      content:
+        "같은 회사가 비슷한 포지션을 여러 개 올리면 나중에 어떤 공고로 지원했는지 헷갈립니다. 원문 링크와 플랫폼 공고 링크를 둘 다 저장해두는 습관 추천합니다.",
+      status: CommunityPostStatus.INFO,
+      tags: ["면접", "원문링크", "팁"],
+      authorIndex: 2,
+      isAnonymous: true,
+      viewCount: 132,
+      likeCount: 14,
+      dayOffset: 4,
+      answers: [],
+    },
+    {
+      boardType: CommunityBoardType.FREE,
+      title: "커뮤니티에 면접 질문 모음도 있으면 좋겠습니다",
+      content:
+        "감사, 세무, FAS, 인하우스별로 자주 나오는 질문을 모아두면 공고 탐색 다음 단계까지 자연스럽게 이어질 것 같습니다. 각자 받은 질문을 익명으로 공유해도 좋겠네요.",
+      status: CommunityPostStatus.FREE,
+      tags: ["면접질문", "커뮤니티", "아이디어"],
+      authorIndex: 1,
+      isAnonymous: true,
+      viewCount: 76,
+      likeCount: 6,
+      dayOffset: 6,
+      answers: [
+        {
+          authorIndex: 6,
+          content:
+            "직무별 질문과 답변 방향을 나누면 좋겠습니다. 특히 내부회계와 공시는 실무 질문이 꽤 다릅니다.",
+          isAnonymous: false,
+          likeCount: 5,
+        },
+      ],
+    },
+    ...buildGeneratedCommunityPostSeeds(GENERATED_COMMUNITY_POST_COUNT),
   ];
 
   for (const [postIndex, seed] of postSeeds.entries()) {
@@ -1604,12 +2692,7 @@ async function seedBookmarksPresetsAndSubscriptions(
 type AnalyticsSeedUser = { id: string; username: string };
 type AnalyticsSeedJob = Pick<
   Job,
-  | "id"
-  | "companyId"
-  | "companyType"
-  | "jobFamily"
-  | "deadlineType"
-  | "status"
+  "id" | "companyId" | "companyType" | "jobFamily" | "deadlineType" | "status"
 >;
 
 const companyTypeAnalyticsWeight: Record<CompanyType, number> = {
@@ -1673,7 +2756,7 @@ function calculateDailyAnalyticsCounts(
   dayOffset: number,
 ) {
   const weekdayPattern = [1.2, 0.9, 1.05, 1.25, 1.15, 0.65, 0.75];
-  const recencyBoost = 1 + ((ANALYTICS_SEED_DAYS - dayOffset) / 100);
+  const recencyBoost = 1 + (ANALYTICS_SEED_DAYS - dayOffset) / 100;
   const campaignPulse =
     (jobIndex + dayOffset) % 11 === 0
       ? 1.45
@@ -1747,10 +2830,7 @@ function appendAnalyticsEvents(
         eventIndex,
         allowAnonymous,
       ),
-      createdAt: createAnalyticsEventDate(
-        dayOffset,
-        sequenceBase + eventIndex,
-      ),
+      createdAt: createAnalyticsEventDate(dayOffset, sequenceBase + eventIndex),
     });
   }
 }
@@ -2240,6 +3320,8 @@ async function main() {
       minExperienceYears: 0,
       maxExperienceYears: 1,
       location: "서울 중구",
+      aiSummary:
+        "수습 CPA 지원자가 감사조서 작성과 재무제표 검토를 빠르게 경험하기 좋은 공고입니다. 실무수습기관 요건이 명확하고 온보딩·리뷰어 피드백이 있어 첫 감사 현장 경험을 쌓기 좋습니다.",
       deadlineType: DeadlineType.FIXED_DATE,
       deadline: new Date("2026-05-08T14:59:59.000Z"),
       labels: [traineeLabel, kicpaPreferredLabel, urgentLabel],
@@ -2260,6 +3342,8 @@ async function main() {
       minExperienceYears: 1,
       maxExperienceYears: 3,
       location: "서울 영등포구",
+      aiSummary:
+        "KICPA 자격과 Deal 프로젝트 경험을 우대하는 주니어 재무자문 공고입니다. 재무실사, 밸류에이션, Q&A 관리 경험을 숫자와 산출물 중심으로 정리하면 매칭도가 높습니다.",
       deadlineType: DeadlineType.UNTIL_FILLED,
       deadline: null,
       labels: [kicpaPreferredLabel],
@@ -2280,6 +3364,8 @@ async function main() {
       minExperienceYears: 4,
       maxExperienceYears: 8,
       location: "서울 강남구",
+      aiSummary:
+        "상장사 내부회계 운영평가와 외부감사 대응 경험을 가진 경력자에게 맞는 공고입니다. RCM 업데이트, 통제 설계·운영평가, 개선 과제 추적 경험을 구체적으로 보여주는 것이 중요합니다.",
       deadlineType: DeadlineType.FIXED_DATE,
       deadline: new Date("2026-05-31T14:59:59.000Z"),
       labels: [kicpaPreferredLabel],
@@ -2312,10 +3398,7 @@ async function main() {
   }
 
   const mockResumes = await upsertMockResumes(demoJobSeeker.id);
-  const mockAnalysisCount = await upsertMockJobFitAnalyses(
-    demoJobSeeker.id,
-    mockResumes,
-  );
+  const deletedMockAnalysisCount = await deleteSeededJobFitAnalyses();
 
   await seedCommunityData(userByUsername);
   await seedBookmarksPresetsAndSubscriptions(userByUsername, labelByName);
@@ -2325,7 +3408,7 @@ async function main() {
   );
 
   console.log(
-    `Inserted or updated mock data: ${TARGET_COMPANY_COUNT} companies, ${TARGET_JOB_COUNT} jobs, ${TARGET_COMPANY_COUNT + mockUsers.length} users, community posts, bookmarks, presets, ${mockResumes.length} resumes, ${mockAnalysisCount} job fit analyses, ${analyticsMockCounts.engagementEventCount} company analytics events, ${analyticsMockCounts.currentBookmarkCount} analytics bookmarks.`,
+    `Inserted or updated mock data: ${TARGET_COMPANY_COUNT} companies, ${TARGET_JOB_COUNT} jobs, ${TARGET_COMPANY_COUNT + mockUsers.length} users, community posts, bookmarks, presets, ${mockResumes.length} resumes, removed ${deletedMockAnalysisCount} seeded job fit analyses, ${analyticsMockCounts.engagementEventCount} company analytics events, ${analyticsMockCounts.currentBookmarkCount} analytics bookmarks.`,
   );
 }
 

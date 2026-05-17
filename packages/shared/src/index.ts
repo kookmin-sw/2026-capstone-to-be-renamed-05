@@ -252,6 +252,7 @@ export type JobAiSuggestion = {
 
 export type JobDetailItem = JobListItem & {
   description: string;
+  aiSummary: string | null;
   aiSuggestion: JobAiSuggestion | null;
 };
 
@@ -531,6 +532,21 @@ export type TagSubscriptionListResponse = {
   items: TagSubscriptionItem[];
 };
 
+export const RESUME_UPLOAD_LIMIT = 5;
+export const RESUME_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
+export const RESUME_ALLOWED_EXTENSIONS = [
+  "pdf",
+  "doc",
+  "docx",
+  "txt",
+  "hwp",
+  "hwpx",
+] as const;
+export type ResumeAllowedExtension = (typeof RESUME_ALLOWED_EXTENSIONS)[number];
+export const RESUME_ANALYSIS_FILE_EXTENSIONS = ["pdf", "docx", "txt"] as const;
+export type ResumeAnalysisFileExtension =
+  (typeof RESUME_ANALYSIS_FILE_EXTENSIONS)[number];
+
 export type ResumeItem = {
   id: string;
   fileName: string;
@@ -571,6 +587,7 @@ export type JobFitAnalysisListResponse = {
 export type CreateJobFitAnalysisPayload = {
   jobId: string;
   resumeId: string;
+  refresh?: boolean;
 };
 
 export type CreateJobFitAnalysisResponse = {

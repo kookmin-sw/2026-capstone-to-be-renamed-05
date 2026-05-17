@@ -7,39 +7,39 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		4F9B00012FB8D4510075DB9A /* BaseBoard.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF9B2FB8D3990075DB9A /* BaseBoard.xcframework */; };
-		4F9B00032FB8D4510075DB9A /* BoardServices.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF8A2FB8D3990075DB9A /* BoardServices.xcframework */; };
-		4F9B00052FB8D4510075DB9A /* CoreRE.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF8C2FB8D3990075DB9A /* CoreRE.xcframework */; };
-		4F9B00072FB8D4510075DB9A /* DesignLibrary.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFFA12FB8D3990075DB9A /* DesignLibrary.xcframework */; };
-		4F9B00092FB8D4510075DB9A /* FeatureFlags.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF922FB8D3990075DB9A /* FeatureFlags.xcframework */; };
-		4F9B000B2FB8D4510075DB9A /* FrontBoardServices.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF8B2FB8D3990075DB9A /* FrontBoardServices.xcframework */; };
-		4F9B000D2FB8D4510075DB9A /* MRUIKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF9C2FB8D3990075DB9A /* MRUIKit.xcframework */; };
-		4F9B000F2FB8D4510075DB9A /* RealitySimulationServices.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF8E2FB8D3990075DB9A /* RealitySimulationServices.xcframework */; };
-		4F9B00112FB8D4510075DB9A /* RenderBox.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF9E2FB8D3990075DB9A /* RenderBox.xcframework */; };
-		4F9B00132FB8D4510075DB9A /* SoftLinking.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFFA02FB8D3990075DB9A /* SoftLinking.xcframework */; };
-		4F9B00152FB8D4510075DB9A /* StopwatchSupport.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF932FB8D3990075DB9A /* StopwatchSupport.xcframework */; };
-		4F9B00172FB8D4510075DB9A /* TCC.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF942FB8D3990075DB9A /* TCC.xcframework */; };
-		4F9B00192FB8D4510075DB9A /* UIAccessibility.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF882FB8D3990075DB9A /* UIAccessibility.xcframework */; };
-		4F9B001B2FB8D4510075DB9A /* UIFoundation.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFFA22FB8D3990075DB9A /* UIFoundation.xcframework */; };
-		4F9B001D2FB8D4510075DB9A /* UIIntelligenceSupport.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF872FB8D3990075DB9A /* UIIntelligenceSupport.xcframework */; };
-		4F9B001F2FB8D4510075DB9A /* UIKitServices.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF972FB8D3990075DB9A /* UIKitServices.xcframework */; };
-		4F9B00212FB8D4510075DB9A /* UserActivity.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF902FB8D3990075DB9A /* UserActivity.xcframework */; };
+		4F7C35162FBA2A3B00E49219 /* MySwiftUI in Frameworks */ = {isa = PBXBuildFile; platformFilters = (xros, ); productRef = 4F7C35152FBA2A3B00E49219 /* MySwiftUI */; };
+		4F9B00012FB8D4510075DB9A /* BaseBoard.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF9B2FB8D3990075DB9A /* BaseBoard.xcframework */; platformFilters = (xros, ); };
+		4F9B00032FB8D4510075DB9A /* BoardServices.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF8A2FB8D3990075DB9A /* BoardServices.xcframework */; platformFilters = (xros, ); };
+		4F9B00052FB8D4510075DB9A /* CoreRE.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF8C2FB8D3990075DB9A /* CoreRE.xcframework */; platformFilters = (xros, ); };
+		4F9B00072FB8D4510075DB9A /* DesignLibrary.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFFA12FB8D3990075DB9A /* DesignLibrary.xcframework */; platformFilters = (xros, ); };
+		4F9B00092FB8D4510075DB9A /* FeatureFlags.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF922FB8D3990075DB9A /* FeatureFlags.xcframework */; platformFilters = (xros, ); };
+		4F9B000B2FB8D4510075DB9A /* FrontBoardServices.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF8B2FB8D3990075DB9A /* FrontBoardServices.xcframework */; platformFilters = (xros, ); };
+		4F9B000D2FB8D4510075DB9A /* MRUIKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF9C2FB8D3990075DB9A /* MRUIKit.xcframework */; platformFilters = (xros, ); };
+		4F9B000F2FB8D4510075DB9A /* RealitySimulationServices.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF8E2FB8D3990075DB9A /* RealitySimulationServices.xcframework */; platformFilters = (xros, ); };
+		4F9B00112FB8D4510075DB9A /* RenderBox.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF9E2FB8D3990075DB9A /* RenderBox.xcframework */; platformFilters = (xros, ); };
+		4F9B00132FB8D4510075DB9A /* SoftLinking.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFFA02FB8D3990075DB9A /* SoftLinking.xcframework */; platformFilters = (xros, ); };
+		4F9B00152FB8D4510075DB9A /* StopwatchSupport.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF932FB8D3990075DB9A /* StopwatchSupport.xcframework */; platformFilters = (xros, ); };
+		4F9B00172FB8D4510075DB9A /* TCC.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF942FB8D3990075DB9A /* TCC.xcframework */; platformFilters = (xros, ); };
+		4F9B00192FB8D4510075DB9A /* UIAccessibility.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF882FB8D3990075DB9A /* UIAccessibility.xcframework */; platformFilters = (xros, ); };
+		4F9B001B2FB8D4510075DB9A /* UIFoundation.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFFA22FB8D3990075DB9A /* UIFoundation.xcframework */; platformFilters = (xros, ); };
+		4F9B001D2FB8D4510075DB9A /* UIIntelligenceSupport.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF872FB8D3990075DB9A /* UIIntelligenceSupport.xcframework */; platformFilters = (xros, ); };
+		4F9B001F2FB8D4510075DB9A /* UIKitServices.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF972FB8D3990075DB9A /* UIKitServices.xcframework */; platformFilters = (xros, ); };
+		4F9B00212FB8D4510075DB9A /* UserActivity.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF902FB8D3990075DB9A /* UserActivity.xcframework */; platformFilters = (xros, ); };
 		4F9B00362FB8D5C30075DB9A /* AccountitAPI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9B00302FB8D5C30075DB9A /* AccountitAPI.framework */; };
 		4F9B00372FB8D5C30075DB9A /* AccountitAPI.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9B00302FB8D5C30075DB9A /* AccountitAPI.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		4F9B00452FB8D5DD0075DB9A /* AccountitAPI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9B00302FB8D5C30075DB9A /* AccountitAPI.framework */; };
-		4F9BFFE02FB8D42A0075DB9A /* MySwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 4F9BFFDF2FB8D42A0075DB9A /* MySwiftUI */; };
-		4F9BFFE92FB8D4510075DB9A /* _AccessibilityPrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF952FB8D3990075DB9A /* _AccessibilityPrivate.xcframework */; };
-		4F9BFFEB2FB8D4510075DB9A /* _CoreFoundationPrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF862FB8D3990075DB9A /* _CoreFoundationPrivate.xcframework */; };
-		4F9BFFED2FB8D4510075DB9A /* _CoreServicesPrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF8F2FB8D3990075DB9A /* _CoreServicesPrivate.xcframework */; };
-		4F9BFFEF2FB8D4510075DB9A /* _Elegibility.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF982FB8D3990075DB9A /* _Elegibility.xcframework */; };
-		4F9BFFF12FB8D4510075DB9A /* _FoundationPrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF962FB8D3990075DB9A /* _FoundationPrivate.xcframework */; };
-		4F9BFFF32FB8D4510075DB9A /* _ObservationPrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF992FB8D3990075DB9A /* _ObservationPrivate.xcframework */; };
-		4F9BFFF52FB8D4510075DB9A /* _QuartzCorePrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF912FB8D3990075DB9A /* _QuartzCorePrivate.xcframework */; };
-		4F9BFFF72FB8D4510075DB9A /* _SwiftPrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF9A2FB8D3990075DB9A /* _SwiftPrivate.xcframework */; };
-		4F9BFFF92FB8D4510075DB9A /* _SwiftUICorePrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF9F2FB8D3990075DB9A /* _SwiftUICorePrivate.xcframework */; };
-		4F9BFFFB2FB8D4510075DB9A /* _SwiftUIPrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF8D2FB8D3990075DB9A /* _SwiftUIPrivate.xcframework */; };
-		4F9BFFFD2FB8D4510075DB9A /* _UIKitPrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF9D2FB8D3990075DB9A /* _UIKitPrivate.xcframework */; };
-		4F9BFFFF2FB8D4510075DB9A /* AttributeGraph.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF892FB8D3990075DB9A /* AttributeGraph.xcframework */; };
+		4F9BFFE92FB8D4510075DB9A /* _AccessibilityPrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF952FB8D3990075DB9A /* _AccessibilityPrivate.xcframework */; platformFilters = (xros, ); };
+		4F9BFFEB2FB8D4510075DB9A /* _CoreFoundationPrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF862FB8D3990075DB9A /* _CoreFoundationPrivate.xcframework */; platformFilters = (xros, ); };
+		4F9BFFED2FB8D4510075DB9A /* _CoreServicesPrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF8F2FB8D3990075DB9A /* _CoreServicesPrivate.xcframework */; platformFilters = (xros, ); };
+		4F9BFFEF2FB8D4510075DB9A /* _Elegibility.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF982FB8D3990075DB9A /* _Elegibility.xcframework */; platformFilters = (xros, ); };
+		4F9BFFF12FB8D4510075DB9A /* _FoundationPrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF962FB8D3990075DB9A /* _FoundationPrivate.xcframework */; platformFilters = (xros, ); };
+		4F9BFFF32FB8D4510075DB9A /* _ObservationPrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF992FB8D3990075DB9A /* _ObservationPrivate.xcframework */; platformFilters = (xros, ); };
+		4F9BFFF52FB8D4510075DB9A /* _QuartzCorePrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF912FB8D3990075DB9A /* _QuartzCorePrivate.xcframework */; platformFilters = (xros, ); };
+		4F9BFFF72FB8D4510075DB9A /* _SwiftPrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF9A2FB8D3990075DB9A /* _SwiftPrivate.xcframework */; platformFilters = (xros, ); };
+		4F9BFFF92FB8D4510075DB9A /* _SwiftUICorePrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF9F2FB8D3990075DB9A /* _SwiftUICorePrivate.xcframework */; platformFilters = (xros, ); };
+		4F9BFFFB2FB8D4510075DB9A /* _SwiftUIPrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF8D2FB8D3990075DB9A /* _SwiftUIPrivate.xcframework */; platformFilters = (xros, ); };
+		4F9BFFFD2FB8D4510075DB9A /* _UIKitPrivate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF9D2FB8D3990075DB9A /* _UIKitPrivate.xcframework */; platformFilters = (xros, ); };
+		4F9BFFFF2FB8D4510075DB9A /* AttributeGraph.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF892FB8D3990075DB9A /* AttributeGraph.xcframework */; platformFilters = (xros, ); };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -220,7 +220,6 @@
 				4F9BFFED2FB8D4510075DB9A /* _CoreServicesPrivate.xcframework in Frameworks */,
 				4F9BFFE92FB8D4510075DB9A /* _AccessibilityPrivate.xcframework in Frameworks */,
 				4F9BFFF32FB8D4510075DB9A /* _ObservationPrivate.xcframework in Frameworks */,
-				4F9BFFE02FB8D42A0075DB9A /* MySwiftUI in Frameworks */,
 				4F9B00132FB8D4510075DB9A /* SoftLinking.xcframework in Frameworks */,
 				4F9B00212FB8D4510075DB9A /* UserActivity.xcframework in Frameworks */,
 				4F9B00362FB8D5C30075DB9A /* AccountitAPI.framework in Frameworks */,
@@ -238,6 +237,7 @@
 				4F9B00192FB8D4510075DB9A /* UIAccessibility.xcframework in Frameworks */,
 				4F9B00092FB8D4510075DB9A /* FeatureFlags.xcframework in Frameworks */,
 				4F9BFFFB2FB8D4510075DB9A /* _SwiftUIPrivate.xcframework in Frameworks */,
+				4F7C35162FBA2A3B00E49219 /* MySwiftUI in Frameworks */,
 				4F9B00172FB8D4510075DB9A /* TCC.xcframework in Frameworks */,
 				4F9B001F2FB8D4510075DB9A /* UIKitServices.xcframework in Frameworks */,
 				4F9BFFF52FB8D4510075DB9A /* _QuartzCorePrivate.xcframework in Frameworks */,
@@ -383,7 +383,7 @@
 			);
 			name = Accountit;
 			packageProductDependencies = (
-				4F9BFFDF2FB8D42A0075DB9A /* MySwiftUI */,
+				4F7C35152FBA2A3B00E49219 /* MySwiftUI */,
 			);
 			productName = Accountit;
 			productReference = 4F9BFF662FB8D2E20075DB9A /* Accountit.app */;
@@ -523,9 +523,10 @@
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				TARGETED_DEVICE_FAMILY = 7;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
@@ -557,9 +558,10 @@
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				TARGETED_DEVICE_FAMILY = 7;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
@@ -576,9 +578,10 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.pookjw.AccountitAPITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SUPPORTED_PLATFORMS = "xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = NO;
-				TARGETED_DEVICE_FAMILY = 7;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
 			};
 			name = Debug;
 		};
@@ -593,9 +596,10 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.pookjw.AccountitAPITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SUPPORTED_PLATFORMS = "xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = NO;
-				TARGETED_DEVICE_FAMILY = 7;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
 			};
 			name = Release;
 		};
@@ -611,6 +615,10 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "$(TARGET_NAME)/Info.plist";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -619,7 +627,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.pookjw.Accountit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -627,7 +636,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 7;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
 			};
 			name = Debug;
 		};
@@ -643,6 +652,10 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "$(TARGET_NAME)/Info.plist";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -651,14 +664,15 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.pookjw.Accountit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "Accountit/Accountit-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 7;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
 			};
 			name = Release;
 		};
@@ -832,8 +846,9 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		4F9BFFDF2FB8D42A0075DB9A /* MySwiftUI */ = {
+		4F7C35152FBA2A3B00E49219 /* MySwiftUI */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 4F9BFFDE2FB8D42A0075DB9A /* XCLocalSwiftPackageReference "../../MySwiftUI" */;
 			productName = MySwiftUI;
 		};
 /* End XCSwiftPackageProductDependency section */

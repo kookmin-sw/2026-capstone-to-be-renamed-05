@@ -5,7 +5,11 @@
 //  Created by Jinwoo Kim on 5/17/26.
 //
 
+#if canImport(MySwiftUI)
 import MySwiftUI
+#else
+import SwiftUI
+#endif
 
 @main
 struct AccountitApp: App {

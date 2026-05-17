@@ -14,7 +14,8 @@ Optional:
 - `CORS_ORIGIN` (default `http://localhost:5173`)
 - `GITHUB_OAUTH_SCOPES` (default `repo,read:user,user:email`)
 - `FRONTEND_OAUTH_SUCCESS_URL` (default `http://localhost:5173/console`)
-- `OPENAI_MODEL` (default `gpt-4.1-mini`)
+- `OPENAI_MODEL` (default `gpt-5.5`)
+- `OPENAI_REASONING_EFFORT` (default `low`)
 - `COOKIE_SECURE` (`true` or `false`)
 
 ## Setup

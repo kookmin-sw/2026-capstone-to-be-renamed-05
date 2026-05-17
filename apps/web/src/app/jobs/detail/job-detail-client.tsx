@@ -1,6 +1,10 @@
 "use client";
 
-import type { JobDetailItem, JobFitAnalysisItem, ResumeItem } from "@cpa/shared";
+import type {
+  JobDetailItem,
+  JobFitAnalysisItem,
+  ResumeItem,
+} from "@cpa/shared";
 import {
   ArrowLeft,
   BriefcaseBusiness,
@@ -107,6 +111,7 @@ export function JobDetailClient() {
   const [job, setJob] = useState<JobDetailItem | null>(null);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [resumes, setResumes] = useState<ResumeItem[]>([]);
+  const [analysisItems, setAnalysisItems] = useState<JobFitAnalysisItem[]>([]);
   const [displayedAnalysis, setDisplayedAnalysis] =
     useState<JobFitAnalysisItem | null>(null);
   const [selectedResumeId, setSelectedResumeId] = useState("");
@@ -148,16 +153,17 @@ export function JobDetailClient() {
 
           const resumeItems =
             resumeResult.status === "fulfilled" ? resumeResult.value.items : [];
-          const analysisItems =
+          const fetchedAnalysisItems =
             analysisResult.status === "fulfilled"
               ? analysisResult.value.items
               : [];
           setResumes(resumeItems);
-          setDisplayedAnalysis(analysisItems[0] ?? null);
+          setAnalysisItems(fetchedAnalysisItems);
+          setDisplayedAnalysis(fetchedAnalysisItems[0] ?? null);
           setSelectedResumeId(
             (prev) =>
               prev ||
-              analysisItems[0]?.resumeId ||
+              fetchedAnalysisItems[0]?.resumeId ||
               resumeItems.find((resume) => resume.isPrimary)?.id ||
               resumeItems[0]?.id ||
               "",
@@ -189,12 +195,19 @@ export function JobDetailClient() {
         <SiteNav />
         <div className={styles.body}>
           <div className="rounded-xl border border-red-200 bg-red-50 p-5">
-            <Link href="/jobs" className="inline-flex items-center gap-2 text-sm font-medium text-red-700">
+            <Link
+              href="/jobs"
+              className="inline-flex items-center gap-2 text-sm font-medium text-red-700"
+            >
               <ArrowLeft size={16} />
               목록으로 돌아가기
             </Link>
-            <h1 className="mt-4 text-xl font-semibold text-red-900">공고를 찾을 수 없습니다.</h1>
-            <p className="mt-1 text-sm text-red-700">공고 ID가 누락되었습니다.</p>
+            <h1 className="mt-4 text-xl font-semibold text-red-900">
+              공고를 찾을 수 없습니다.
+            </h1>
+            <p className="mt-1 text-sm text-red-700">
+              공고 ID가 누락되었습니다.
+            </p>
           </div>
         </div>
       </main>
@@ -220,11 +233,16 @@ export function JobDetailClient() {
         <SiteNav />
         <div className={styles.body}>
           <div className="rounded-xl border border-red-200 bg-red-50 p-5">
-            <Link href="/jobs" className="inline-flex items-center gap-2 text-sm font-medium text-red-700">
+            <Link
+              href="/jobs"
+              className="inline-flex items-center gap-2 text-sm font-medium text-red-700"
+            >
               <ArrowLeft size={16} />
               목록으로 돌아가기
             </Link>
-            <h1 className="mt-4 text-xl font-semibold text-red-900">공고를 찾을 수 없습니다.</h1>
+            <h1 className="mt-4 text-xl font-semibold text-red-900">
+              공고를 찾을 수 없습니다.
+            </h1>
             <p className="mt-1 text-sm text-red-700">
               {error || "요청한 공고가 없거나 더 이상 공개되지 않았습니다."}
             </p>
@@ -240,10 +258,18 @@ export function JobDetailClient() {
     setAnalysisError("");
 
     try {
+      const existingAnalysis = analysisItems.find(
+        (item) => item.resumeId === selectedResumeId,
+      );
       const result = await createMyJobFitAnalysis({
         jobId: job.id,
         resumeId: selectedResumeId,
+        refresh: Boolean(existingAnalysis),
       });
+      setAnalysisItems((prev) => [
+        result.item,
+        ...prev.filter((item) => item.id !== result.item.id),
+      ]);
       setDisplayedAnalysis(result.item);
     } catch (caught) {
       setAnalysisError(
@@ -256,13 +282,21 @@ export function JobDetailClient() {
     }
   }
 
+  function handleResumeChange(resumeId: string) {
+    setSelectedResumeId(resumeId);
+    setAnalysisError("");
+    setDisplayedAnalysis(
+      analysisItems.find((item) => item.resumeId === resumeId) ?? null,
+    );
+  }
+
   return (
     <JobDetail
       job={job}
       currentUser={currentUser}
       resumes={resumes}
       selectedResumeId={selectedResumeId}
-      onResumeChange={setSelectedResumeId}
+      onResumeChange={handleResumeChange}
       onAnalyze={handleAnalyze}
       analysisLoading={analysisLoading}
       analysisError={analysisError}
@@ -292,7 +326,8 @@ function JobFitAnalysisPanel({
   analysisError: string;
   displayedAnalysis: JobFitAnalysisItem | null;
 }) {
-  const selectedAnalysis = displayedAnalysis;
+  const selectedAnalysis =
+    displayedAnalysis?.resumeId === selectedResumeId ? displayedAnalysis : null;
   const loginHref = `/login?next=${encodeURIComponent(`/jobs/detail?id=${job.id}`)}`;
   const fitVerdict = selectedAnalysis
     ? getFitVerdict(selectedAnalysis.fitScore)
@@ -329,9 +364,16 @@ function JobFitAnalysisPanel({
             AI 적합도 분석
           </span>
           <h2>내 이력서로 이 공고의 합격 가능성을 확인하세요</h2>
-          <p>로그인하면 업로드한 이력서와 공고 조건을 연결해 강점과 보완점을 볼 수 있습니다.</p>
+          <p>
+            로그인하면 업로드한 이력서와 공고 조건을 연결해 강점과 보완점을 볼
+            수 있습니다.
+          </p>
         </div>
-        <ActionLink href={loginHref} size="sm" iconStart={<Sparkles size={14} />}>
+        <ActionLink
+          href={loginHref}
+          size="sm"
+          iconStart={<Sparkles size={14} />}
+        >
           로그인 후 분석
         </ActionLink>
       </section>
@@ -362,7 +404,10 @@ function JobFitAnalysisPanel({
             AI 적합도 분석
           </span>
           <h2>이력서를 등록하면 바로 분석할 수 있습니다</h2>
-          <p>마이페이지에 최대 5개의 이력서를 등록하고 공고별 적합도를 비교해보세요.</p>
+          <p>
+            마이페이지에 최대 5개의 이력서를 등록하고 공고별 적합도를
+            비교해보세요.
+          </p>
         </div>
         <ActionLink
           href={MYPAGE_RESUME_SECTION_HREF}
@@ -384,7 +429,10 @@ function JobFitAnalysisPanel({
             AI 적합도 분석
           </span>
           <h2>선택한 이력서로 이 공고를 분석합니다</h2>
-          <p>공고 조건과 이력서 포지션을 비교해 강점, 기업 우선순위, 감점 요인을 정리합니다.</p>
+          <p>
+            공고 조건과 이력서 포지션을 비교해 강점, 기업 우선순위, 감점 요인을
+            정리합니다.
+          </p>
         </div>
         <div className={styles.fitControlRow}>
           <select
@@ -451,7 +499,12 @@ function JobFitAnalysisPanel({
             </div>
             <div className="grid content-center gap-2 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-extrabold text-gray-500">
-                <span className={cn("inline-flex items-center gap-1.5", fitToneClasses.text)}>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5",
+                    fitToneClasses.text,
+                  )}
+                >
                   <Sparkles size={14} />
                   AI 판정
                 </span>
@@ -470,7 +523,10 @@ function JobFitAnalysisPanel({
                 aria-hidden="true"
               >
                 <span
-                  className={cn("block h-full min-w-2 rounded-full", fitToneClasses.accent)}
+                  className={cn(
+                    "block h-full min-w-2 rounded-full",
+                    fitToneClasses.accent,
+                  )}
                   style={scoreMeterStyle}
                 />
               </div>
@@ -521,7 +577,9 @@ function JobFitAnalysisPanel({
               <Sparkles size={18} />
             </div>
             <div>
-              <strong className={cn("block text-xs font-black", fitToneClasses.text)}>
+              <strong
+                className={cn("block text-xs font-black", fitToneClasses.text)}
+              >
                 다음 액션
               </strong>
               <p className="mt-1 text-sm font-semibold leading-6 text-gray-800">
@@ -664,8 +722,7 @@ function buildDetailedActionItems(
     analysis.companyPriorities.slice(0, 2).join(" / ") ||
     `${family} 직무 경험과 공고 요건`;
   const gaps =
-    analysis.gaps.slice(0, 2).join(" / ") ||
-    "공고와 직접 연결되는 이력서 근거";
+    analysis.gaps.slice(0, 2).join(" / ") || "공고와 직접 연결되는 이력서 근거";
 
   return [
     `이력서 첫 화면 요약에 ${family} 직무와 직접 연결되는 업무 2개를 먼저 배치하고, 각 항목마다 기간, 역할, 산출물, 사용한 기준이나 툴을 한 줄로 붙이세요.`,
@@ -815,10 +872,24 @@ function JobDetail({
             </h2>
             <div className={styles.infoGrid}>
               <InfoItem label="직무군" value={jobFamilyLabels[job.jobFamily]} />
-              <InfoItem label="고용형태" value={employmentLabels[job.employmentType]} />
-              <InfoItem label="KICPA 조건" value={kicpaLabels[job.kicpaCondition]} />
-              <InfoItem label="수습 CPA" value={traineeLabels[job.traineeStatus]} />
-              <InfoItem label="실무수습기관" value={formatTrainingInstitution(job.practicalTrainingInstitution)} />
+              <InfoItem
+                label="고용형태"
+                value={employmentLabels[job.employmentType]}
+              />
+              <InfoItem
+                label="KICPA 조건"
+                value={kicpaLabels[job.kicpaCondition]}
+              />
+              <InfoItem
+                label="수습 CPA"
+                value={traineeLabels[job.traineeStatus]}
+              />
+              <InfoItem
+                label="실무수습기관"
+                value={formatTrainingInstitution(
+                  job.practicalTrainingInstitution,
+                )}
+              />
               <InfoItem label="요구 경력" value={experienceText} />
               <InfoItem label="지역" value={job.location ?? "불명확"} />
               <InfoItem label="마감일" value={formatDeadlineDisplay(job)} />
@@ -852,7 +923,8 @@ function JobDetail({
               </div>
             ) : (
               <p className="text-sm text-[var(--app-muted)]">
-                아직 AI 요약이 없습니다. 추후 관리자 검수 후 요약과 태그가 표시됩니다.
+                아직 AI 요약이 없습니다. 추후 관리자 검수 후 요약과 태그가
+                표시됩니다.
               </p>
             )}
           </section>
@@ -862,7 +934,9 @@ function JobDetail({
               <ScrollText size={15} className={styles.sectionIcon} />
               공고 본문
             </h2>
-            <p className="whitespace-pre-line text-sm leading-7 text-neutral-700">{job.description}</p>
+            <p className="whitespace-pre-line text-sm leading-7 text-neutral-700">
+              {job.description}
+            </p>
           </section>
         </div>
 
@@ -873,8 +947,14 @@ function JobDetail({
           </h2>
           <div className="grid gap-3">
             <InfoItem label="출처" value={job.sourceName} />
-            <InfoItem label="최종 확인" value={new Date(job.lastCheckedAt).toLocaleDateString("ko-KR")} />
-            <InfoItem label="마감 유형" value={deadlineTypeLabels[job.deadlineType]} />
+            <InfoItem
+              label="최종 확인"
+              value={new Date(job.lastCheckedAt).toLocaleDateString("ko-KR")}
+            />
+            <InfoItem
+              label="마감 유형"
+              value={deadlineTypeLabels[job.deadlineType]}
+            />
           </div>
 
           <a
@@ -905,7 +985,9 @@ function JobDetail({
             href={companyDetailHref(job.companyId)}
             className={styles.companyLink}
           >
-            <div className={styles.companyMiniIcon}>{job.companyName.charAt(0)}</div>
+            <div className={styles.companyMiniIcon}>
+              {job.companyName.charAt(0)}
+            </div>
             <span className="flex items-center gap-1.5">
               <Building2 size={14} />
               회사 상세 보기

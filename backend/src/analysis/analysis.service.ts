@@ -21,6 +21,12 @@ type LlmPriorityResult = {
   recommendations: LabelRecommendation[];
 };
 
+const OPENAI_REASONING_EFFORTS = ['low', 'medium', 'high'] as const;
+type OpenAiReasoningEffort = (typeof OPENAI_REASONING_EFFORTS)[number];
+
+const DEFAULT_OPENAI_MODEL = 'gpt-5.5';
+const DEFAULT_OPENAI_REASONING_EFFORT: OpenAiReasoningEffort = 'low';
+
 class UnionFind {
   private parent: number[];
 
@@ -104,7 +110,9 @@ export class AnalysisService {
       return this.heuristicFallback(item);
     }
 
-    const model = process.env.OPENAI_MODEL ?? 'gpt-4.1-mini';
+    const model = process.env.OPENAI_MODEL?.trim() || DEFAULT_OPENAI_MODEL;
+    const reasoningEffort = this.resolveOpenAIReasoningEffort();
+    const useReasoning = this.usesOpenAIReasoning(model);
 
     const prompt = [
       'You are a GitHub triage assistant.',
@@ -120,7 +128,9 @@ export class AnalysisService {
     const response = await this.openai.responses.create({
       model,
       input: prompt,
-      temperature: 0.1,
+      ...(useReasoning
+        ? { reasoning: { effort: reasoningEffort } }
+        : { temperature: 0.1 }),
     });
 
     const rawText = response.output_text ?? '';
@@ -158,6 +168,23 @@ export class AnalysisService {
     } catch {
       return this.heuristicFallback(item);
     }
+  }
+
+  private resolveOpenAIReasoningEffort(): OpenAiReasoningEffort {
+    const value = process.env.OPENAI_REASONING_EFFORT?.trim().toLowerCase();
+    if (this.isOpenAIReasoningEffort(value)) return value;
+    return DEFAULT_OPENAI_REASONING_EFFORT;
+  }
+
+  private isOpenAIReasoningEffort(
+    value: string | undefined,
+  ): value is OpenAiReasoningEffort {
+    return OPENAI_REASONING_EFFORTS.includes(value as OpenAiReasoningEffort);
+  }
+
+  private usesOpenAIReasoning(model: string) {
+    const normalized = model.trim().toLowerCase();
+    return normalized.startsWith('gpt-5') || /^o\d/.test(normalized);
   }
 
   async analyzeRepository(userId: number, repositoryId: number) {

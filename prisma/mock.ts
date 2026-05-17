@@ -33,7 +33,7 @@ import {
   resolvePrismaPostgresConfig,
 } from "../apps/api/src/config/runtime-environment";
 import { statSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { extname, isAbsolute, join } from "node:path";
 
 for (const envFilePath of resolveEnvFilePaths()) {
@@ -887,8 +887,6 @@ async function upsertJob(jobData: SeedJob, lastCheckedAt = new Date()) {
   const jobPayload = {
     title: jobData.title,
     description: jobData.description,
-    companyId: jobData.company.id,
-    sourceId: jobData.source.id,
     originalUrl: jobData.originalUrl,
     jobFamily: jobData.jobFamily,
     employmentType: jobData.employmentType,
@@ -904,14 +902,24 @@ async function upsertJob(jobData: SeedJob, lastCheckedAt = new Date()) {
     deadline: jobData.deadline,
     lastCheckedAt,
   };
+  const jobRelations = {
+    company: { connect: { id: jobData.company.id } },
+    source: { connect: { id: jobData.source.id } },
+  };
 
   const savedJob = existing
     ? await prisma.job.update({
         where: { id: existing.id },
-        data: jobPayload,
+        data: {
+          ...jobPayload,
+          ...jobRelations,
+        },
       })
     : await prisma.job.create({
-        data: jobPayload,
+        data: {
+          ...jobPayload,
+          ...jobRelations,
+        },
       });
 
   await prisma.jobLabel.deleteMany({ where: { jobId: savedJob.id } });
@@ -924,42 +932,451 @@ async function upsertJob(jobData: SeedJob, lastCheckedAt = new Date()) {
   });
 }
 
-type MockAnalysisJob = Job & {
-  company: { name: string };
-};
-
 const mockResumeSeedData = [
   {
     id: "mock-resume-test002-audit-trainee",
     fileName: "audit-trainee-resume.pdf",
+    contentType: "application/pdf",
     createdAt: new Date("2026-05-01T01:00:00.000Z"),
+    content: `
+이름: 김서연
+지원 이력서: 감사 수습 CPA 포지션
+
+요약
+KICPA 1차 합격 후 2차 일부 과목을 준비하며 회계감사와 재무제표 검토 업무를 빠르게 익히고 싶은 신입 지원자입니다. 대학 회계학회에서 제조업 모의감사 프로젝트를 수행했고, 매출 인식, 재고자산 실사, 매입채무 확인 절차를 체크리스트로 정리했습니다. 수습 가능 회계법인에서 감사 조서 작성, 자료 요청, 고객 커뮤니케이션을 체계적으로 배우는 것을 목표로 합니다.
+
+CPA 및 학력
+- KICPA 1차 합격, 2차 재무회계와 세법 응시 경험
+- 국민대학교 경영학부 회계전공, 졸업예정
+- 고급회계, 회계감사, 세무회계, 원가관리회계 수강
+
+경험
+- 회계학회 모의감사 팀장, 2025.03-2025.12
+- 가상의 제조업 매출채권 표본 120건을 검토하고 예외 7건을 식별
+- 재고자산 실사 입회 절차를 문서화하고 조서 템플릿 6종 작성
+- 팀원 5명의 조서 품질을 리뷰하고 누락 근거를 체크리스트로 보완
+
+프로젝트
+- 상장사 사업보고서 10개를 비교해 감사의견, 핵심감사사항, 계속기업 불확실성을 요약
+- Excel 피벗과 XLOOKUP으로 거래처별 매출 변동 분석 대시보드 제작
+- 감사 자료 요청 메일 템플릿과 PBC 리스트를 작성해 커뮤니케이션 훈련
+
+기술 및 역량
+- Excel, Google Sheets, PowerPoint, 기초 SQL
+- 한국채택국제회계기준, 감사기준 기본 이해
+- 꼼꼼한 문서화, 일정 관리, 질문 목록 정리
+
+희망 직무
+감사본부 수습 CPA, 중견/성장기업 외부감사, 재무제표 검토 보조
+`,
   },
   {
     id: "mock-resume-test002-tax-junior",
-    fileName: "tax-junior-resume.pdf",
+    fileName: "tax-junior-resume.docx",
+    contentType:
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     createdAt: new Date("2026-05-02T01:00:00.000Z"),
+    content: `
+이름: 박민재
+지원 이력서: 세무 주니어 포지션
+
+요약
+법인세와 부가가치세 신고 보조 경험을 바탕으로 세무회계법인 주니어 업무에 지원합니다. 스타트업 인턴 기간 동안 매입세금계산서 대사, 원천세 신고 자료 정리, 경비 증빙 누락 확인을 담당했습니다. 세무 이슈를 고객이 이해하기 쉬운 언어로 정리하는 데 강점이 있으며, 기장과 신고 업무를 정확하게 처리하는 세무 전문가로 성장하고자 합니다.
+
+CPA 및 학력
+- KICPA 1차 준비 경험, 세법과 재무회계 집중 학습
+- 숭실대학교 회계세무학과 졸업
+- 법인세법, 소득세법, 부가가치세법, 상법 수강
+
+경험
+- 핀테크 스타트업 재무팀 인턴, 2025.07-2026.01
+- 매입세금계산서 1,800건을 월별로 대사하고 불일치 43건을 정리
+- 원천세 신고용 급여, 프리랜서 지급명세 자료를 취합
+- 법인카드 증빙 누락 건을 부서별로 안내해 월말 마감 지연을 줄임
+
+프로젝트
+- 개인사업자 업종별 부가세 체크리스트 제작
+- 접대비, 복리후생비, 지급수수료 계정 분류 기준표 작성
+- 홈택스 신고 화면 흐름을 캡처해 신규 인턴 교육 자료 제작
+
+기술 및 역량
+- Excel 함수, 더존 Smart A 사용 경험, 홈택스 신고 보조
+- 증빙 검토, 계정 분류, 고객 질의 응대 초안 작성
+- 세법 개정사항을 요약해 실무 체크리스트로 변환
+
+희망 직무
+세무 기장, 법인세/부가세 신고 보조, 스타트업 세무 자문 지원
+`,
   },
   {
     id: "mock-resume-test002-deal-fas",
-    fileName: "deal-fas-resume.pdf",
+    fileName: "deal-fas-resume.doc",
+    contentType: "application/msword",
     createdAt: new Date("2026-05-03T01:00:00.000Z"),
+    content: `
+이름: 이준호
+지원 이력서: FAS 및 Deal Advisory 주니어 포지션
+
+요약
+재무제표 분석과 기업가치평가 프로젝트 경험을 보유한 FAS 지향 지원자입니다. 대학 투자동아리에서 인수 후보 기업의 매출 성장률, EBITDA, 운전자본 변동을 분석했고, DCF와 EV/EBITDA 멀티플을 활용한 밸류에이션 보고서를 작성했습니다. 숫자를 근거로 거래 리스크와 실사 질문을 구조화하는 일에 흥미가 있습니다.
+
+CPA 및 학력
+- KICPA 1차 합격, 재무관리와 원가관리회계 우수
+- 중앙대학교 경영학부 졸업
+- 기업재무, 투자론, 고급회계, 재무제표분석 수강
+
+경험
+- 투자동아리 리서치 리드, 2024.09-2025.12
+- 소비재 기업 5개사의 3개년 손익계산서와 현금흐름표 비교
+- 인수 후보 기업의 정상 EBITDA 조정 항목 8개를 도출
+- 경영진 Q&A 예상 질문 20개와 실사 요청자료 목록 작성
+
+프로젝트
+- DCF 모델 작성: 매출 성장률, 영업이익률, CAPEX, WACC 가정 민감도 분석
+- EV/EBITDA 멀티플 비교표 작성 및 Peer group 선정 근거 문서화
+- 매출채권 회전일수와 재고자산 회전일수 변화로 운전자본 리스크 설명
+
+기술 및 역량
+- Excel 재무모델링, PowerPoint 보고서, 기초 SQL
+- 사업보고서와 감사보고서에서 핵심 가정 추출
+- 논리적인 목차 구성, 정량 분석, 빠른 자료 검증
+
+희망 직무
+FDD, Valuation, Transaction Service, Deal Advisory 주니어
+`,
   },
   {
     id: "mock-resume-test002-icfr",
-    fileName: "icfr-internal-accounting-resume.pdf",
+    fileName: "icfr-internal-accounting-resume.hwp",
+    contentType: "application/x-hwp",
     createdAt: new Date("2026-05-04T01:00:00.000Z"),
+    content: `
+이름: 최하은
+지원 이력서: 내부회계관리제도 및 감사 대응 포지션
+
+요약
+상장사 재무팀 인턴으로 내부회계관리제도 운영평가 문서 정리와 외부감사 대응을 보조했습니다. RCM 통제 설명, 설계평가 증빙, 운영평가 샘플 자료를 정리했고, 미비점 조치 현황을 담당자별로 추적했습니다. 통제 목적과 실제 증빙 사이의 연결을 명확히 설명하는 데 강점이 있습니다.
+
+CPA 및 학력
+- KICPA 1차 합격, 2차 회계감사 응시 경험
+- 이화여자대학교 경영학과 졸업
+- 회계감사, 내부통제, 재무회계, 데이터분석 수강
+
+경험
+- 코스닥 상장사 재무팀 인턴, 2025.02-2025.08
+- 매출, 구매, 자금, 결산 프로세스 RCM 42개 통제 항목 업데이트 보조
+- 운영평가 샘플 160건의 증빙 파일명과 통제 번호를 대사
+- 외부감사인 요청자료 75건을 접수하고 제출 상태를 관리
+- 미비점 6건의 개선 담당자와 완료 예정일을 추적
+
+프로젝트
+- 월마감 체크리스트를 결산 일정, 담당자, 증빙 링크 기준으로 재정리
+- 자금 집행 승인 통제의 누락 승인 사례를 분석해 개선안 제안
+- 내부회계 교육 자료 초안을 작성해 비재무 부서 담당자 이해도 개선
+
+기술 및 역량
+- Excel, Notion, Google Drive 권한 관리, 기초 SQL
+- RCM, 설계평가, 운영평가, 감사 대응 자료 관리
+- 꼼꼼한 파일링, 담당자 커뮤니케이션, 이슈 추적
+
+희망 직무
+내부회계관리제도 운영, 외부감사 대응, 결산 프로세스 개선
+`,
   },
   {
     id: "mock-resume-test002-finance",
-    fileName: "finance-inhouse-resume.pdf",
+    fileName: "finance-inhouse-resume.hwpx",
+    contentType: "application/vnd.hancom.hwpx",
     createdAt: new Date("2026-05-05T01:00:00.000Z"),
+    content: `
+이름: 정다인
+지원 이력서: 인하우스 재무회계 포지션
+
+요약
+일반기업 재무회계와 결산 업무를 희망하는 주니어 지원자입니다. SaaS 기업 재무팀 계약직으로 월별 매출 인식 자료, 미수금 내역, 비용 계정 검토를 보조했습니다. 회계법인보다 사업부와 가까운 환경에서 회계 기준을 실제 매출과 비용 프로세스에 연결하는 역할을 선호합니다.
+
+CPA 및 학력
+- KICPA 1차 준비 경험, 재무회계와 원가관리회계 집중
+- 한양대학교 경영학부 졸업
+- 중급회계, 원가관리회계, 회계정보시스템, 비즈니스 애널리틱스 수강
+
+경험
+- SaaS 기업 재무팀 계약직, 2025.04-2026.02
+- 구독 매출 계약 320건의 시작일, 종료일, 할인 조건을 정리
+- 월별 매출 인식 스케줄과 세금계산서 발행 내역을 대사
+- 미수금 aging 리포트를 작성하고 60일 초과 채권을 영업팀에 공유
+- 클라우드 비용, 외주비, 광고비 계정의 월별 변동 사유를 정리
+
+프로젝트
+- 월마감 일정표를 D+1부터 D+7까지 단계별로 재설계
+- 매출채권 회수 현황 대시보드를 만들어 팀 회의에 제공
+- 신규 상품 출시 시 매출 인식 검토 질문지를 작성
+
+기술 및 역량
+- Excel, Google Sheets, Looker Studio, 기초 SQL
+- 매출 인식, 미수금 관리, 비용 분석, 사업부 커뮤니케이션
+- 반복 업무 자동화 아이디어 제안과 문서화
+
+희망 직무
+인하우스 재무회계, 결산, 매출/미수금 관리, 회계 프로세스 개선
+`,
   },
 ] as const;
 
-function buildMockResumeBody(fileName: string) {
+const mockResumeDetailSection = `
+
+상세 경력 기술
+- 업무 배경: 지원 직무와 연결되는 회계, 세무, 감사, 재무 분석 업무를 실제 채용 담당자가 빠르게 스캔할 수 있도록 프로젝트별 목적, 본인 역할, 사용 도구, 산출물을 함께 정리했습니다.
+- 문제 해결: 원자료의 누락, 계정 분류 오류, 일정 지연, 담당자 간 커뮤니케이션 공백을 발견했을 때 체크리스트와 대사표를 만들어 재발 가능성을 줄였습니다.
+- 협업 방식: 요청자료 목록을 우선순위별로 나누고, 담당자에게 필요한 맥락을 먼저 설명한 뒤 마감일과 증빙 형식을 명확히 공유했습니다.
+- 문서화 습관: 분석 파일에는 가정, 원천 데이터, 검토 기준, 예외 처리 내역을 시트별로 남겨 다음 담당자가 같은 결론을 재현할 수 있도록 관리했습니다.
+
+대표 성과
+- 숫자로 설명 가능한 경험을 우선 배치했습니다. 표본 검토 건수, 대사 항목, 보고서 수, 마감 단축 효과, 예외 사항 식별 건수를 함께 적어 실무 투입 가능성을 보여줍니다.
+- 공고별 키워드에 맞춰 감사, 세무, FAS, 내부회계, 인하우스 재무회계 중 가장 관련 높은 경험을 첫 페이지 상단에 재배치할 수 있습니다.
+- KICPA 준비 현황과 실무수습 가능 여부는 지원서 앞부분에 별도 라벨로 표시해 채용 담당자가 자격 요건을 바로 확인할 수 있게 구성했습니다.
+
+지원 동기 및 성장 계획
+회계 전문성을 단순한 지식 암기가 아니라 고객과 조직의 의사결정을 돕는 언어로 사용하고 싶습니다. 입사 후 3개월 동안은 회사의 조서, 결산, 신고, 리포팅 템플릿을 빠르게 익히고, 6개월 이후에는 반복 검토 항목을 표준화해 팀의 마감 안정성에 기여하겠습니다. 장기적으로는 KICPA 전문성과 데이터 분석 역량을 함께 키워 근거가 명확한 재무 판단을 제시하는 실무자가 되는 것이 목표입니다.
+`;
+
+type MockResumeSeed = (typeof mockResumeSeedData)[number];
+
+function buildMockResumeBody(seed: MockResumeSeed) {
+  const content = expandMockResumeContent(seed.content);
+  const extension = extname(seed.fileName).toLowerCase();
+
+  if (extension === ".pdf") return buildMockPdf(content);
+  if (extension === ".docx") return buildMockDocx(content);
+  if (extension === ".doc") return buildMockDoc(content);
+  if (extension === ".hwpx") return buildMockHwpx(content);
+  return Buffer.from(`${content}\n`, "utf8");
+}
+
+function expandMockResumeContent(content: string) {
+  return `${content.trim()}\n${mockResumeDetailSection.trim()}`;
+}
+
+function buildMockDoc(content: string) {
   return Buffer.from(
-    `%PDF-1.4\n% Accountit mock resume: ${fileName}\n1 0 obj\n<<>>\nendobj\n%%EOF\n`,
+    `{\\rtf1\\ansi\\ansicpg949\\deff0{\\fonttbl{\\f0 Arial;}}\n${escapeRtf(
+      content,
+    )}\n}`,
+    "utf8",
   );
+}
+
+function buildMockDocx(content: string) {
+  const paragraphs = content
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map(
+      (line) =>
+        `<w:p><w:r><w:t xml:space="preserve">${escapeXml(line)}</w:t></w:r></w:p>`,
+    )
+    .join("");
+
+  return buildZip([
+    {
+      name: "[Content_Types].xml",
+      content:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+        '<Default Extension="xml" ContentType="application/xml"/>' +
+        '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+        "</Types>",
+    },
+    {
+      name: "_rels/.rels",
+      content:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
+        "</Relationships>",
+    },
+    {
+      name: "word/document.xml",
+      content:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>' +
+        paragraphs +
+        "<w:sectPr/></w:body></w:document>",
+    },
+  ]);
+}
+
+function buildMockHwpx(content: string) {
+  const paragraphs = content
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => `<hp:p><hp:t>${escapeXml(line)}</hp:t></hp:p>`)
+    .join("");
+
+  return buildZip([
+    { name: "mimetype", content: "application/hwp+zip" },
+    {
+      name: "version.xml",
+      content:
+        '<?xml version="1.0" encoding="UTF-8"?>' +
+        '<hv:version xmlns:hv="http://www.hancom.co.kr/hwpml/2011/version" app="Accountit mock" version="1.0"/>',
+    },
+    {
+      name: "Contents/section0.xml",
+      content:
+        '<?xml version="1.0" encoding="UTF-8"?>' +
+        '<hp:sec xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph">' +
+        paragraphs +
+        "</hp:sec>",
+    },
+  ]);
+}
+
+function buildMockPdf(content: string) {
+  const lines = content
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 42);
+  const stream = [
+    "BT",
+    "/F1 9 Tf",
+    "50 780 Td",
+    ...lines.flatMap((line, index) => [
+      index === 0 ? "" : "0 -15 Td",
+      `<${toUtf16BeHex(line)}> Tj`,
+    ]),
+    "ET",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const objects = [
+    "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+    "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+    "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n",
+    "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
+    `5 0 obj\n<< /Length ${Buffer.byteLength(stream, "binary")} >>\nstream\n${stream}\nendstream\nendobj\n`,
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  for (const object of objects) {
+    offsets.push(Buffer.byteLength(pdf, "binary"));
+    pdf += object;
+  }
+  const xrefOffset = Buffer.byteLength(pdf, "binary");
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (let index = 1; index < offsets.length; index += 1) {
+    pdf += `${String(offsets[index]).padStart(10, "0")} 00000 n \n`;
+  }
+  pdf += `trailer\n<< /Root 1 0 R /Size ${objects.length + 1} >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  return Buffer.from(pdf, "binary");
+}
+
+function buildZip(
+  files: Array<{
+    name: string;
+    content: string | Buffer;
+  }>,
+) {
+  const localParts: Buffer[] = [];
+  const centralParts: Buffer[] = [];
+  let offset = 0;
+
+  for (const file of files) {
+    const name = Buffer.from(file.name, "utf8");
+    const content = Buffer.isBuffer(file.content)
+      ? file.content
+      : Buffer.from(file.content, "utf8");
+    const crc = crc32(content);
+    const localHeader = Buffer.alloc(30);
+    localHeader.writeUInt32LE(0x04034b50, 0);
+    localHeader.writeUInt16LE(20, 4);
+    localHeader.writeUInt16LE(0x0800, 6);
+    localHeader.writeUInt16LE(0, 8);
+    localHeader.writeUInt16LE(0, 10);
+    localHeader.writeUInt16LE(0, 12);
+    localHeader.writeUInt32LE(crc, 14);
+    localHeader.writeUInt32LE(content.length, 18);
+    localHeader.writeUInt32LE(content.length, 22);
+    localHeader.writeUInt16LE(name.length, 26);
+
+    const centralHeader = Buffer.alloc(46);
+    centralHeader.writeUInt32LE(0x02014b50, 0);
+    centralHeader.writeUInt16LE(20, 4);
+    centralHeader.writeUInt16LE(20, 6);
+    centralHeader.writeUInt16LE(0x0800, 8);
+    centralHeader.writeUInt16LE(0, 10);
+    centralHeader.writeUInt16LE(0, 12);
+    centralHeader.writeUInt16LE(0, 14);
+    centralHeader.writeUInt32LE(crc, 16);
+    centralHeader.writeUInt32LE(content.length, 20);
+    centralHeader.writeUInt32LE(content.length, 24);
+    centralHeader.writeUInt16LE(name.length, 28);
+    centralHeader.writeUInt32LE(offset, 42);
+
+    localParts.push(localHeader, name, content);
+    centralParts.push(centralHeader, name);
+    offset += localHeader.length + name.length + content.length;
+  }
+
+  const centralDirectory = Buffer.concat(centralParts);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(files.length, 8);
+  end.writeUInt16LE(files.length, 10);
+  end.writeUInt32LE(centralDirectory.length, 12);
+  end.writeUInt32LE(offset, 16);
+
+  return Buffer.concat([...localParts, centralDirectory, end]);
+}
+
+function crc32(buffer: Buffer) {
+  let crc = 0xffffffff;
+  for (const byte of buffer) {
+    crc = (crc >>> 8) ^ crc32Table[(crc ^ byte) & 0xff];
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+const crc32Table = Array.from({ length: 256 }, (_, index) => {
+  let value = index;
+  for (let bit = 0; bit < 8; bit += 1) {
+    value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
+  }
+  return value >>> 0;
+});
+
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function escapeRtf(value: string) {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/{/g, "\\{")
+    .replace(/}/g, "\\}")
+    .replace(/\n/g, "\\line\n");
+}
+
+function toUtf16BeHex(value: string) {
+  const hex = ["feff"];
+  for (const char of value) {
+    const codePoint = char.codePointAt(0) ?? 0x20;
+    if (codePoint <= 0xffff) {
+      hex.push(codePoint.toString(16).padStart(4, "0"));
+      continue;
+    }
+    const adjusted = codePoint - 0x10000;
+    hex.push((0xd800 + (adjusted >> 10)).toString(16).padStart(4, "0"));
+    hex.push((0xdc00 + (adjusted & 0x3ff)).toString(16).padStart(4, "0"));
+  }
+  return hex.join("");
 }
 
 function resolveMockResumeRootDir() {
@@ -972,17 +1389,28 @@ function resolveMockResumeRootDir() {
     : join(process.cwd(), configuredPath);
 }
 
-async function writeMockResumePlaceholder(userId: string, resume: Resume) {
+async function writeMockResumePlaceholder(
+  userId: string,
+  resume: Resume,
+  body: Buffer,
+) {
   if (process.env.RESUME_STORAGE_DRIVER?.trim().toLowerCase() === "s3") return;
 
   const rootDir = resolveMockResumeRootDir();
   const extension = extname(resume.fileName).toLowerCase();
   const targetDir = join(rootDir, userId);
+  const targetName = `${resume.id}${extension}`;
   await mkdir(targetDir, { recursive: true });
-  await writeFile(
-    join(targetDir, `${resume.id}${extension}`),
-    buildMockResumeBody(resume.fileName),
+  const staleFiles = (await readdir(targetDir)).filter(
+    (fileName) =>
+      fileName.startsWith(`${resume.id}.`) && fileName !== targetName,
   );
+  await Promise.all(
+    staleFiles.map((fileName) =>
+      rm(join(targetDir, fileName), { force: true }),
+    ),
+  );
+  await writeFile(join(targetDir, targetName), body);
 }
 
 async function upsertMockResumes(userId: string) {
@@ -1001,14 +1429,14 @@ async function upsertMockResumes(userId: string) {
   });
 
   for (const [index, seed] of mockResumeSeedData.entries()) {
-    const body = buildMockResumeBody(seed.fileName);
+    const body = buildMockResumeBody(seed);
     const resume = await prisma.resume.upsert({
       where: { id: seed.id },
       update: {
         userId,
         fileName: seed.fileName,
         fileUrl: `/mypage/resumes/${seed.id}/download`,
-        contentType: "application/pdf",
+        contentType: seed.contentType,
         byteSize: body.length,
         isPrimary: index === 0,
       },
@@ -1017,123 +1445,25 @@ async function upsertMockResumes(userId: string) {
         userId,
         fileName: seed.fileName,
         fileUrl: `/mypage/resumes/${seed.id}/download`,
-        contentType: "application/pdf",
+        contentType: seed.contentType,
         byteSize: body.length,
         isPrimary: index === 0,
         createdAt: seed.createdAt,
       },
     });
-    await writeMockResumePlaceholder(userId, resume);
+    await writeMockResumePlaceholder(userId, resume, body);
     resumes.push(resume);
   }
 
   return resumes;
 }
 
-function buildMockAnalysisPayload(
-  index: number,
-  job: MockAnalysisJob,
-  resume: Resume,
-) {
-  const scores = [92, 88, 84, 80, 76];
-  const score = scores[index % scores.length];
-  const familyLabel = jobFamilyDisplayNamesForMock[job.jobFamily];
-  const summary =
-    score >= 85
-      ? `${job.company.name} ${job.title}와 ${resume.fileName}의 적합도가 매우 높습니다. ${familyLabel} 경험을 전면에 세우면 강한 지원 시그널이 됩니다.`
-      : `${job.company.name} ${job.title}는 합격 가능성이 높은 편입니다. 핵심 요건은 맞지만 경력 근거를 더 구체화하면 좋습니다.`;
-
-  const strengths = [
-    `${familyLabel} 직무와 연결되는 이력서 버전이 선택되어 공고 키워드 매칭이 좋습니다.`,
-    job.kicpaCondition === KicpaCondition.REQUIRED
-      ? "KICPA 필수 조건을 지원서 상단에서 바로 증빙할 수 있습니다."
-      : "KICPA 우대/회계 전문성 신호를 강점으로 활용할 수 있습니다.",
-    job.traineeStatus === TraineeStatus.AVAILABLE
-      ? "수습 가능 공고라 초기 커리어 설계와 실무수습 니즈가 잘 맞습니다."
-      : "실무 투입 가능성을 프로젝트 산출물 중심으로 설명하기 좋습니다.",
-  ];
-  const companyPriorities = [
-    `${job.company.name}는 ${familyLabel} 실무를 빠르게 맡을 수 있는 지원자를 우선적으로 볼 가능성이 높습니다.`,
-    "마감 전형에서는 직무 경험, 자격 요건, 커뮤니케이션 안정성을 짧은 시간 안에 확인하려 합니다.",
-    "공고 본문 기준으로 증빙 가능한 경험과 지원 동기의 구체성이 중요합니다.",
-  ];
-  const gaps = [
-    job.minExperienceYears && job.minExperienceYears > 0
-      ? `요구 경력 ${job.minExperienceYears}년 이상을 충족한다는 근거를 숫자와 산출물로 보강해야 합니다.`
-      : "신입/주니어 가능성이 높지만 지원 동기와 학습 속도 근거를 더 선명하게 보여줘야 합니다.",
-    "이력서 첫 페이지에서 회사 선택 이유가 약하면 최종 설득력이 떨어질 수 있습니다.",
-  ];
-
-  return {
-    fitScore: score,
-    summary,
-    strengths,
-    companyPriorities,
-    gaps,
-    recommendation:
-      "지원 전 이력서 첫 페이지에 직무 관련 프로젝트 2개, KICPA/수습 가능 여부, 회사 선택 이유를 함께 배치하세요.",
-    rawJson: {
-      version: "mock-seed-v1",
-      source: "prisma/mock.ts",
-      inputs: {
-        jobId: job.id,
-        resumeId: resume.id,
-        jobFamily: job.jobFamily,
-        score,
-      },
-    },
-  };
-}
-
-const jobFamilyDisplayNamesForMock: Record<JobFamily, string> = {
-  [JobFamily.AUDIT]: "감사",
-  [JobFamily.TAX]: "세무",
-  [JobFamily.FAS]: "FAS",
-  [JobFamily.DEAL]: "Deal Advisory",
-  [JobFamily.INTERNAL_ACCOUNTING]: "내부회계관리제도",
-  [JobFamily.IN_HOUSE]: "인하우스 재무회계",
-};
-
-async function upsertMockJobFitAnalyses(userId: string, resumes: Resume[]) {
-  const analysisJobUrls = [
-    "https://example.com/jobs/hanbit-audit-trainee",
-    "https://example.com/jobs/samil-deal-junior",
-    "https://example.com/jobs/dunamu-icfr",
-    "https://example.com/generated/jobs/0001",
-    "https://example.com/generated/jobs/0002",
-  ];
-  const jobs = await prisma.job.findMany({
-    where: { originalUrl: { in: analysisJobUrls } },
-    include: { company: { select: { name: true } } },
-  });
-  const jobByUrl = new Map(jobs.map((job) => [job.originalUrl, job]));
-  let analysisCount = 0;
-
-  for (const [index, resume] of resumes.entries()) {
-    const job = jobByUrl.get(analysisJobUrls[index]);
-    if (!job) continue;
-    const payload = buildMockAnalysisPayload(index, job, resume);
-
-    await prisma.jobFitAnalysis.upsert({
-      where: {
-        userId_jobId_resumeId: {
-          userId,
-          jobId: job.id,
-          resumeId: resume.id,
-        },
-      },
-      update: payload,
-      create: {
-        userId,
-        jobId: job.id,
-        resumeId: resume.id,
-        ...payload,
-      },
-    });
-    analysisCount += 1;
-  }
-
-  return analysisCount;
+async function deleteSeededJobFitAnalyses() {
+  return prisma.$executeRaw`
+    DELETE FROM "JobFitAnalysis"
+    WHERE "rawJson"->>'source' = 'prisma/mock.ts'
+       OR "rawJson"->>'version' = 'mock-seed-v1'
+  `;
 }
 
 function buildCareerVerificationMetadata(company: Company) {
@@ -1491,13 +1821,16 @@ function buildGeneratedCommunityPostSeeds(count: number): CommunityPostSeed[] {
             CommunityPostStatus.INFO,
           ];
     const status = statusCycle[localIndex % statusCycle.length];
-    const titleSeed = template.titleSeeds[localIndex % template.titleSeeds.length];
+    const titleSeed =
+      template.titleSeeds[localIndex % template.titleSeeds.length];
     const titleSuffix =
       template.titleSuffixes[
         (localIndex + index) % template.titleSuffixes.length
       ];
     const context =
-      template.contextSeeds[(localIndex + index) % template.contextSeeds.length];
+      template.contextSeeds[
+        (localIndex + index) % template.contextSeeds.length
+      ];
     const tags = template.tagSets[localIndex % template.tagSets.length];
     const answered = status === CommunityPostStatus.ANSWERED;
     const answerBase =
@@ -1734,7 +2067,8 @@ async function seedCommunityData(
     },
     {
       boardType: CommunityBoardType.CPA_PREP,
-      title: "회계법인 지원 전에 자기소개서에서 꼭 보여줘야 하는 역량이 있을까요?",
+      title:
+        "회계법인 지원 전에 자기소개서에서 꼭 보여줘야 하는 역량이 있을까요?",
       content:
         "첫 지원이라 감사조서 경험은 없고 학교 프로젝트와 인턴 경험만 있습니다. 수습 가능 공고에 지원할 때 문제 해결력, 꼼꼼함, 커뮤니케이션 중 어떤 부분을 더 앞에 두면 좋을지 조언 부탁드립니다.",
       status: CommunityPostStatus.ANSWERED,
@@ -1926,7 +2260,8 @@ async function seedCommunityData(
     },
     {
       boardType: CommunityBoardType.SENIOR,
-      title: "Big4 감사 4년차에서 FAS로 이동하려면 어떤 경험을 강조해야 할까요?",
+      title:
+        "Big4 감사 4년차에서 FAS로 이동하려면 어떤 경험을 강조해야 할까요?",
       content:
         "감사 경험은 제조업과 플랫폼 고객사가 많고, 실사 프로젝트는 보조로 한 번 참여했습니다. FAS 주니어/시니어 경계 공고에 지원할 때 어떤 키워드를 앞세우면 좋을까요?",
       status: CommunityPostStatus.ANSWERED,
@@ -2357,12 +2692,7 @@ async function seedBookmarksPresetsAndSubscriptions(
 type AnalyticsSeedUser = { id: string; username: string };
 type AnalyticsSeedJob = Pick<
   Job,
-  | "id"
-  | "companyId"
-  | "companyType"
-  | "jobFamily"
-  | "deadlineType"
-  | "status"
+  "id" | "companyId" | "companyType" | "jobFamily" | "deadlineType" | "status"
 >;
 
 const companyTypeAnalyticsWeight: Record<CompanyType, number> = {
@@ -2426,7 +2756,7 @@ function calculateDailyAnalyticsCounts(
   dayOffset: number,
 ) {
   const weekdayPattern = [1.2, 0.9, 1.05, 1.25, 1.15, 0.65, 0.75];
-  const recencyBoost = 1 + ((ANALYTICS_SEED_DAYS - dayOffset) / 100);
+  const recencyBoost = 1 + (ANALYTICS_SEED_DAYS - dayOffset) / 100;
   const campaignPulse =
     (jobIndex + dayOffset) % 11 === 0
       ? 1.45
@@ -2500,10 +2830,7 @@ function appendAnalyticsEvents(
         eventIndex,
         allowAnonymous,
       ),
-      createdAt: createAnalyticsEventDate(
-        dayOffset,
-        sequenceBase + eventIndex,
-      ),
+      createdAt: createAnalyticsEventDate(dayOffset, sequenceBase + eventIndex),
     });
   }
 }
@@ -3071,10 +3398,7 @@ async function main() {
   }
 
   const mockResumes = await upsertMockResumes(demoJobSeeker.id);
-  const mockAnalysisCount = await upsertMockJobFitAnalyses(
-    demoJobSeeker.id,
-    mockResumes,
-  );
+  const deletedMockAnalysisCount = await deleteSeededJobFitAnalyses();
 
   await seedCommunityData(userByUsername);
   await seedBookmarksPresetsAndSubscriptions(userByUsername, labelByName);
@@ -3084,7 +3408,7 @@ async function main() {
   );
 
   console.log(
-    `Inserted or updated mock data: ${TARGET_COMPANY_COUNT} companies, ${TARGET_JOB_COUNT} jobs, ${TARGET_COMPANY_COUNT + mockUsers.length} users, community posts, bookmarks, presets, ${mockResumes.length} resumes, ${mockAnalysisCount} job fit analyses, ${analyticsMockCounts.engagementEventCount} company analytics events, ${analyticsMockCounts.currentBookmarkCount} analytics bookmarks.`,
+    `Inserted or updated mock data: ${TARGET_COMPANY_COUNT} companies, ${TARGET_JOB_COUNT} jobs, ${TARGET_COMPANY_COUNT + mockUsers.length} users, community posts, bookmarks, presets, ${mockResumes.length} resumes, removed ${deletedMockAnalysisCount} seeded job fit analyses, ${analyticsMockCounts.engagementEventCount} company analytics events, ${analyticsMockCounts.currentBookmarkCount} analytics bookmarks.`,
   );
 }
 

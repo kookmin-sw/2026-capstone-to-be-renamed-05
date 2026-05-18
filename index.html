@@ -83,88 +83,119 @@
         position: sticky;
         top: 0;
         z-index: 10;
-        border-bottom: 1px solid rgba(235, 235, 235, 0.86);
-        background: rgba(255, 255, 255, 0.92);
-        backdrop-filter: blur(18px);
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+        backdrop-filter: blur(12px);
       }
 
       .nav {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 1.25rem;
-        width: min(100%, 76rem);
+        gap: 1.5rem;
+        width: min(100%, 80rem);
+        min-height: 4.25rem;
         margin: 0 auto;
-        padding: 0.95rem 1.5rem;
+        padding: 0.65rem 1.5rem;
       }
 
       .brand {
         display: inline-flex;
         align-items: center;
-        gap: 0.7rem;
+        flex: none;
         color: var(--ink);
         font-weight: 900;
         letter-spacing: 0;
       }
 
-      .brand-mark {
-        display: grid;
-        width: 2.15rem;
-        height: 2.15rem;
-        place-items: center;
-        border-radius: 0.5rem;
-        background: var(--brand);
-        color: #ffffff;
-        font-size: 1.05rem;
-        box-shadow: 0 8px 18px rgba(232, 69, 122, 0.24);
+      .brand-logo {
+        width: 9.6rem;
+        height: auto;
       }
 
       .nav-links {
         display: flex;
         align-items: center;
-        gap: 1rem;
+        gap: 0.25rem;
         color: var(--muted);
-        font-size: 0.92rem;
-        font-weight: 700;
+        font-size: 0.875rem;
+        font-weight: 800;
       }
 
       .nav-links a {
-        padding: 0.45rem 0.2rem;
+        border-radius: 0.5rem;
+        padding: 0.5rem 0.85rem;
       }
 
       .nav-links a:hover {
+        background: var(--brand-soft);
         color: var(--brand);
+      }
+
+      .nav-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
       }
 
       .nav-cta {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         min-height: 2.45rem;
-        border-radius: 0.5rem;
-        background: var(--ink);
+        border-radius: 999px;
+        background: var(--brand);
         color: #ffffff;
-        padding: 0 0.9rem;
+        padding: 0 1rem;
         font-size: 0.9rem;
-        font-weight: 800;
+        font-weight: 900;
+        box-shadow: 0 12px 28px rgba(232, 69, 122, 0.18);
+      }
+
+      .repo-cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.45rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #ffffff;
+        color: var(--ink);
+        padding: 0 0.95rem;
+        font-size: 0.88rem;
+        font-weight: 900;
       }
 
       .hero {
         position: relative;
         overflow: hidden;
-        border-bottom: 1px solid var(--line);
         background:
-          linear-gradient(180deg, #ffffff 0%, #fffafe 68%, #ffffff 100%);
+          radial-gradient(circle at 91% 22%, rgba(232, 69, 122, 0.06), transparent 16rem),
+          #ffffff;
+      }
+
+      .hero::before {
+        position: absolute;
+        bottom: 2.25rem;
+        left: 0;
+        width: 10rem;
+        height: 10rem;
+        background-image: radial-gradient(rgba(232, 69, 122, 0.1) 1px, transparent 1px);
+        background-size: 1rem 1rem;
+        content: "";
       }
 
       .hero-inner {
+        position: relative;
         display: grid;
-        grid-template-columns: minmax(0, 0.9fr) minmax(20rem, 1.1fr);
+        grid-template-columns: minmax(0, 0.76fr) minmax(0, 1.24fr);
         align-items: center;
-        gap: clamp(2rem, 5vw, 4.25rem);
-        width: min(100%, 76rem);
-        min-height: 41rem;
+        gap: clamp(0.75rem, 2vw, 2rem);
+        width: min(100%, 90rem);
+        min-height: 44rem;
         margin: 0 auto;
-        padding: 5.5rem 1.5rem 4.75rem;
+        padding: 6rem clamp(2.5rem, 5vw, 5rem) 5.75rem;
       }
 
       .eyebrow {
@@ -183,13 +214,13 @@
       }
 
       .hero h1 {
-        max-width: 34rem;
+        max-width: 35rem;
         margin: 0;
         color: var(--ink);
-        font-size: clamp(2.85rem, 5vw, 5rem);
-        font-weight: 950;
+        font-size: clamp(3.2rem, 6.4vw, 5rem);
+        font-weight: 900;
         letter-spacing: 0;
-        line-height: 1.12;
+        line-height: 1.14;
       }
 
       .hero h1 span {
@@ -197,11 +228,11 @@
       }
 
       .hero-copy {
-        margin: 1.45rem 0 0;
-        max-width: 34rem;
+        margin: 1.75rem 0 0;
+        max-width: 30rem;
         color: #5a6170;
-        font-size: 1.05rem;
-        font-weight: 600;
+        font-size: 1rem;
+        font-weight: 500;
         line-height: 1.85;
       }
 
@@ -209,7 +240,7 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.75rem;
-        margin-top: 2rem;
+        margin-top: 2.55rem;
       }
 
       .button {
@@ -245,89 +276,42 @@
         color: var(--ink);
       }
 
-      .hero-meta {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.75rem;
-        margin-top: 2.25rem;
-        max-width: 34rem;
-      }
-
-      .metric {
-        min-width: 0;
-        border: 1px solid var(--line);
-        border-radius: 0.5rem;
-        background: #ffffff;
-        padding: 0.95rem;
-        box-shadow: 0 10px 24px rgba(32, 39, 56, 0.04);
-      }
-
-      .metric strong {
-        display: block;
-        color: var(--ink);
-        font-size: 1.35rem;
-        line-height: 1.1;
-      }
-
-      .metric span {
-        display: block;
-        margin-top: 0.3rem;
-        color: var(--muted);
-        font-size: 0.78rem;
-        font-weight: 800;
-      }
-
       .hero-visual {
         position: relative;
         min-width: 0;
+        -webkit-mask-image: radial-gradient(
+          ellipse 78% 72% at 56% 50%,
+          black 28%,
+          rgba(0, 0, 0, 0.7) 52%,
+          transparent 100%
+        );
+        mask-image: radial-gradient(
+          ellipse 78% 72% at 56% 50%,
+          black 28%,
+          rgba(0, 0, 0, 0.7) 52%,
+          transparent 100%
+        );
+      }
+
+      .hero-visual::before {
+        position: absolute;
+        right: 4%;
+        top: 3%;
+        width: 13.5rem;
+        height: 13.5rem;
+        border-radius: 999px;
+        background: rgba(232, 69, 122, 0.04);
+        content: "";
       }
 
       .hero-visual img {
-        width: 100%;
-        border-radius: 0.5rem;
-        filter: drop-shadow(0 28px 46px rgba(32, 39, 56, 0.18));
-      }
-
-      .floating-panel {
-        position: absolute;
-        right: 1rem;
-        bottom: 1.2rem;
-        width: min(20rem, 70%);
-        border: 1px solid rgba(255, 255, 255, 0.74);
-        border-radius: 0.5rem;
-        background: rgba(255, 255, 255, 0.92);
-        padding: 1rem;
-        box-shadow: 0 18px 44px rgba(32, 39, 56, 0.16);
-        backdrop-filter: blur(18px);
-      }
-
-      .floating-panel span {
-        color: var(--muted);
-        font-size: 0.76rem;
-        font-weight: 900;
-      }
-
-      .floating-panel strong {
+        position: relative;
+        z-index: 1;
         display: block;
-        margin-top: 0.25rem;
-        color: var(--ink);
-        font-size: 1.35rem;
-        line-height: 1.2;
-      }
-
-      .floating-tags {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.45rem;
-        margin-top: 0.8rem;
-      }
-
-      .floating-tags b {
-        border-radius: 999px;
-        background: var(--brand-soft);
-        color: var(--brand-strong);
-        padding: 0.28rem 0.55rem;
-        font-size: 0.72rem;
+        width: min(56rem, 105%);
+        max-width: none;
+        height: auto;
+        margin-left: -2.5rem;
       }
 
       .section {
@@ -383,7 +367,6 @@
       }
 
       .problem-card,
-      .target-card,
       .team-card,
       .command-card {
         border: 1px solid var(--line);
@@ -500,6 +483,25 @@
         gap: 1rem;
       }
 
+      .target-card {
+        display: flex;
+        min-height: 100%;
+        flex-direction: column;
+        align-items: center;
+        padding: 0 1rem;
+        text-align: center;
+      }
+
+      .target-figure {
+        width: min(100%, 13.25rem);
+        margin: 0 auto 1rem;
+      }
+
+      .target-figure img {
+        width: 100%;
+        height: auto;
+      }
+
       .timeline {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -569,6 +571,63 @@
         grid-template-columns: minmax(0, 0.92fr) minmax(22rem, 1.08fr);
         gap: 1rem;
         align-items: start;
+      }
+
+      .architecture-card {
+        display: grid;
+        grid-template-columns: minmax(0, 0.82fr) minmax(28rem, 1.18fr);
+        gap: 1.4rem;
+        align-items: center;
+        margin-bottom: 1rem;
+        border: 1px solid var(--line);
+        border-radius: 0.5rem;
+        background: #ffffff;
+        padding: 1.2rem;
+        box-shadow: var(--shadow);
+      }
+
+      .architecture-copy {
+        min-width: 0;
+        padding: clamp(0.5rem, 2vw, 1.25rem);
+      }
+
+      .architecture-copy p {
+        margin: 0.75rem 0 0;
+        color: var(--muted);
+        font-weight: 650;
+      }
+
+      .architecture-shot {
+        margin: 0;
+      }
+
+      .architecture-shot img {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 0.5rem;
+        background: #ffffff;
+      }
+
+      .architecture-shot figcaption {
+        margin-top: 0.55rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+
+      .tech-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .tech-card {
+        border: 1px solid var(--line);
+        border-radius: 0.5rem;
+        background: #ffffff;
+        padding: 1.25rem;
+        box-shadow: 0 10px 26px rgba(32, 39, 56, 0.04);
       }
 
       .stack-list,
@@ -682,46 +741,13 @@
         .team-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
-      }
 
-      @media (max-width: 640px) {
-        .nav {
-          padding: 0.8rem 1rem;
-        }
-
-        .nav-cta {
-          display: none;
-        }
-
-        .hero-inner {
-          min-height: auto;
-          padding: 4rem 1rem 3rem;
-        }
-
-        .hero h1 {
-          font-size: 2.65rem;
-        }
-
-        .hero-meta,
-        .timeline,
-        .team-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .floating-panel {
-          position: static;
-          width: 100%;
-          margin-top: 0.75rem;
-        }
-
-        .section {
-          padding: 4rem 1rem;
-        }
-
-        .feature {
-          padding: 0.8rem;
+        .hero-visual img {
+          width: min(44rem, 100%);
+          margin-left: 0;
         }
       }
+
     </style>
   </head>
   <body>
@@ -729,8 +755,7 @@
     <header class="site-header">
       <nav class="nav" aria-label="주요 메뉴">
         <a class="brand" href="#top" aria-label="Accountit 홈">
-          <span class="brand-mark">A</span>
-          <span>Accountit</span>
+          <img class="brand-logo" src="apps/web/public/logo.png" alt="Accountit" />
         </a>
         <div class="nav-links">
           <a href="#problem">문제 정의</a>
@@ -738,9 +763,19 @@
           <a href="#team">팀 소개</a>
           <a href="#run">실행 방법</a>
         </div>
-        <a class="nav-cta" href="http://pj-kmucd2-5-s3.s3-website-us-east-1.amazonaws.com">
-          서비스 데모
-        </a>
+        <div class="nav-actions">
+          <a
+            class="repo-cta"
+            href="https://github.com/kookmin-sw/2026-capstone-85"
+            target="_blank"
+            rel="noreferrer"
+          >
+            GitHub Repo
+          </a>
+          <a class="nav-cta" href="http://pj-kmucd2-5-s3.s3-website-us-east-1.amazonaws.com">
+            서비스 데모
+          </a>
+        </div>
       </nav>
     </header>
 
@@ -754,12 +789,10 @@
               <br />
               <span>필요한 공고만</span>
               <br />
-              정확하게
+              <span>정확하게</span>
             </h1>
             <p class="hero-copy">
-              Accountit은 흩어진 회계사 채용 공고를 모아 KICPA 조건, 수습 가능 여부,
-              실무수습기관 인정 여부, 직무, 마감일을 기준으로 빠르게 탐색하게 돕습니다.
-              AI 이력서 분석과 기업 데이터, 캘린더, 커뮤니티까지 하나의 흐름으로 연결합니다.
+              수습·KICPA·직무·연차·마감일 기준으로 필요한 공고만 모아드립니다.
             </p>
             <div class="hero-actions" aria-label="바로가기">
               <a
@@ -768,21 +801,6 @@
               >
                 서비스 둘러보기
               </a>
-              <a class="button button-secondary" href="#features">기능 미리보기</a>
-            </div>
-            <div class="hero-meta" aria-label="서비스 핵심 지표">
-              <div class="metric">
-                <strong>CPA</strong>
-                <span>특화 조건 필터</span>
-              </div>
-              <div class="metric">
-                <strong>D-day</strong>
-                <span>마감 중심 탐색</span>
-              </div>
-              <div class="metric">
-                <strong>AI</strong>
-                <span>이력서 적합도 분석</span>
-              </div>
             </div>
           </div>
 
@@ -791,16 +809,6 @@
               src="apps/web/public/landing/accountit-hero.png"
               alt="Accountit 서비스 화면 미리보기"
             />
-            <div class="floating-panel" aria-hidden="true">
-              <span>오늘 확인할 공고</span>
-              <strong>수습 가능, KICPA 우대, 마감 임박</strong>
-              <div class="floating-tags">
-                <b>감사</b>
-                <b>세무</b>
-                <b>FAS</b>
-                <b>Big4</b>
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -846,10 +854,13 @@
       <section class="section section-compact">
         <div class="section-heading">
           <span class="eyebrow">Target User</span>
-          <h2>지원자와 기업회원의 흐름을 함께 설계했습니다</h2>
+          <h2>우리는 이런 사용자를 위해 준비했습니다</h2>
         </div>
         <div class="targets">
           <article class="target-card">
+            <div class="target-figure" aria-hidden="true">
+              <img src="apps/web/public/target-accountant.png" alt="" />
+            </div>
             <h3>회계사 및 CPA 자격 보유자</h3>
             <p>
               감사, 세무, FAS, Deal, 내부회계, 인하우스 등 다양한 회계 직무로
@@ -857,17 +868,23 @@
             </p>
           </article>
           <article class="target-card">
-            <h3>CPA 준비생 및 수습 예정자</h3>
-            <p>
-              수습 CPA 가능 공고, 실무수습기관 인정 여부, 신입 채용, KICPA 조건을
-              중심으로 탐색하는 사용자입니다.
-            </p>
-          </article>
-          <article class="target-card">
+            <div class="target-figure" aria-hidden="true">
+              <img src="apps/web/public/target-company.png" alt="" />
+            </div>
             <h3>회계법인 및 채용 기업</h3>
             <p>
               공고를 등록하고 지원자 관심도와 공고 성과 데이터를 확인하려는
               기업회원입니다.
+            </p>
+          </article>
+          <article class="target-card">
+            <div class="target-figure" aria-hidden="true">
+              <img src="apps/web/public/target-trainee.png" alt="" />
+            </div>
+            <h3>CPA 준비생 및 수습 예정자</h3>
+            <p>
+              수습 CPA 가능 공고, 실무수습기관 인정 여부, 신입 채용, KICPA 조건을
+              중심으로 탐색하는 사용자입니다.
             </p>
           </article>
         </div>
@@ -879,8 +896,8 @@
             <span class="eyebrow">Product Preview</span>
             <h2>공고 탐색부터 지원 판단까지 한 화면 안에서 이어집니다</h2>
             <p>
-              기존 `index.md`의 주요 기능 설명과 실제 웹 UI 캡처를 섞어,
-              GitHub Pages에서도 서비스의 핵심 경험이 바로 보이도록 구성했습니다.
+              실제 서비스 화면을 기준으로 공고 탐색, AI 적합도 분석, 기업회원 분석,
+              마감 관리와 커뮤니티 흐름을 정리했습니다.
             </p>
           </div>
 
@@ -902,7 +919,7 @@
                 </div>
               </div>
               <div class="feature-shot">
-                <img src="docs/images/accountit-page/jobs.png" alt="채용 공고 검색 화면" />
+                <img src="apps/web/public/job-page.png" alt="채용 공고 검색 화면" />
               </div>
             </article>
 
@@ -922,7 +939,7 @@
               </div>
               <div class="feature-shot">
                 <img
-                  src="docs/images/accountit-page/job-detail-fit.png"
+                  src="apps/web/public/job-detail-page.png"
                   alt="채용 공고 상세 AI 적합도 분석 화면"
                 />
               </div>
@@ -944,7 +961,7 @@
               </div>
               <div class="feature-shot">
                 <img
-                  src="docs/images/accountit-page/company-dashboard.png"
+                  src="apps/web/public/company-analysis.png"
                   alt="기업회원 대시보드 화면"
                 />
               </div>
@@ -965,7 +982,7 @@
                 </div>
               </div>
               <div class="feature-shot">
-                <img src="docs/images/accountit-page/calendar.png" alt="마감일 캘린더 화면" />
+                <img src="apps/web/public/calendar-page.png" alt="마감일 캘린더 화면" />
               </div>
             </article>
 
@@ -984,7 +1001,7 @@
                 </div>
               </div>
               <div class="feature-shot">
-                <img src="docs/images/accountit-page/community.png" alt="커뮤니티 화면" />
+                <img src="apps/web/public/community-page.png" alt="커뮤니티 화면" />
               </div>
             </article>
           </div>
@@ -1058,28 +1075,91 @@
 
       <section class="section" id="run">
         <div class="section-heading">
-          <span class="eyebrow">Build & Run</span>
-          <h2>Next.js, NestJS, Prisma 기반의 npm workspace 모노레포입니다</h2>
+          <span class="eyebrow">Engineering</span>
+          <h2>정적 웹, API, 데이터베이스를 분리한 npm workspace 모노레포입니다</h2>
+          <p>
+            GitHub Pages에서 프로젝트를 볼 때 필요한 아키텍처, 워크스페이스 구조,
+            실행 명령과 검증 명령을 한곳에 정리했습니다.
+          </p>
         </div>
-        <div class="build-grid">
-          <article class="problem-card">
-            <h3>기술 스택</h3>
+
+        <article class="architecture-card">
+          <div class="architecture-copy">
+            <span class="feature-kicker">System Architecture</span>
+            <h3>채용 공고 목록 조회 흐름</h3>
+            <p>
+              사용자는 CloudFront를 통해 S3에 배포된 Next.js 정적 페이지를 받아 보고,
+              API 요청은 고정 접속 주소와 Caddy 라우팅을 거쳐 EC2의 NestJS 서버로 전달됩니다.
+              NestJS는 JobsService와 Prisma ORM을 통해 PostgreSQL의 Jobs, Companies,
+              Sources, Labels 데이터를 조회하고, API 로그는 CloudWatch Logs로 수집합니다.
+              회사 로고와 이미지 파일은 별도 S3 버킷에서 정적 자산으로 관리합니다.
+            </p>
+          </div>
+          <figure class="architecture-shot">
+            <img
+              src="apps/web/public/system-architecture.png"
+              alt="Accountit 채용 공고 목록 조회 시스템 아키텍처"
+            />
+            <figcaption>
+              Static Web Hosting, API Routing, NestJS Service Layer, Prisma/PostgreSQL,
+              CloudWatch Logs로 이어지는 목록 조회 아키텍처입니다.
+            </figcaption>
+          </figure>
+        </article>
+
+        <div class="tech-grid" aria-label="프로젝트 기술 정보">
+          <article class="tech-card">
+            <h3>Workspace</h3>
             <ul class="stack-list">
-              <li>Web: Next.js App Router, TypeScript, Tailwind CSS, shadcn/ui</li>
-              <li>API: NestJS, Prisma, PostgreSQL, Swagger/OpenAPI</li>
-              <li>Shared: 공통 enum과 DTO 친화 타입</li>
+              <li>apps/web: Next.js App Router 기반 사용자·관리자 UI</li>
+              <li>apps/api: NestJS REST API, Swagger/OpenAPI, 인증과 권한</li>
+              <li>packages/shared: enum, 공통 타입, DTO 친화 모델</li>
+              <li>prisma: schema, migrations, seed/mock 데이터</li>
+            </ul>
+          </article>
+          <article class="tech-card">
+            <h3>Core Stack</h3>
+            <ul class="stack-list">
+              <li>Web: TypeScript, Tailwind CSS, shadcn/ui, lucide-react</li>
+              <li>API: NestJS, Prisma ORM, PostgreSQL</li>
               <li>Auth: username/password, argon2, HTTP-only JWT cookie</li>
               <li>Roles: JOB_SEEKER, COMPANY, ADMIN</li>
             </ul>
           </article>
+          <article class="tech-card">
+            <h3>Product Scope</h3>
+            <ul class="stack-list">
+              <li>Phase 0는 내부 지원서가 아니라 공고 발견과 큐레이션에 집중</li>
+              <li>공고 데이터는 출처와 마지막 확인 시간을 함께 노출</li>
+              <li>기업회원 요청은 관리자 검수 후 게시</li>
+              <li>CSV import, URL preview, AI labels는 untrusted input으로 처리</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="build-grid">
+          <article class="problem-card">
+            <h3>Repository Checklist</h3>
+            <ul class="stack-list">
+              <li>npm workspaces로 web, api, shared 패키지를 한 저장소에서 관리</li>
+              <li>Prisma schema와 migration으로 DB 구조를 버전 관리</li>
+              <li>Swagger/OpenAPI로 API 명세를 확인할 수 있도록 구성</li>
+              <li>GitHub 저장소와 서비스 데모 링크를 페이지 상단에서 바로 접근</li>
+            </ul>
+          </article>
           <article class="command-card">
-            <h3>로컬 실행</h3>
+            <h3>Local Development</h3>
             <pre><code>npm install
 cp .env.example .env
 docker compose up -d
 npm run prisma:migrate
 npm run prisma:mock
-npm run dev</code></pre>
+npm run dev
+
+# focused checks
+npm run typecheck
+npm run lint
+npm run test</code></pre>
           </article>
         </div>
       </section>

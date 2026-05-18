@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Generated company logo 085</title>
+  <desc id="desc">A simple synthetic company logo for Accountit seed data.</desc>
+  <rect width="128" height="128" rx="28" fill="#ecfeff"/>
+  <rect x="22" y="22" width="84" height="84" rx="26" fill="#0f172a"/>
+  <circle cx="92" cy="36" r="10" fill="#14b8a6"/>
+  <text x="64" y="66" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="900" text-anchor="middle" dominant-baseline="central">JR</text>
+</svg>

@@ -21,6 +21,10 @@ import {
   resolveEnvFilePaths,
   resolvePrismaPostgresConfig,
 } from "../apps/api/src/config/runtime-environment";
+import {
+  ensureGeneratedCompanyBackgroundAsset,
+  ensureGeneratedCompanyLogoAsset,
+} from "./company-logo-assets";
 
 for (const envFilePath of resolveEnvFilePaths()) {
   loadDotenv({ path: envFilePath, override: false });
@@ -1048,7 +1052,21 @@ async function importJobs(jobs: NormalizedJob[]) {
     for (const job of jobs) {
       try {
         const company = await ensureCompany(prisma, job, ownerPasswordHash);
-        const action = await upsertJob(prisma, source, labelByName, company, job);
+        const logoResult = await ensureGeneratedCompanyLogoAsset(
+          prisma,
+          company,
+        );
+        const backgroundResult = await ensureGeneratedCompanyBackgroundAsset(
+          prisma,
+          logoResult.company,
+        );
+        const action = await upsertJob(
+          prisma,
+          source,
+          labelByName,
+          backgroundResult.company,
+          job,
+        );
 
         stats.imported += 1;
         if (action === "created") {

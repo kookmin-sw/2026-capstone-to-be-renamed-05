@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Generated company logo 034</title>
+  <desc id="desc">A simple synthetic company logo for Accountit seed data.</desc>
+  <rect width="128" height="128" rx="28" fill="#fff7ed"/>
+  <path d="M64 18c27 0 46 18 46 43 0 31-46 50-46 50S18 92 18 61c0-25 19-43 46-43z" fill="#0c4a6e"/>
+  <path d="M45 64l13 13 26-31" fill="none" stroke="#fb923c" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

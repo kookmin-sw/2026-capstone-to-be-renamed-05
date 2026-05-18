@@ -766,7 +766,7 @@ function JobDetail({
   const isUrgent = job.dDay !== null && job.dDay >= 0 && job.dDay <= 7;
   const heroStyle: CSSProperties | undefined = job.companyBackgroundUrl
     ? {
-        backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.93), rgba(255,255,255,0.72), rgba(255,255,255,0.48)), url("${job.companyBackgroundUrl}")`,
+        backgroundImage: `linear-gradient(90deg, rgba(255,255,255,0.94) 0%, rgba(255,255,255,0.76) 42%, rgba(15,23,42,0.18) 100%), url("${job.companyBackgroundUrl}")`,
       }
     : undefined;
   const experienceText = formatExperience(

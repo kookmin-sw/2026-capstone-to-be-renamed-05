@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Generated company logo 074</title>
+  <desc id="desc">A simple synthetic company logo for Accountit seed data.</desc>
+  <rect width="128" height="128" rx="28" fill="#fffbeb"/>
+  <circle cx="64" cy="64" r="45" fill="#1f2937"/>
+  <rect x="82" y="30" width="14" height="44" rx="7" fill="#f59e0b"/>
+  <text x="57" y="67" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="900" text-anchor="middle" dominant-baseline="central">DR</text>
+</svg>

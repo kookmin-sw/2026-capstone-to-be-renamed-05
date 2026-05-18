@@ -138,7 +138,16 @@ npm run prisma:migrate
 npm run prisma:migrate:deploy
 npm run prisma:seed
 npm run prisma:mock
+npm run prisma:map-company-assets
+npm run prisma:map-company-logos
 ```
+
+`npm run prisma:map-company-assets`는 기존 회사 중 로고나 배경 이미지가 없는
+항목에 `apps/web/public/company-logos/generated-logo-001.svg`부터
+`generated-logo-100.svg`까지의 정적 로고와
+`apps/web/public/company-backgrounds/*.png`의 실사풍 회사 배경을 회사명 기준으로
+안정적으로 매핑합니다. 기존 이미지를 다시 덮어쓰려면
+`npm run prisma:map-company-assets -- --overwrite`를 사용합니다.
 
 ## 5. 기타
 

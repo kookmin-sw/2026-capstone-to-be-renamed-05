@@ -24,6 +24,8 @@
     "prisma:migrate:deploy": "prisma migrate deploy --schema=prisma/schema.prisma",
     "prisma:seed": "tsx prisma/seed.ts",
     "prisma:mock": "tsx prisma/mock.ts",
+    "prisma:map-company-assets": "tsx prisma/map-company-logos.ts",
+    "prisma:map-company-logos": "tsx prisma/map-company-logos.ts",
     "prisma:import:saramin": "tsx prisma/import-saramin.ts",
     "prisma:import:kicpa": "tsx prisma/import-kicpa.ts",
     "build:web:static": "node scripts/build-web-static.mjs",

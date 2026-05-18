@@ -29,19 +29,19 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-
+    
     UITabBarController *ownTabBarController = self.ownTabBarController;
     [self addChildViewController:ownTabBarController];
     [self.view addSubview:ownTabBarController.view];
     ownTabBarController.view.frame = self.view.bounds;
+    ownTabBarController.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     [ownTabBarController didMoveToParentViewController:self];
 }
 
 - (UITabBarController *)ownTabBarController {
     UITabBarController *ownTabBarController = self->_ownTabBarController;
     if (ownTabBarController) return ownTabBarController;
-
-    // NULL
+    
     JobsViewController *jobsViewController = self.jobsViewController;
     UITab *jobsTab = [[UITab alloc] initWithTitle:@"Jobs"
                                             image:[UIImage systemImageNamed:@"person.fill"]

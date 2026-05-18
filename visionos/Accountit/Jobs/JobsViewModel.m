@@ -10,6 +10,7 @@
 
 @interface JobsViewModel ()
 @property (retain, nonatomic, readonly) UICollectionViewDiffableDataSource<NSString *,JobItemModel *> *dataSource;
+@property (retain, nonatomic, nullable) NSProgress *progress;
 @end
 
 @implementation JobsViewModel
@@ -24,11 +25,15 @@
 
 - (void)dealloc {
     [_dataSource release];
+    [_progress cancel];
+    [_progress release];
     [super dealloc];
 }
 
 - (void)loadDataSource {
-    [AccountitAPIService cpaJobsWithQuery:nil completionHandler:^(AccountitAPICPAJobListResponse * _Nullable response, NSError * _Nullable * _Nullable error) {
+    [self.progress cancel];
+    
+    self.progress = [AccountitAPIService cpaJobsWithQuery:nil completionHandler:^(AccountitAPICPAJobListResponse * _Nullable response, NSError * _Nullable * _Nullable error) {
         assert(error == nil);
         NSMutableArray<JobItemModel *> *items = [[NSMutableArray alloc] initWithCapacity:response.items.count];
         

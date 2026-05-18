@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		4F7C35162FBA2A3B00E49219 /* MySwiftUI in Frameworks */ = {isa = PBXBuildFile; platformFilters = (xros, ); productRef = 4F7C35152FBA2A3B00E49219 /* MySwiftUI */; };
 		4F9B00012FB8D4510075DB9A /* BaseBoard.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF9B2FB8D3990075DB9A /* BaseBoard.xcframework */; platformFilters = (xros, ); };
 		4F9B00032FB8D4510075DB9A /* BoardServices.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF8A2FB8D3990075DB9A /* BoardServices.xcframework */; platformFilters = (xros, ); };
 		4F9B00052FB8D4510075DB9A /* CoreRE.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F9BFF8C2FB8D3990075DB9A /* CoreRE.xcframework */; platformFilters = (xros, ); };
@@ -237,7 +236,6 @@
 				4F9B00192FB8D4510075DB9A /* UIAccessibility.xcframework in Frameworks */,
 				4F9B00092FB8D4510075DB9A /* FeatureFlags.xcframework in Frameworks */,
 				4F9BFFFB2FB8D4510075DB9A /* _SwiftUIPrivate.xcframework in Frameworks */,
-				4F7C35162FBA2A3B00E49219 /* MySwiftUI in Frameworks */,
 				4F9B00172FB8D4510075DB9A /* TCC.xcframework in Frameworks */,
 				4F9B001F2FB8D4510075DB9A /* UIKitServices.xcframework in Frameworks */,
 				4F9BFFF52FB8D4510075DB9A /* _QuartzCorePrivate.xcframework in Frameworks */,
@@ -383,7 +381,6 @@
 			);
 			name = Accountit;
 			packageProductDependencies = (
-				4F7C35152FBA2A3B00E49219 /* MySwiftUI */,
 			);
 			productName = Accountit;
 			productReference = 4F9BFF662FB8D2E20075DB9A /* Accountit.app */;
@@ -421,7 +418,6 @@
 			mainGroup = 4F9BFF5D2FB8D2E20075DB9A;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				4F9BFFDE2FB8D42A0075DB9A /* XCLocalSwiftPackageReference "../../MySwiftUI" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4F9BFF672FB8D2E20075DB9A /* Products */;
@@ -837,21 +833,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCLocalSwiftPackageReference section */
-		4F9BFFDE2FB8D42A0075DB9A /* XCLocalSwiftPackageReference "../../MySwiftUI" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../../MySwiftUI;
-		};
-/* End XCLocalSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		4F7C35152FBA2A3B00E49219 /* MySwiftUI */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4F9BFFDE2FB8D42A0075DB9A /* XCLocalSwiftPackageReference "../../MySwiftUI" */;
-			productName = MySwiftUI;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 4F9BFF5E2FB8D2E20075DB9A /* Project object */;
 }

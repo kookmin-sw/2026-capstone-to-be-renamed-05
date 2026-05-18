@@ -16,6 +16,9 @@ struct AccountitApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+#if !canImport(MySwiftUI)
+                .ignoresSafeArea()
+#endif
         }
     }
 }

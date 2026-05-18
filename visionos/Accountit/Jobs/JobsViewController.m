@@ -25,7 +25,7 @@
     [_collectionView release];
     [_dataSource release];
     [_viewModel release];
-[_cellRegistration release];
+    [_cellRegistration release];
     [super dealloc];
 }
 

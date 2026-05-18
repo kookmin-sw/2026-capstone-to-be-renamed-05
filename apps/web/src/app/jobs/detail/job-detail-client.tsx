@@ -47,6 +47,7 @@ import {
   recordJobEngagement,
   type AuthUser,
 } from "@/lib/api";
+import { logClientError, logClientWarn } from "@/lib/client-logger";
 import {
   companyTypeLabels,
   deadlineTypeLabels,
@@ -140,7 +141,13 @@ export function JobDetailClient() {
         setError("");
         if (recordedDetailJobId.current !== jobData.id) {
           recordedDetailJobId.current = jobData.id;
-          void recordJobEngagement(jobData.id, "DETAIL_VIEW").catch(() => {});
+          void recordJobEngagement(jobData.id, "DETAIL_VIEW").catch(
+            (trackingError) => {
+              logClientWarn("jobs.detail_view_tracking_failed", trackingError, {
+                jobId: jobData.id,
+              });
+            },
+          );
         }
 
         if (user?.role === "JOB_SEEKER") {
@@ -150,6 +157,19 @@ export function JobDetailClient() {
           ]);
 
           if (ignore) return;
+
+          if (resumeResult.status === "rejected") {
+            logClientWarn("jobs.detail_resumes_load_failed", resumeResult.reason, {
+              jobId,
+            });
+          }
+          if (analysisResult.status === "rejected") {
+            logClientWarn(
+              "jobs.detail_fit_analyses_load_failed",
+              analysisResult.reason,
+              { jobId },
+            );
+          }
 
           const resumeItems =
             resumeResult.status === "fulfilled" ? resumeResult.value.items : [];
@@ -171,6 +191,7 @@ export function JobDetailClient() {
         }
       } catch (caught) {
         if (!ignore) {
+          logClientError("jobs.detail_load_failed", caught, { jobId });
           setError(
             caught instanceof Error
               ? caught.message
@@ -272,6 +293,10 @@ export function JobDetailClient() {
       ]);
       setDisplayedAnalysis(result.item);
     } catch (caught) {
+      logClientError("jobs.fit_analysis_create_failed", caught, {
+        jobId: job.id,
+        resumeId: selectedResumeId,
+      });
       setAnalysisError(
         caught instanceof Error
           ? caught.message
@@ -776,7 +801,11 @@ function JobDetail({
   const aiSummaryText =
     job.aiSummary?.trim() || job.aiSuggestion?.summary || null;
   const trackOriginalClick = () => {
-    void recordJobEngagement(job.id, "ORIGINAL_CLICK").catch(() => {});
+    void recordJobEngagement(job.id, "ORIGINAL_CLICK").catch((caught) => {
+      logClientWarn("jobs.detail_original_click_tracking_failed", caught, {
+        jobId: job.id,
+      });
+    });
   };
 
   return (

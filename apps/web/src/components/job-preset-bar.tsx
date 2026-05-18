@@ -15,6 +15,7 @@ import {
   fetchUserJobPresets,
   markUserJobPresetUsed,
 } from "@/lib/api";
+import { logClientError, logClientWarn } from "@/lib/client-logger";
 import {
   isMeaningfulJobPresetSnapshot,
   jobFiltersToPresetSnapshot,
@@ -164,6 +165,7 @@ export function JobPresetBar({
           }
         } catch (caught) {
           if (!ignore) {
+            logClientError("jobs.presets_load_failed", caught);
             setError(
               caught instanceof Error
                 ? caught.message
@@ -172,8 +174,9 @@ export function JobPresetBar({
           }
         }
       })
-      .catch(() => {
+      .catch((caught) => {
         if (!ignore) {
+          logClientWarn("jobs.presets_auth_check_failed", caught);
           setAuthMode("guest");
         }
       });
@@ -228,7 +231,11 @@ export function JobPresetBar({
           current.map((item) => (item.id === updated.id ? updated : item)),
         );
       })
-      .catch(() => {});
+      .catch((caught) => {
+        logClientWarn("jobs.preset_usage_mark_failed", caught, {
+          presetId: preset.id,
+        });
+      });
   };
 
   const handleStartSave = () => {
@@ -264,6 +271,9 @@ export function JobPresetBar({
         });
       })
       .catch((caught: Error) => {
+        logClientError("jobs.preset_create_failed", caught, {
+          hasCustomFilter: canSave,
+        });
         setError(caught.message);
       })
       .finally(() => {
@@ -283,6 +293,9 @@ export function JobPresetBar({
         }
       })
       .catch((caught: Error) => {
+        logClientError("jobs.preset_delete_failed", caught, {
+          presetId: preset.id,
+        });
         setError(caught.message);
       });
   };

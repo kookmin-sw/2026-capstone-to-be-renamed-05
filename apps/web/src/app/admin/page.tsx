@@ -9,6 +9,7 @@ import {
   type AdminDashboard,
 } from "@/components/admin/admin-demo-data";
 import styles from "@/components/admin/admin.module.css";
+import { logClientError } from "@/lib/client-logger";
 import { adminCompanyEditHref, adminJobEditHref } from "@/lib/routes";
 
 function formatDate(value: string) {
@@ -33,7 +34,10 @@ export default function AdminDashboardPage() {
         }
       })
       .catch((caught: Error) => {
-        if (!ignore) setError(caught.message);
+        if (!ignore) {
+          logClientError("admin.dashboard_load_failed", caught);
+          setError(caught.message);
+        }
       })
       .finally(() => {
         if (!ignore) setLoading(false);

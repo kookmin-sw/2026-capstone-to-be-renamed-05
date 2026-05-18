@@ -7,6 +7,7 @@ import {
   reviewAdminAiSuggestion,
   type AdminAiSuggestion,
 } from "@/lib/api";
+import { logClientError } from "@/lib/client-logger";
 import styles from "@/components/admin/admin.module.css";
 
 function SuggestionStatusBadge({ status }: { status: string }) {
@@ -29,7 +30,12 @@ export default function AdminAiSuggestionsPage() {
     let ignore = false;
     fetchAdminAiSuggestions()
       .then((data) => { if (!ignore) { setSuggestions(data.items); setError(""); } })
-      .catch((caught: Error) => { if (!ignore) setError(caught.message); })
+      .catch((caught: Error) => {
+        if (!ignore) {
+          logClientError("admin.ai_suggestions_load_failed", caught);
+          setError(caught.message);
+        }
+      })
       .finally(() => { if (!ignore) setLoading(false); });
     return () => { ignore = true; };
   }, []);
@@ -41,6 +47,10 @@ export default function AdminAiSuggestionsPage() {
       const updated = await reviewAdminAiSuggestion(id, action);
       setSuggestions((current) => current.map((item) => (item.id === updated.id ? updated : item)));
     } catch (caught) {
+      logClientError("admin.ai_suggestion_review_failed", caught, {
+        suggestionId: id,
+        action,
+      });
       setError(caught instanceof Error ? caught.message : "처리에 실패했습니다.");
     }
   }

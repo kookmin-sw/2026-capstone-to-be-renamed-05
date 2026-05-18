@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { actionButtonClassName } from "@/components/ui/action-button";
 import { recordJobEngagement } from "@/lib/api";
+import { logClientWarn } from "@/lib/client-logger";
 import { jobDetailHref } from "@/lib/routes";
 import styles from "./job-card.module.css";
 
@@ -214,7 +215,9 @@ export function JobGridCard({
 }
 
 function trackOriginalClick(jobId: string) {
-  void recordJobEngagement(jobId, "ORIGINAL_CLICK").catch(() => {});
+  void recordJobEngagement(jobId, "ORIGINAL_CLICK").catch((caught) => {
+    logClientWarn("jobs.original_click_tracking_failed", caught, { jobId });
+  });
 }
 
 function dDayToneClassName(dDay: number | null) {

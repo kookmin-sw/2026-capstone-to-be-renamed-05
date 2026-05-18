@@ -21,6 +21,7 @@ import {
   NOTIFICATIONS_CHANGED_EVENT,
 } from '@/lib/api';
 import { calendarDaysToMap, jobsBetween } from '@/lib/calendar-data';
+import { logClientError, logClientWarn } from '@/lib/client-logger';
 import { endOfWeek, getCalendarGridRange, isSameDay, startOfWeek, toDateKey } from '@/lib/date-utils';
 import { buildJobFilterParams } from '@/lib/job-filters';
 import { employmentLabels, jobFamilyLabels, kicpaLabels } from '@/lib/labels';
@@ -276,7 +277,9 @@ export default function JobsPage() {
           });
         }
       })
-      .catch(() => {});
+      .catch((caught) => {
+        if (!ignore) logClientWarn('jobs.bookmark_bootstrap_failed', caught);
+      });
     return () => {
       ignore = true;
     };
@@ -298,13 +301,17 @@ export default function JobsPage() {
           });
           notifyNotificationsChanged();
         }
-      } catch {}
+      } catch (caught) {
+        logClientError('jobs.bookmark_delete_failed', caught, { jobId });
+      }
     } else {
       try {
         await createMyBookmark('JOB', jobId);
         setBookmarkedJobIds((prev) => new Set(prev).add(jobId));
         notifyNotificationsChanged();
-      } catch {}
+      } catch (caught) {
+        logClientError('jobs.bookmark_create_failed', caught, { jobId });
+      }
     }
   }
 
@@ -357,7 +364,13 @@ export default function JobsPage() {
         }
       })
       .catch((caught: Error) => {
-        if (!ignore) setError(caught.message);
+        if (!ignore) {
+          logClientError('jobs.list_load_failed', caught, {
+            page,
+            filterCount: Array.from(params.keys()).length,
+          });
+          setError(caught.message);
+        }
       })
       .finally(() => {
         if (!ignore) setLoading(false);
@@ -378,7 +391,14 @@ export default function JobsPage() {
         }
       })
       .catch((caught: Error) => {
-        if (!ignore) setCalendarError(caught.message);
+        if (!ignore) {
+          logClientError('jobs.sidebar_calendar_load_failed', caught, {
+            from: toDateKey(calendarRange.from),
+            to: toDateKey(calendarRange.to),
+            filterCount: Array.from(calendarParams.keys()).length,
+          });
+          setCalendarError(caught.message);
+        }
       })
       .finally(() => {
         if (!ignore) setCalendarLoading(false);

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useState } from "react";
 import { loginAdminDemo } from "@/components/admin/admin-demo-data";
 import styles from "@/components/admin/admin.module.css";
+import { logClientWarn } from "@/lib/client-logger";
 import { cn } from "@/lib/utils";
 
 export default function AdminLoginPage() {
@@ -32,6 +33,7 @@ function AdminLoginPageContent() {
       await loginAdminDemo(username, password);
       router.replace(nextPath ?? "/admin");
     } catch (error) {
+      logClientWarn("admin.auth_request_failed", error);
       setMessage(
         error instanceof Error
           ? error.message

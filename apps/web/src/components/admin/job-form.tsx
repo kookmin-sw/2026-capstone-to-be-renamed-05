@@ -35,6 +35,7 @@ import {
   kicpaLabels,
   traineeLabels,
 } from "@/components/admin/admin-demo-data";
+import { logClientError } from "@/lib/client-logger";
 import { cn } from "@/lib/utils";
 import styles from "./admin.module.css";
 
@@ -154,7 +155,10 @@ export function JobForm({ jobId }: { jobId?: string }) {
         setMessage("");
       })
       .catch((caught: Error) => {
-        if (!ignore) setMessage(caught.message);
+        if (!ignore) {
+          logClientError("admin.job_form_load_failed", caught, { jobId });
+          setMessage(caught.message);
+        }
       })
       .finally(() => {
         if (!ignore) setLoading(false);
@@ -217,6 +221,10 @@ export function JobForm({ jobId }: { jobId?: string }) {
       }
       router.push("/admin/jobs");
     } catch (error) {
+      logClientError("admin.job_save_failed", error, {
+        mode: jobId ? "edit" : "create",
+        jobId,
+      });
       setMessage(error instanceof Error ? error.message : "저장에 실패했습니다.");
     } finally {
       setSaving(false);

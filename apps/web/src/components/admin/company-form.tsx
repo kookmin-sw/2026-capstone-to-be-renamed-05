@@ -12,6 +12,7 @@ import {
   type AdminCompanyType,
   companyTypeLabels,
 } from "@/components/admin/admin-demo-data";
+import { logClientError } from "@/lib/client-logger";
 import { cn } from "@/lib/utils";
 import styles from "./admin.module.css";
 
@@ -94,7 +95,12 @@ export function CompanyForm({ companyId }: { companyId?: string }) {
         });
       })
       .catch((caught: Error) => {
-        if (!ignore) setMessage(caught.message);
+        if (!ignore) {
+          logClientError("admin.company_form_load_failed", caught, {
+            companyId,
+          });
+          setMessage(caught.message);
+        }
       })
       .finally(() => {
         if (!ignore) setLoading(false);
@@ -137,6 +143,10 @@ export function CompanyForm({ companyId }: { companyId?: string }) {
       }
       router.push("/admin/companies");
     } catch (error) {
+      logClientError("admin.company_save_failed", error, {
+        mode: companyId ? "edit" : "create",
+        companyId,
+      });
       setMessage(
         error instanceof Error ? error.message : "저장에 실패했습니다.",
       );

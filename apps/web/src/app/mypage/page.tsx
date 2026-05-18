@@ -68,6 +68,7 @@ import {
   uploadMyProfileImage,
   uploadMyResume,
 } from "@/lib/api";
+import { logClientError, logClientWarn } from "@/lib/client-logger";
 import {
   communityDetailHref,
   companyDetailHref,
@@ -257,6 +258,7 @@ function MyPageContent() {
           setProfile(profileResult.value);
           setDisplayNameInput(profileResult.value.displayName ?? "");
         } else {
+          logClientError("mypage.profile_load_failed", profileResult.reason);
           setProfile(null);
           setLoadError(
             profileResult.reason instanceof Error
@@ -297,6 +299,19 @@ function MyPageContent() {
             : 0,
         );
 
+        const sideLoadFailures = [
+          ["mypage.bookmarks_load_failed", bookmarkResult],
+          ["mypage.resumes_load_failed", resumeResult],
+          ["mypage.high_fit_load_failed", highFitResult],
+          ["mypage.community_activity_load_failed", activityResult],
+          ["mypage.notifications_preview_load_failed", notificationResult],
+        ] as const;
+        sideLoadFailures.forEach(([event, result]) => {
+          if (result.status === "rejected") {
+            logClientWarn(event, result.reason);
+          }
+        });
+
         const sideLoadErrors = [
           bookmarkResult.status === "rejected" ? "북마크" : "",
           resumeResult.status === "rejected" ? "이력서" : "",
@@ -312,6 +327,7 @@ function MyPageContent() {
         }
       } catch (error) {
         if (!ignore) {
+          logClientError("mypage.auth_or_profile_load_failed", error);
           setAuthorized(false);
           setLoadError(
             error instanceof Error
@@ -359,7 +375,8 @@ function MyPageContent() {
             PROFILE_COMPLETION_HIDDEN_UNTIL_STORAGE_KEY,
           );
         }
-      } catch {
+      } catch (caught) {
+        logClientWarn("mypage.profile_completion_storage_read_failed", caught);
         // Browser storage can be unavailable in restricted/private contexts.
       }
     }, 0);
@@ -445,6 +462,7 @@ function MyPageContent() {
       notifyAuthUserChanged();
       setMessage("프로필을 수정했습니다.");
     } catch (error) {
+      logClientError("mypage.profile_update_failed", error);
       setMessage(
         error instanceof Error ? error.message : "프로필 수정에 실패했습니다.",
       );
@@ -479,6 +497,10 @@ function MyPageContent() {
           : "프로필 사진을 등록했습니다.",
       );
     } catch (error) {
+      logClientError("mypage.profile_image_upload_failed", error, {
+        fileType: file.type,
+        fileSize: file.size,
+      });
       setMessage(
         error instanceof Error
           ? error.message
@@ -501,6 +523,7 @@ function MyPageContent() {
       notifyAuthUserChanged();
       setMessage("프로필 사진을 삭제했습니다.");
     } catch (error) {
+      logClientError("mypage.profile_image_delete_failed", error);
       setMessage(
         error instanceof Error
           ? error.message
@@ -551,6 +574,7 @@ function MyPageContent() {
       setNewPasswordConfirm("");
       setMessage("비밀번호를 변경했습니다.");
     } catch (error) {
+      logClientError("mypage.password_update_failed", error);
       setMessage(
         error instanceof Error
           ? error.message
@@ -568,6 +592,9 @@ function MyPageContent() {
       setBookmarks((prev) => prev.filter((bm) => bm.id !== id));
       notifyNotificationsChanged();
     } catch (error) {
+      logClientError("mypage.bookmark_delete_failed", error, {
+        bookmarkId: id,
+      });
       setMessage(
         error instanceof Error ? error.message : "북마크 삭제에 실패했습니다.",
       );
@@ -600,6 +627,10 @@ function MyPageContent() {
       setResumes((prev) => [resume, ...prev]);
       setMessage("이력서를 업로드했습니다.");
     } catch (error) {
+      logClientError("mypage.resume_upload_failed", error, {
+        fileType: file.type,
+        fileSize: file.size,
+      });
       setMessage(
         error instanceof Error
           ? error.message
@@ -618,6 +649,7 @@ function MyPageContent() {
       await deleteMyResume(id);
       setResumes((prev) => prev.filter((r) => r.id !== id));
     } catch (error) {
+      logClientError("mypage.resume_delete_failed", error, { resumeId: id });
       setMessage(
         error instanceof Error ? error.message : "이력서 삭제에 실패했습니다.",
       );
@@ -643,6 +675,9 @@ function MyPageContent() {
       );
       setMessage("대표 이력서를 변경했습니다.");
     } catch (error) {
+      logClientError("mypage.primary_resume_update_failed", error, {
+        resumeId: id,
+      });
       setMessage(
         error instanceof Error
           ? error.message
@@ -695,7 +730,8 @@ function MyPageContent() {
         PROFILE_COMPLETION_HIDDEN_UNTIL_STORAGE_KEY,
         String(hiddenUntil),
       );
-    } catch {
+    } catch (caught) {
+      logClientWarn("mypage.profile_completion_storage_write_failed", caught);
       // Ignore storage failures; the in-memory state still hides the card.
     }
   }
@@ -708,7 +744,8 @@ function MyPageContent() {
       window.localStorage.removeItem(
         PROFILE_COMPLETION_HIDDEN_UNTIL_STORAGE_KEY,
       );
-    } catch {
+    } catch (caught) {
+      logClientWarn("mypage.profile_completion_storage_clear_failed", caught);
       // Ignore storage failures; the in-memory state still opens the modal.
     }
   }

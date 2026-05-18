@@ -22,6 +22,7 @@ import {
   type CommunityAnswer,
   type CommunityPost,
 } from "@/lib/community-types";
+import { logClientError, logClientWarn } from "@/lib/client-logger";
 import styles from "./community-detail.module.css";
 
 function CommunityDetailContent() {
@@ -56,7 +57,13 @@ function CommunityDetailContent() {
         setPost(detail.post);
         setAnswers(detail.answers);
         const related = await getPosts({ board: detail.post.boardType }).catch(
-          () => [],
+          (relatedError) => {
+            logClientWarn("community.related_posts_load_failed", relatedError, {
+              postId: id,
+              board: detail.post.boardType,
+            });
+            return [];
+          },
         );
         if (!ignore) {
           setRelatedPosts(
@@ -65,6 +72,7 @@ function CommunityDetailContent() {
         }
       } catch (caught) {
         if (!ignore) {
+          logClientError("community.detail_load_failed", caught, { postId: id });
           setPost(undefined);
           setAnswers([]);
           setRelatedPosts([]);
@@ -117,6 +125,7 @@ function CommunityDetailContent() {
       setPost(updated);
       setLiked(true);
     } catch (caught) {
+      logClientError("community.post_like_failed", caught, { postId: post.id });
       window.alert(
         caught instanceof Error ? caught.message : "좋아요 처리에 실패했습니다.",
       );
@@ -130,6 +139,10 @@ function CommunityDetailContent() {
         prev.map((answer) => (answer.id === answerId ? updated : answer)),
       );
     } catch (caught) {
+      logClientError("community.answer_like_failed", caught, {
+        postId: post?.id,
+        answerId,
+      });
       window.alert(
         caught instanceof Error ? caught.message : "좋아요 처리에 실패했습니다.",
       );
@@ -143,6 +156,10 @@ function CommunityDetailContent() {
       setPost(detail.post);
       setAnswers(detail.answers);
     } catch (caught) {
+      logClientError("community.answer_accept_failed", caught, {
+        postId: post.id,
+        answerId,
+      });
       window.alert(
         caught instanceof Error ? caught.message : "답변 채택에 실패했습니다.",
       );
@@ -166,6 +183,10 @@ function CommunityDetailContent() {
       );
       setReplyText("");
     } catch (caught) {
+      logClientError("community.answer_create_failed", caught, {
+        postId: post.id,
+        anonymous: replyAnonymous,
+      });
       window.alert(
         caught instanceof Error ? caught.message : "답변 등록에 실패했습니다.",
       );

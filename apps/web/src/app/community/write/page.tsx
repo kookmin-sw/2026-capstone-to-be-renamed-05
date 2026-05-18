@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { SiteNav } from "@/components/site-nav";
 import { ActionButton, ActionLink } from "@/components/ui/action-button";
 import { createPost } from "@/lib/community-api";
+import { logClientError } from "@/lib/client-logger";
 import {
   BOARD_TYPES,
   boardTags,
@@ -60,6 +61,11 @@ function CommunityWriteContent() {
       });
       router.push(communityDetailHref(post.id));
     } catch (error) {
+      logClientError("community.post_create_failed", error, {
+        board: activeBoard,
+        tagCount: selectedTags.length,
+        anonymous: isAnonymous,
+      });
       setMessage(
         error instanceof Error ? error.message : "게시글 등록에 실패했습니다.",
       );

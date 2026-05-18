@@ -10,6 +10,7 @@ import {
   fetchAdminCpaVerificationRequests,
   reviewAdminCpaVerificationRequest,
 } from "@/lib/api";
+import { logClientError } from "@/lib/client-logger";
 import styles from "@/components/admin/admin.module.css";
 import { cn } from "@/lib/utils";
 
@@ -50,7 +51,10 @@ export default function AdminCpaVerificationsPage() {
         }
       })
       .catch((caught: Error) => {
-        if (!ignore) setError(caught.message);
+        if (!ignore) {
+          logClientError("admin.cpa_verifications_load_failed", caught);
+          setError(caught.message);
+        }
       })
       .finally(() => {
         if (!ignore) setLoading(false);
@@ -91,6 +95,10 @@ export default function AdminCpaVerificationsPage() {
         prev.map((current) => (current.id === updated.id ? updated : current)),
       );
     } catch (caught) {
+      logClientError("admin.cpa_verification_review_failed", caught, {
+        requestId: item.id,
+        action,
+      });
       setError(
         caught instanceof Error
           ? caught.message

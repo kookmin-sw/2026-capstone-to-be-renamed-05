@@ -12,6 +12,7 @@ import { fetchCurrentUser } from '@/lib/api';
 import { CommunityHero } from './_components/community-hero';
 import { PostListItem } from './_components/post-list-item';
 import { getPosts, getTrendingPosts } from '@/lib/community-api';
+import { logClientError, logClientWarn } from '@/lib/client-logger';
 import {
   BOARD_TYPES,
   boardTypeLabels,
@@ -83,6 +84,12 @@ function CommunityPageContent() {
         if (!ignore) setPosts(items);
       } catch (caught) {
         if (!ignore) {
+          logClientError('community.list_load_failed', caught, {
+            board: activeBoard,
+            mineOnly,
+            sort,
+            hasSearch: Boolean(search),
+          });
           setPosts([]);
           setError(caught instanceof Error ? caught.message : '게시글을 불러오지 못했습니다.');
         }
@@ -101,8 +108,11 @@ function CommunityPageContent() {
       .then((items) => {
         if (!ignore) setTrendingPosts(items);
       })
-      .catch(() => {
-        if (!ignore) setTrendingPosts([]);
+      .catch((caught) => {
+        if (!ignore) {
+          logClientWarn('community.trending_load_failed', caught);
+          setTrendingPosts([]);
+        }
       });
     return () => {
       ignore = true;

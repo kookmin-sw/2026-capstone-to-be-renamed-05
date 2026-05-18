@@ -15,6 +15,7 @@ import { SiteNav } from "@/components/site-nav";
 import { useJobFilterState } from "@/hooks/use-job-filter-state";
 import { fetchJobCalendar } from "@/lib/api";
 import { calendarDaysToMap, calendarEventsToMap } from "@/lib/calendar-data";
+import { logClientError } from "@/lib/client-logger";
 import {
   getCalendarGridRange,
   getMonthRange,
@@ -63,7 +64,15 @@ export default function CalendarPage() {
         }
       })
       .catch((caught: Error) => {
-        if (!ignore) setError(caught.message);
+        if (!ignore) {
+          logClientError("calendar.load_failed", caught, {
+            viewMode,
+            from: toDateKey(calendarRange.from),
+            to: toDateKey(calendarRange.to),
+            filterCount: Array.from(calendarParams.keys()).length,
+          });
+          setError(caught.message);
+        }
       })
       .finally(() => {
         if (!ignore) setLoading(false);

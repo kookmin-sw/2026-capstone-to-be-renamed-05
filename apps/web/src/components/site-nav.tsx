@@ -17,6 +17,7 @@ import {
   NOTIFICATIONS_CHANGED_EVENT,
   type AuthUser,
 } from "@/lib/api";
+import { logClientError, logClientWarn } from "@/lib/client-logger";
 import { cn } from "@/lib/utils";
 import styles from "./site-nav.module.css";
 
@@ -72,8 +73,11 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
         .then((currentUser) => {
           if (!ignore) setUser(currentUser);
         })
-        .catch(() => {
-          if (!ignore) setUser(null);
+        .catch((caught) => {
+          if (!ignore) {
+            logClientWarn("nav.current_user_load_failed", caught);
+            setUser(null);
+          }
         })
         .finally(() => {
           if (!ignore) setAuthReady(true);
@@ -89,22 +93,31 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
   }, [pathname]);
 
   useEffect(() => {
-    if (user?.role !== "JOB_SEEKER") {
-      setNotificationsOpen(false);
-      setNotificationPreview([]);
-      setNotificationUnreadCount(0);
-      return;
-    }
-
     let ignore = false;
+
+    if (user?.role !== "JOB_SEEKER") {
+      queueMicrotask(() => {
+        if (!ignore) {
+          setNotificationsOpen(false);
+          setNotificationPreview([]);
+          setNotificationUnreadCount(0);
+        }
+      });
+      return () => {
+        ignore = true;
+      };
+    }
 
     function loadNotificationCount() {
       fetchNotificationUnreadCount()
         .then((result) => {
           if (!ignore) setNotificationUnreadCount(result.unreadCount);
         })
-        .catch(() => {
-          if (!ignore) setNotificationUnreadCount(0);
+        .catch((caught) => {
+          if (!ignore) {
+            logClientWarn("nav.notification_count_load_failed", caught);
+            setNotificationUnreadCount(0);
+          }
         });
     }
 
@@ -120,7 +133,7 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
         loadNotificationCount,
       );
     };
-  }, [pathname, user?.id, user?.role]);
+  }, [user?.role]);
 
   const loadNotificationPreview = useCallback(async () => {
     if (user?.role !== "JOB_SEEKER") return;
@@ -135,18 +148,25 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
       setNotificationPreview(result.items);
       setNotificationUnreadCount(result.unreadCount);
     } catch (error) {
+      logClientError("nav.notification_preview_load_failed", error);
       setNotificationPreviewError(
         error instanceof Error ? error.message : "알림을 불러오지 못했습니다.",
       );
     } finally {
       setNotificationPreviewLoading(false);
     }
-  }, [pathname, user?.id, user?.role]);
+  }, [user?.role]);
 
   useEffect(() => {
     if (!notificationsOpen) return;
 
-    void loadNotificationPreview();
+    let ignore = false;
+    queueMicrotask(() => {
+      if (!ignore) void loadNotificationPreview();
+    });
+    return () => {
+      ignore = true;
+    };
   }, [loadNotificationPreview, notificationsOpen]);
 
   useEffect(() => {
@@ -207,6 +227,7 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
         router.refresh();
       }
     } catch (error) {
+      logClientError("auth.logout_failed", error);
       window.alert(
         error instanceof Error ? error.message : "로그아웃에 실패했습니다.",
       );
@@ -226,7 +247,10 @@ export function SiteNav({ variant = "app" }: SiteNavProps) {
       );
       setNotificationUnreadCount((count) => Math.max(0, count - 1));
       window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
-    } catch {
+    } catch (caught) {
+      logClientWarn("nav.notification_mark_read_failed", caught, {
+        notificationId: id,
+      });
       // The destination navigation should not be blocked by a read-state update.
     }
   }

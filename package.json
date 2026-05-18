@@ -24,11 +24,14 @@
     "prisma:migrate:deploy": "prisma migrate deploy --schema=prisma/schema.prisma",
     "prisma:seed": "tsx prisma/seed.ts",
     "prisma:mock": "tsx prisma/mock.ts",
+    "prisma:import:saramin": "tsx prisma/import-saramin.ts",
+    "prisma:import:kicpa": "tsx prisma/import-kicpa.ts",
     "build:web:static": "node scripts/build-web-static.mjs",
     "deploy:web:s3": "bash scripts/deploy-web-s3.sh",
     "backup:postgres": "bash scripts/backup-postgres.sh"
   },
   "devDependencies": {
+    "cheerio": "^1.2.0",
     "concurrently": "^9.2.1",
     "dotenv": "^17.2.3",
     "prisma": "^7.8.0",

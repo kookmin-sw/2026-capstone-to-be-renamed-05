@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { logClientWarn } from "@/lib/client-logger";
 
 const DEFAULT_REDIRECT_HOST_PATTERN = "s3-website";
 
@@ -14,7 +15,10 @@ export function S3WebRedirect() {
     let canonicalHost: string;
     try {
       canonicalHost = new URL(canonicalOrigin).host;
-    } catch {
+    } catch (caught) {
+      logClientWarn("web_redirect_invalid_canonical_origin", caught, {
+        configured: Boolean(canonicalOrigin),
+      });
       return;
     }
 

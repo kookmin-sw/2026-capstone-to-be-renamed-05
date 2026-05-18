@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useRef, useState } from "react";
 import { ActionButton } from "@/components/ui/action-button";
 import { authRequest, type AuthUser } from "@/lib/api";
+import { logClientWarn } from "@/lib/client-logger";
 import { companyTypeLabels } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 import styles from "./login-page.module.css";
@@ -107,6 +108,10 @@ function LoginPageContent() {
       setMessage(`${user?.username} 계정으로 로그인되었습니다.`);
       router.replace(nextPath ?? nextPathForRole(user));
     } catch (error) {
+      logClientWarn("auth.request_failed", error, {
+        mode,
+        role: mode === "register" ? role : undefined,
+      });
       setMessage(
         error instanceof Error ? error.message : "요청에 실패했습니다.",
       );

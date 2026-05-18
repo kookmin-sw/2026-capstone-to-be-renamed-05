@@ -18,6 +18,7 @@ import {
   subscribeTag,
   unsubscribeTag,
 } from "@/lib/api";
+import { logClientError } from "@/lib/client-logger";
 import { cn } from "@/lib/utils";
 import styles from "../mypage.module.css";
 
@@ -99,6 +100,10 @@ function MyNotificationsPageContent() {
         notifyNotificationsChanged();
       } catch (caught) {
         if (!ignore) {
+          logClientError("mypage.notifications_load_failed", caught, {
+            page,
+            unreadOnly,
+          });
           setNotifications([]);
           setTags([]);
           setTotal(0);
@@ -154,6 +159,9 @@ function MyNotificationsPageContent() {
       setUnreadCount((prev) => Math.max(0, prev - 1));
       notifyNotificationsChanged();
     } catch (caught) {
+      logClientError("mypage.notification_mark_read_failed", caught, {
+        notificationId: id,
+      });
       setMessage(
         caught instanceof Error ? caught.message : "알림 읽음 처리에 실패했습니다.",
       );
@@ -174,6 +182,7 @@ function MyNotificationsPageContent() {
       notifyNotificationsChanged();
       setMessage("모든 알림을 읽음 처리했습니다.");
     } catch (caught) {
+      logClientError("mypage.notifications_mark_all_read_failed", caught);
       setMessage(
         caught instanceof Error
           ? caught.message
@@ -203,6 +212,10 @@ function MyNotificationsPageContent() {
       );
       notifyNotificationsChanged();
     } catch (caught) {
+      logClientError("mypage.notification_tag_toggle_failed", caught, {
+        tagId: tagItem.id,
+        nextSubscribed: !tagItem.subscribed,
+      });
       setMessage(
         caught instanceof Error ? caught.message : "태그 구독 변경에 실패했습니다.",
       );

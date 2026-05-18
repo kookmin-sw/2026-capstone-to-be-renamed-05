@@ -10,6 +10,7 @@ import {
   companyTypeLabels,
 } from "@/components/admin/admin-demo-data";
 import styles from "@/components/admin/admin.module.css";
+import { logClientError } from "@/lib/client-logger";
 import { adminCompanyEditHref } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -54,7 +55,13 @@ export default function AdminCompaniesPage() {
         }
       })
       .catch((caught: Error) => {
-        if (!ignore) setError(caught.message);
+        if (!ignore) {
+          logClientError("admin.companies_load_failed", caught, {
+            page,
+            filterCount: Array.from(params.keys()).length,
+          });
+          setError(caught.message);
+        }
       })
       .finally(() => {
         if (!ignore) setLoading(false);

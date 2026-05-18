@@ -28,6 +28,7 @@ import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { InfoItem } from "@/components/ui/info-item";
 import { actionButtonClassName } from "@/components/ui/action-button";
 import { fetchCompanyDetail } from "@/lib/api";
+import { logClientError } from "@/lib/client-logger";
 import { companyTypeLabels } from "@/lib/labels";
 import styles from "./company-detail.module.css";
 
@@ -50,7 +51,12 @@ export function CompanyDetailClient() {
         }
       })
       .catch((caught: Error) => {
-        if (!ignore) setError(caught.message);
+        if (!ignore) {
+          logClientError("companies.detail_load_failed", caught, {
+            companyId: id,
+          });
+          setError(caught.message);
+        }
       })
       .finally(() => {
         if (!ignore) setLoading(false);

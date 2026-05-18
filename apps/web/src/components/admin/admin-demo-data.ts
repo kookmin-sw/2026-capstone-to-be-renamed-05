@@ -1,3 +1,4 @@
+import { logClientError, logClientWarn } from "@/lib/client-logger";
 import { getApiBaseUrl } from "@/lib/runtime-config";
 
 export type JobStatus = "OPEN" | "CLOSED" | "DRAFT";
@@ -150,7 +151,11 @@ async function readApiError(response: Response, fallback: string) {
   try {
     const data = (await response.json()) as { message?: string };
     return data.message ?? fallback;
-  } catch {
+  } catch (caught) {
+    logClientWarn("admin.api_error_body_parse_failed", caught, {
+      status: response.status,
+      url: adminApiLogUrl(response.url),
+    });
     return fallback;
   }
 }
@@ -167,9 +172,26 @@ async function apiJson<T>(path: string, init: RequestInit = {}) {
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error(await readApiError(response, "API request failed."));
+    const message = await readApiError(response, "API request failed.");
+    if (!(path === "/auth/me" && response.status === 401)) {
+      logClientError("admin.api_request_failed", new Error(message), {
+        method: init.method ?? "GET",
+        path,
+        status: response.status,
+      });
+    }
+    throw new Error(message);
   }
   return (await response.json()) as T;
+}
+
+function adminApiLogUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.pathname}${parsed.search}`;
+  } catch {
+    return url;
+  }
 }
 
 function storeAdminUser(user: AdminUser) {
@@ -429,7 +451,8 @@ export function getAdminDemoUser(): AdminUser | null {
   if (rawUser) {
     try {
       return JSON.parse(rawUser) as AdminUser;
-    } catch {
+    } catch (caught) {
+      logClientWarn("admin.session_user_parse_failed", caught);
       clearAdminUser();
       return null;
     }

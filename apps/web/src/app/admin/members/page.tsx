@@ -10,6 +10,7 @@ import {
 } from "@/components/admin/admin-demo-data";
 import styles from "@/components/admin/admin.module.css";
 import { RoleBadge } from "@/components/admin/status-badge";
+import { logClientError } from "@/lib/client-logger";
 import { cn } from "@/lib/utils";
 
 function formatDate(value: string) {
@@ -49,7 +50,13 @@ export default function AdminMembersPage() {
         }
       })
       .catch((caught: Error) => {
-        if (!ignore) setError(caught.message);
+        if (!ignore) {
+          logClientError("admin.members_load_failed", caught, {
+            page,
+            filterCount: Array.from(params.keys()).length,
+          });
+          setError(caught.message);
+        }
       })
       .finally(() => {
         if (!ignore) setLoading(false);

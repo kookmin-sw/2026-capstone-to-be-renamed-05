@@ -74,6 +74,7 @@ import {
   uploadCompanyBackground,
   uploadCompanyLogo,
 } from "@/lib/api";
+import { logClientError } from "@/lib/client-logger";
 import { companyTypeLabels } from "@/lib/labels";
 import { companyDetailHref } from "@/lib/routes";
 import styles from "./company-page.module.css";
@@ -196,6 +197,7 @@ export default function CompanyPage() {
       const data = await fetchCompanyPageData();
       applyPageData(data);
     } catch (error) {
+      logClientError("company.dashboard_load_failed", error);
       setMessage(
         error instanceof Error ? error.message : "불러오지 못했습니다.",
       );
@@ -214,6 +216,7 @@ export default function CompanyPage() {
       })
       .catch((error) => {
         if (!ignore) {
+          logClientError("company.dashboard_refresh_failed", error);
           setMessage(
             error instanceof Error ? error.message : "불러오지 못했습니다.",
           );
@@ -251,6 +254,9 @@ export default function CompanyPage() {
           : "AI 초안을 적용했습니다. 제출 전 내용을 확인해 주세요.",
       );
     } catch (error) {
+      logClientError("company.job_autofill_failed", error, {
+        sourceTextLength: trimmedSource.length,
+      });
       setJobAutofillError(
         error instanceof Error ? error.message : "AI 자동입력에 실패했습니다.",
       );
@@ -279,6 +285,15 @@ export default function CompanyPage() {
       setJobForm(emptyJobForm);
       await load({ quiet: true });
     } catch (error) {
+      logClientError("company.job_submission_save_failed", error, {
+        mode: editingJob
+          ? "edit_published"
+          : editingSubmission
+            ? "edit_submission"
+            : "create",
+        jobId: editingJob?.id,
+        submissionId: editingSubmission?.id,
+      });
       setMessage(
         error instanceof Error ? error.message : "요청에 실패했습니다.",
       );
@@ -302,6 +317,9 @@ export default function CompanyPage() {
       setMessage("기업 로고가 바로 변경되었습니다.");
       await load({ quiet: true });
     } catch (error) {
+      logClientError("company.logo_apply_failed", error, {
+        hasUploadedAsset: Boolean(logoImageForm.assetId),
+      });
       setMessage(
         error instanceof Error ? error.message : "요청에 실패했습니다.",
       );
@@ -325,6 +343,9 @@ export default function CompanyPage() {
       setMessage("기업 배경 이미지가 바로 변경되었습니다.");
       await load({ quiet: true });
     } catch (error) {
+      logClientError("company.background_apply_failed", error, {
+        hasUploadedAsset: Boolean(backgroundImageForm.assetId),
+      });
       setMessage(
         error instanceof Error ? error.message : "요청에 실패했습니다.",
       );
@@ -345,6 +366,10 @@ export default function CompanyPage() {
       });
       setLogoImageFileName(file.name);
     } catch (error) {
+      logClientError("company.logo_upload_failed", error, {
+        fileType: file.type,
+        fileSize: file.size,
+      });
       setMessage(
         error instanceof Error
           ? error.message
@@ -369,6 +394,10 @@ export default function CompanyPage() {
       });
       setBackgroundImageFileName(file.name);
     } catch (error) {
+      logClientError("company.background_upload_failed", error, {
+        fileType: file.type,
+        fileSize: file.size,
+      });
       setMessage(
         error instanceof Error
           ? error.message
@@ -387,6 +416,7 @@ export default function CompanyPage() {
       setMessage("공고가 삭제 처리되었습니다.");
       await load({ quiet: true });
     } catch (error) {
+      logClientError("company.job_delete_failed", error, { jobId: job.id });
       setMessage(
         error instanceof Error ? error.message : "삭제에 실패했습니다.",
       );
@@ -405,6 +435,9 @@ export default function CompanyPage() {
       }
       await load({ quiet: true });
     } catch (error) {
+      logClientError("company.job_submission_cancel_failed", error, {
+        submissionId: submission.id,
+      });
       setMessage(
         error instanceof Error ? error.message : "요청 취소에 실패했습니다.",
       );

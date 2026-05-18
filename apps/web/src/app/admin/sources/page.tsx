@@ -4,6 +4,7 @@ import { ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fetchAdminSources, type AdminSource } from "@/components/admin/admin-demo-data";
 import styles from "@/components/admin/admin.module.css";
+import { logClientError } from "@/lib/client-logger";
 
 export default function AdminSourcesPage() {
   const [sources, setSources] = useState<AdminSource[]>([]);
@@ -14,7 +15,12 @@ export default function AdminSourcesPage() {
     let ignore = false;
     fetchAdminSources()
       .then((data) => { if (!ignore) { setSources(data.items); setError(""); } })
-      .catch((caught: Error) => { if (!ignore) setError(caught.message); })
+      .catch((caught: Error) => {
+        if (!ignore) {
+          logClientError("admin.sources_load_failed", caught);
+          setError(caught.message);
+        }
+      })
       .finally(() => { if (!ignore) setLoading(false); });
     return () => { ignore = true; };
   }, []);

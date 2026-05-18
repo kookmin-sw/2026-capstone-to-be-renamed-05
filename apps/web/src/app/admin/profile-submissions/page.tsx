@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { CompanyProfileSubmissionItem } from "@cpa/shared";
 import { companyTypeLabels } from "@/components/admin/admin-demo-data";
 import { fetchAdminProfileSubmissions, reviewAdminProfileSubmission } from "@/lib/api";
+import { logClientError } from "@/lib/client-logger";
 import styles from "@/components/admin/admin.module.css";
 
 type ReviewAction = { submission: CompanyProfileSubmissionItem; action: "approve" | "reject" };
@@ -49,7 +50,12 @@ export default function AdminProfileSubmissionsPage() {
     let ignore = false;
     fetchAdminProfileSubmissions()
       .then((data) => { if (!ignore) { setSubmissions(data.items); setError(""); } })
-      .catch((caught: Error) => { if (!ignore) setError(caught.message); })
+      .catch((caught: Error) => {
+        if (!ignore) {
+          logClientError("admin.profile_submissions_load_failed", caught);
+          setError(caught.message);
+        }
+      })
       .finally(() => { if (!ignore) setLoading(false); });
     return () => { ignore = true; };
   }, []);
@@ -65,6 +71,10 @@ export default function AdminProfileSubmissionsPage() {
       setSubmissions((current) => current.map((item) => (item.id === updated.id ? updated : item)));
       setAdminNote("");
     } catch (caught) {
+      logClientError("admin.profile_submission_review_failed", caught, {
+        submissionId: submission.id,
+        action,
+      });
       setError(caught instanceof Error ? caught.message : "처리에 실패했습니다.");
     }
   }

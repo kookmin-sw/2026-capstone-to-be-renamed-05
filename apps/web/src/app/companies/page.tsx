@@ -24,6 +24,7 @@ import {
   fetchCurrentUser,
   fetchMyBookmarks,
 } from "@/lib/api";
+import { logClientError, logClientWarn } from "@/lib/client-logger";
 import { companyTypeLabels } from "@/lib/labels";
 import { companyDetailHref, companyDetailJobsHref } from "@/lib/routes";
 import styles from "./companies-page.module.css";
@@ -78,7 +79,9 @@ export default function CompaniesPage() {
           });
         }
       })
-      .catch(() => {});
+      .catch((caught) => {
+        if (!ignore) logClientWarn("companies.bookmark_bootstrap_failed", caught);
+      });
     return () => {
       ignore = true;
     };
@@ -98,12 +101,20 @@ export default function CompaniesPage() {
             return next;
           });
         }
-      } catch {}
+      } catch (caught) {
+        logClientError("companies.bookmark_delete_failed", caught, {
+          companyId,
+        });
+      }
     } else {
       try {
         await createMyBookmark("COMPANY", companyId);
         setBookmarkedCompanyIds((prev) => new Set(prev).add(companyId));
-      } catch {}
+      } catch (caught) {
+        logClientError("companies.bookmark_create_failed", caught, {
+          companyId,
+        });
+      }
     }
   }
 
@@ -171,7 +182,13 @@ export default function CompaniesPage() {
         }
       })
       .catch((caught: Error) => {
-        if (!ignore) setCompanyError(caught.message);
+        if (!ignore) {
+          logClientError("companies.list_load_failed", caught, {
+            page: companyPage,
+            filterCount: Array.from(companyParams.keys()).length,
+          });
+          setCompanyError(caught.message);
+        }
       })
       .finally(() => {
         if (!ignore) setCompaniesLoading(false);

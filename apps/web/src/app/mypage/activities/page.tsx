@@ -9,6 +9,7 @@ import { SiteNav } from "@/components/site-nav";
 import { ActionLink } from "@/components/ui/action-button";
 import { Pagination } from "@/components/ui/pagination";
 import { fetchCurrentUser, fetchMyCommunityActivity } from "@/lib/api";
+import { logClientError } from "@/lib/client-logger";
 import { communityDetailHref } from "@/lib/routes";
 import styles from "../mypage.module.css";
 
@@ -80,6 +81,7 @@ function MyActivitiesPageContent() {
         setTotal(result.total);
       } catch (caught) {
         if (!ignore) {
+          logClientError("mypage.activities_load_failed", caught, { page });
           setActivities([]);
           setTotal(0);
           setError(

@@ -20,6 +20,7 @@ import {
   traineeLabels,
 } from "@/components/admin/admin-demo-data";
 import styles from "@/components/admin/admin.module.css";
+import { logClientError, logClientWarn } from "@/lib/client-logger";
 import { adminJobEditHref } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -64,7 +65,9 @@ export default function AdminJobsPage() {
       .then((data) => {
         if (!ignore) setCompanies(data.items);
       })
-      .catch(() => undefined);
+      .catch((caught) => {
+        if (!ignore) logClientWarn("admin.jobs_company_options_failed", caught);
+      });
     return () => {
       ignore = true;
     };
@@ -81,7 +84,13 @@ export default function AdminJobsPage() {
         }
       })
       .catch((caught: Error) => {
-        if (!ignore) setError(caught.message);
+        if (!ignore) {
+          logClientError("admin.jobs_load_failed", caught, {
+            page,
+            filterCount: Array.from(params.keys()).length,
+          });
+          setError(caught.message);
+        }
       })
       .finally(() => {
         if (!ignore) setLoading(false);
@@ -101,6 +110,10 @@ export default function AdminJobsPage() {
         current.map((job) => (job.id === updated.id ? updated : job)),
       );
     } catch (caught) {
+      logClientError("admin.job_status_update_failed", caught, {
+        jobId: target.job.id,
+        status: target.status,
+      });
       setError(caught instanceof Error ? caught.message : "상태 변경 실패");
     }
   }

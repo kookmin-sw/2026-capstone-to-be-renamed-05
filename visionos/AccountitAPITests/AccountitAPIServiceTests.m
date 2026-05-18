@@ -1,7 +1,7 @@
 #import <XCTest/XCTest.h>
 #import <AccountitAPI/AccountitAPI.h>
 
-typedef NSProgress *(^AccountitAPIServiceLiveInvocation)(AccountitAPICompletionHandler completionHandler);
+typedef NSProgress *(^AccountitAPIServiceLiveInvocation)(id completionHandler);
 
 @interface _AccountitAPIServiceLiveSpec : NSObject
 @property (nonatomic, copy) NSString *name;
@@ -353,7 +353,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         YES,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaHealthWithCompletionHandler:completionHandler];
         })];
 
@@ -363,7 +363,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         YES,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaHealthzWithCompletionHandler:completionHandler];
         })];
 
@@ -373,7 +373,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         YES,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaRegisterWithBody:[self registerBody] completionHandler:completionHandler];
         })];
 
@@ -383,7 +383,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaLoginWithBody:[self invalidLoginBody] completionHandler:completionHandler];
         })];
 
@@ -393,7 +393,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaMeWithCompletionHandler:completionHandler];
         })];
 
@@ -403,7 +403,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         YES,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaLogoutWithCompletionHandler:completionHandler];
         })];
 
@@ -413,7 +413,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         YES,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaJobsWithQuery:[self jobsQuery] completionHandler:completionHandler];
         })];
 
@@ -423,7 +423,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         YES,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaJobCalendarWithQuery:[self jobCalendarQuery] completionHandler:completionHandler];
         })];
 
@@ -433,7 +433,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         YES,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaJobDetailWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -443,7 +443,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         YES,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaRecordJobEngagementWithJobID:[self missingID] body:[self jobEngagementBody] completionHandler:completionHandler];
         })];
 
@@ -453,7 +453,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         YES,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCompaniesWithQuery:[self companiesQuery] completionHandler:completionHandler];
         })];
 
@@ -463,7 +463,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         YES,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCompanyDetailWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -473,7 +473,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaMyCompanyWithCompletionHandler:completionHandler];
         })];
 
@@ -483,7 +483,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaMyCompanyAnalyticsWithCompletionHandler:completionHandler];
         })];
 
@@ -493,7 +493,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCreateCompanyProfileSubmissionWithBody:[self companyProfileSubmissionBody] completionHandler:completionHandler];
         })];
 
@@ -503,7 +503,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaUpdateCompanyLogoWithBody:[self updateCompanyLogoBody] completionHandler:completionHandler];
         })];
 
@@ -513,7 +513,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaUpdateCompanyBackgroundWithBody:[self updateCompanyBackgroundBody] completionHandler:completionHandler];
         })];
 
@@ -523,7 +523,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCreateCompanyJobAutofillDraftWithBody:[self companyJobAutofillBody] completionHandler:completionHandler];
         })];
 
@@ -533,7 +533,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCreateCompanyJobSubmissionWithBody:[self companyJobSubmissionBody] completionHandler:completionHandler];
         })];
 
@@ -543,7 +543,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaMyCompanyJobSubmissionsWithCompletionHandler:completionHandler];
         })];
 
@@ -553,7 +553,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaUpdateMyCompanyJobSubmissionWithID:[self missingID] body:[self companyJobSubmissionBody] completionHandler:completionHandler];
         })];
 
@@ -563,7 +563,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCancelMyCompanyJobSubmissionWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -573,7 +573,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaMyCompanyJobsWithCompletionHandler:completionHandler];
         })];
 
@@ -583,7 +583,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCreateCompanyJobEditSubmissionWithJobID:[self missingID] body:[self companyJobSubmissionBody] completionHandler:completionHandler];
         })];
 
@@ -593,7 +593,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCloseMyCompanyJobWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -603,7 +603,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCreateCompanyLogoUploadURLWithBody:[self uploadURLBody] completionHandler:completionHandler];
         })];
 
@@ -613,7 +613,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCreateCompanyBackgroundUploadURLWithBody:[self uploadURLBody] completionHandler:completionHandler];
         })];
 
@@ -623,7 +623,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCreateProfileImageUploadURLWithBody:[self uploadURLBody] completionHandler:completionHandler];
         })];
 
@@ -633,7 +633,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCompleteAssetUploadWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -643,7 +643,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaUploadLocalAssetWithID:[self missingID] data:[self rawUploadData] contentType:@"application/octet-stream" completionHandler:completionHandler];
         })];
 
@@ -653,7 +653,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaJobFilterPreferenceWithCompletionHandler:completionHandler];
         })];
 
@@ -663,7 +663,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaUpdateJobFilterPreferenceWithBody:[self jobFilterBody] completionHandler:completionHandler];
         })];
 
@@ -673,7 +673,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaJobPresetsWithCompletionHandler:completionHandler];
         })];
 
@@ -683,7 +683,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCreateJobPresetWithBody:[self jobPresetBody] completionHandler:completionHandler];
         })];
 
@@ -693,7 +693,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaUseJobPresetWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -703,7 +703,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaDeleteJobPresetWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -713,7 +713,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaMyProfileWithCompletionHandler:completionHandler];
         })];
 
@@ -723,7 +723,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaUpdateMyProfileWithBody:[self profileBody] completionHandler:completionHandler];
         })];
 
@@ -733,7 +733,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaDeleteMyProfileImageWithCompletionHandler:completionHandler];
         })];
 
@@ -743,7 +743,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaUpdatePasswordWithBody:[self passwordBody] completionHandler:completionHandler];
         })];
 
@@ -753,7 +753,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaMyCommunityActivityWithQuery:[self communityActivityQuery] completionHandler:completionHandler];
         })];
 
@@ -763,7 +763,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCreatePersonalVerificationRequestWithBody:[self personalVerificationBody] completionHandler:completionHandler];
         })];
 
@@ -773,7 +773,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaBookmarksWithQuery:[self notificationsQuery] completionHandler:completionHandler];
         })];
 
@@ -783,7 +783,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCreateBookmarkWithBody:[self bookmarkBody] completionHandler:completionHandler];
         })];
 
@@ -793,7 +793,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaDeleteBookmarkWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -803,7 +803,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaJobFitAnalysesWithQuery:[self notificationsQuery] completionHandler:completionHandler];
         })];
 
@@ -813,7 +813,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaHighFitJobAnalysesWithQuery:[self notificationsQuery] completionHandler:completionHandler];
         })];
 
@@ -823,7 +823,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCreateJobFitAnalysisWithBody:[self jobFitBody] completionHandler:completionHandler];
         })];
 
@@ -833,7 +833,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaResumesWithCompletionHandler:completionHandler];
         })];
 
@@ -843,7 +843,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCreateResumeWithData:[self rawUploadData] fileName:@"resume.pdf" contentType:@"application/pdf" completionHandler:completionHandler];
         })];
 
@@ -853,7 +853,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaDownloadResumeWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -863,7 +863,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaDeleteResumeWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -873,7 +873,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaSetPrimaryResumeWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -883,7 +883,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaNotificationsWithQuery:[self notificationsQuery] completionHandler:completionHandler];
         })];
 
@@ -893,7 +893,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaNotificationUnreadCountWithCompletionHandler:completionHandler];
         })];
 
@@ -903,7 +903,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaMarkAllNotificationsReadWithCompletionHandler:completionHandler];
         })];
 
@@ -913,7 +913,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaMarkNotificationReadWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -923,7 +923,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaTagSubscriptionsWithCompletionHandler:completionHandler];
         })];
 
@@ -933,7 +933,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaSubscribeTagWithLabelID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -943,7 +943,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaUnsubscribeTagWithLabelID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -953,7 +953,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         YES,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCommunityPostsWithQuery:[self communityPostsQuery] completionHandler:completionHandler];
         })];
 
@@ -963,7 +963,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         YES,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCommunityPostDetailWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -973,7 +973,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCreateCommunityPostWithBody:[self communityPostBody] completionHandler:completionHandler];
         })];
 
@@ -983,7 +983,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaCreateCommunityAnswerWithPostID:[self missingID] body:[self communityAnswerBody] completionHandler:completionHandler];
         })];
 
@@ -993,7 +993,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaLikeCommunityPostWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -1003,7 +1003,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaLikeCommunityAnswerWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -1013,7 +1013,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaResolveCommunityPostWithID:[self missingID] body:[self resolveCommunityPostBody] completionHandler:completionHandler];
         })];
 
@@ -1023,7 +1023,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminHealthWithCompletionHandler:completionHandler];
         })];
 
@@ -1033,7 +1033,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminDashboardWithCompletionHandler:completionHandler];
         })];
 
@@ -1043,7 +1043,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminSourcesWithCompletionHandler:completionHandler];
         })];
 
@@ -1053,7 +1053,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminJobsWithQuery:[self jobsQuery] completionHandler:completionHandler];
         })];
 
@@ -1063,7 +1063,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminJobWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -1073,7 +1073,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminCreateJobWithBody:[self adminJobBody] completionHandler:completionHandler];
         })];
 
@@ -1083,7 +1083,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminUpdateJobWithID:[self missingID] body:[self adminJobBody] completionHandler:completionHandler];
         })];
 
@@ -1093,7 +1093,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminCloseJobWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -1103,7 +1103,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminUpdateJobStatusWithID:[self missingID] body:[self adminJobStatusBody] completionHandler:completionHandler];
         })];
 
@@ -1113,7 +1113,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminRefreshJobWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -1123,7 +1123,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminAiSuggestionsWithCompletionHandler:completionHandler];
         })];
 
@@ -1133,7 +1133,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminApproveAiSuggestionWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -1143,7 +1143,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminRejectAiSuggestionWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -1153,7 +1153,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminCompaniesWithQuery:[self companiesQuery] completionHandler:completionHandler];
         })];
 
@@ -1163,7 +1163,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminCompanyWithID:[self missingID] completionHandler:completionHandler];
         })];
 
@@ -1173,7 +1173,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminCreateCompanyWithBody:[self adminCompanyBody] completionHandler:completionHandler];
         })];
 
@@ -1183,7 +1183,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminUpdateCompanyWithID:[self missingID] body:[self adminCompanyBody] completionHandler:completionHandler];
         })];
 
@@ -1193,7 +1193,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminMembersWithQuery:[self adminMembersQuery] completionHandler:completionHandler];
         })];
 
@@ -1203,7 +1203,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminPersonalVerificationRequestsWithCompletionHandler:completionHandler];
         })];
 
@@ -1213,7 +1213,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminApprovePersonalVerificationRequestWithID:[self missingID] body:[self reviewSubmissionBody] completionHandler:completionHandler];
         })];
 
@@ -1223,7 +1223,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminRejectPersonalVerificationRequestWithID:[self missingID] body:[self reviewSubmissionBody] completionHandler:completionHandler];
         })];
 
@@ -1233,7 +1233,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminJobSubmissionsWithCompletionHandler:completionHandler];
         })];
 
@@ -1243,7 +1243,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminApproveJobSubmissionWithID:[self missingID] body:[self reviewSubmissionBody] completionHandler:completionHandler];
         })];
 
@@ -1253,7 +1253,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminRejectJobSubmissionWithID:[self missingID] body:[self reviewSubmissionBody] completionHandler:completionHandler];
         })];
 
@@ -1263,7 +1263,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminProfileSubmissionsWithCompletionHandler:completionHandler];
         })];
 
@@ -1273,7 +1273,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminApproveProfileSubmissionWithID:[self missingID] body:[self reviewSubmissionBody] completionHandler:completionHandler];
         })];
 
@@ -1283,7 +1283,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         NO,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaAdminRejectProfileSubmissionWithID:[self missingID] body:[self reviewSubmissionBody] completionHandler:completionHandler];
         })];
 
@@ -1293,14 +1293,11 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
         NO,
         NO,
         YES,
-        ^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+        ^NSProgress *(id completionHandler) {
             return [AccountitAPIService cpaOpsDeployWithBody:[self opsDeployBody] bearerToken:@"invalid-token" completionHandler:completionHandler];
         })];
 
-    NSArray *result = [[NSArray alloc] initWithArray:specs];
-    [specs release];
-
-    return [result autorelease];
+    return [specs autorelease];
 }
 
 - (void)testAllPublicAPIsReachLiveServer {
@@ -1322,7 +1319,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
                   requiresSuccess:YES
                    allowsNotFound:NO
                 allowsServerError:NO
-                       invocation:^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+                       invocation:^NSProgress *(id completionHandler) {
         return [AccountitAPIService cpaRegisterWithBody:[self registerBody] completionHandler:completionHandler];
     }
                          response:&registerResponse
@@ -1342,7 +1339,7 @@ static _AccountitAPIServiceLiveSpec *_AccountitAPIServiceLiveSpecMake(NSString *
                   requiresSuccess:YES
                    allowsNotFound:NO
                 allowsServerError:NO
-                       invocation:^NSProgress *(AccountitAPICompletionHandler completionHandler) {
+                       invocation:^NSProgress *(id completionHandler) {
         return [AccountitAPIService cpaMeWithCompletionHandler:completionHandler];
     }
                          response:&meResponse

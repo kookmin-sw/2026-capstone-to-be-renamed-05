@@ -20,7 +20,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface AccountitAPICollectionResponse : AccountitAPIDTO
 
-@property (nonatomic, copy, readonly) NSArray<AccountitAPIDTO *> *items;
 @property (nonatomic, assign, readonly) NSInteger total;
 @property (nonatomic, assign, readonly) NSInteger page;
 @property (nonatomic, assign, readonly) NSInteger pageSize;

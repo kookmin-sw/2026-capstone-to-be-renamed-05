@@ -178,10 +178,7 @@
         [item release];
     }
 
-    NSArray *result = [[NSArray alloc] initWithArray:items];
-    [items release];
-
-    return [result autorelease];
+    return [items autorelease];
 }
 
 @end
@@ -194,6 +191,9 @@
     NSInteger _limit;
     NSInteger _offset;
 }
+
+@property (nonatomic, copy, readonly) NSArray<AccountitAPIDTO *> *items;
+
 @end
 
 @implementation AccountitAPICollectionResponse

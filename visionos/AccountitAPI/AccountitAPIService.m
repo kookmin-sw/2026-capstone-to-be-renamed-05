@@ -43,6 +43,8 @@ NSString * _Nonnull const AccountitAPIErrorDomain = @"AccountitAPIErrorDomain";
 NSString * _Nonnull const AccountitAPIErrorResponseKey = @"AccountitAPIErrorResponse";
 NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStatusCode";
 
+typedef void (^_AccountitAPIServiceCompletionHandler)(AccountitAPIDTO * _Nullable response, NSError * __autoreleasing * _Nullable error);
+
 @interface _AccountitAPITaskBox : NSObject
 @property (nonatomic, retain) NSURLSessionTask * _Nullable task;
 @end
@@ -67,7 +69,7 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
 + (NSString * _Nonnull)_pathWithFormat:(NSString * _Nonnull)format, ... __attribute__((objc_direct));
 + (NSURL * _Nonnull)_URLWithPath:(NSString * _Nonnull)path
                             query:(NSDictionary<NSString *, id> * _Nullable)query __attribute__((objc_direct));
-+ (void)_callCompletionHandler:(AccountitAPICompletionHandler _Nullable)completionHandler
++ (void)_callCompletionHandler:(_AccountitAPIServiceCompletionHandler _Nullable)completionHandler
                       response:(AccountitAPIDTO * _Nullable)response
                          error:(NSError * _Nullable)error __attribute__((objc_direct));
 + (AccountitAPIDTO * _Nullable)_newResponseDTOWithClass:(Class _Nonnull)responseClass
@@ -86,13 +88,13 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                              rawContentType:(NSString * _Nullable)rawContentType
                                     headers:(NSDictionary<NSString *, NSString *> * _Nullable)headers
                               responseClass:(Class _Nullable)responseClass
-                          completionHandler:(AccountitAPICompletionHandler _Nullable)completionHandler __attribute__((objc_direct));
+                          completionHandler:(_AccountitAPIServiceCompletionHandler _Nullable)completionHandler __attribute__((objc_direct));
 + (NSProgress * _Nonnull)_JSONRequestWithMethod:(NSString * _Nonnull)method
                                            path:(NSString * _Nonnull)path
                                           query:(NSDictionary<NSString *, id> * _Nullable)query
                                            body:(NSDictionary<NSString *, id> * _Nullable)body
                                   responseClass:(Class _Nonnull)responseClass
-                              completionHandler:(AccountitAPICompletionHandler _Nullable)completionHandler __attribute__((objc_direct));
+                              completionHandler:(_AccountitAPIServiceCompletionHandler _Nullable)completionHandler __attribute__((objc_direct));
 
 @end
 
@@ -192,7 +194,7 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
     return [URL autorelease];
 }
 
-+ (void)_callCompletionHandler:(AccountitAPICompletionHandler _Nullable)completionHandler
++ (void)_callCompletionHandler:(_AccountitAPIServiceCompletionHandler _Nullable)completionHandler
                       response:(AccountitAPIDTO * _Nullable)response
                          error:(NSError * _Nullable)error __attribute__((objc_direct)) {
     if (!completionHandler) {
@@ -303,7 +305,7 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                              rawContentType:(NSString * _Nullable)rawContentType
                                     headers:(NSDictionary<NSString *, NSString *> * _Nullable)headers
                               responseClass:(Class _Nullable)responseClass
-                          completionHandler:(AccountitAPICompletionHandler _Nullable)completionHandler __attribute__((objc_direct)) {
+                          completionHandler:(_AccountitAPIServiceCompletionHandler _Nullable)completionHandler __attribute__((objc_direct)) {
     NSProgress *progress = [[NSProgress alloc] initWithParent:nil userInfo:nil];
     [progress setTotalUnitCount:1];
     [progress setCompletedUnitCount:0];
@@ -426,7 +428,7 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                           query:(NSDictionary<NSString *, id> * _Nullable)query
                                            body:(NSDictionary<NSString *, id> * _Nullable)body
                                   responseClass:(Class _Nonnull)responseClass
-                              completionHandler:(AccountitAPICompletionHandler _Nullable)completionHandler __attribute__((objc_direct)) {
+                              completionHandler:(_AccountitAPIServiceCompletionHandler _Nullable)completionHandler __attribute__((objc_direct)) {
     return [AccountitAPIService _requestWithMethod:method
                                path:path
                               query:query
@@ -435,87 +437,87 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                      rawContentType:nil
                             headers:nil
                       responseClass:responseClass
-                  completionHandler:completionHandler];
+                  completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaHealthWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaHealthWithCompletionHandler:(AccountitAPICPAHealthResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAHealthResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaHealthzWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaHealthzWithCompletionHandler:(AccountitAPICPAHealthResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/healthz"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAHealthResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaRegisterWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                   completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                   completionHandler:(AccountitAPICPAAuthUserResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
                                    path:@"/auth/register"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAAuthUserResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaLoginWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                completionHandler:(AccountitAPICPAAuthUserResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
                                    path:@"/auth/login"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAAuthUserResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaMeWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaMeWithCompletionHandler:(AccountitAPICPAAuthUserResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/auth/me"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAAuthUserResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaLogoutWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaLogoutWithCompletionHandler:(AccountitAPICPAOkResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
                                    path:@"/auth/logout"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAOkResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaJobsWithQuery:(NSDictionary<NSString *, id> * _Nullable)query
-               completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+               completionHandler:(AccountitAPICPAJobListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/jobs"
                                   query:query
                                    body:nil
                           responseClass:[AccountitAPICPAJobListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaJobCalendarWithQuery:(NSDictionary<NSString *, id> * _Nonnull)query
-                      completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                      completionHandler:(AccountitAPICPAJobCalendarResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/jobs/calendar"
                                   query:query
                                    body:nil
                           responseClass:[AccountitAPICPAJobCalendarResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaJobDetailWithID:(NSString * _Nonnull)jobID
-                 completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                 completionHandler:(AccountitAPICPAJobDetailResponseCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/jobs/%@", [AccountitAPIService _escapedPathComponent:jobID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
@@ -523,12 +525,12 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAJobDetailResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaRecordJobEngagementWithJobID:(NSString * _Nonnull)jobID
                                            body:(NSDictionary<NSString *, id> * _Nonnull)body
-                              completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                              completionHandler:(AccountitAPICPAOkResponseCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/jobs/%@/engagements", [AccountitAPIService _escapedPathComponent:jobID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
@@ -536,21 +538,21 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAOkResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCompaniesWithQuery:(NSDictionary<NSString *, id> * _Nullable)query
-                    completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                    completionHandler:(AccountitAPICPACompanyListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/companies"
                                   query:query
                                    body:nil
                           responseClass:[AccountitAPICPACompanyListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCompanyDetailWithID:(NSString * _Nonnull)companyID
-                     completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                     completionHandler:(AccountitAPICPACompanyDetailItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/companies/%@", [AccountitAPIService _escapedPathComponent:companyID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
@@ -558,89 +560,89 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPACompanyDetailItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaMyCompanyWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaMyCompanyWithCompletionHandler:(AccountitAPICPACompanyDashboardResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/companies/me"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPACompanyDashboardResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaMyCompanyAnalyticsWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaMyCompanyAnalyticsWithCompletionHandler:(AccountitAPICPACompanyAnalyticsDashboardResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/companies/me/analytics"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPACompanyAnalyticsDashboardResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCreateCompanyProfileSubmissionWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                                        completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                        completionHandler:(AccountitAPICPACompanyProfileSubmissionItemCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
                                    path:@"/companies/me/profile-submissions"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPACompanyProfileSubmissionItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaUpdateCompanyLogoWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                           completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                           completionHandler:(AccountitAPICPACompanyDetailItemCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
                                    path:@"/companies/me/logo"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPACompanyDetailItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaUpdateCompanyBackgroundWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                                 completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                 completionHandler:(AccountitAPICPACompanyDetailItemCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
                                    path:@"/companies/me/background"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPACompanyDetailItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCreateCompanyJobAutofillDraftWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                                       completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                       completionHandler:(AccountitAPICPACompanyJobAutofillResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
                                    path:@"/companies/me/job-submissions/ai-draft"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPACompanyJobAutofillResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCreateCompanyJobSubmissionWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                                    completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                    completionHandler:(AccountitAPICPAJobSubmissionItemCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
                                    path:@"/companies/me/job-submissions"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAJobSubmissionItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaMyCompanyJobSubmissionsWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaMyCompanyJobSubmissionsWithCompletionHandler:(AccountitAPICPAJobSubmissionListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/companies/me/job-submissions"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAJobSubmissionListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaUpdateMyCompanyJobSubmissionWithID:(NSString * _Nonnull)submissionID
                                                  body:(NSDictionary<NSString *, id> * _Nonnull)body
-                                    completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                    completionHandler:(AccountitAPICPAJobSubmissionItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/companies/me/job-submissions/%@", [AccountitAPIService _escapedPathComponent:submissionID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
@@ -648,11 +650,11 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAJobSubmissionItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCancelMyCompanyJobSubmissionWithID:(NSString * _Nonnull)submissionID
-                                    completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                    completionHandler:(AccountitAPICPAJobSubmissionItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/companies/me/job-submissions/%@", [AccountitAPIService _escapedPathComponent:submissionID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"DELETE"
@@ -660,21 +662,21 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAJobSubmissionItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaMyCompanyJobsWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaMyCompanyJobsWithCompletionHandler:(AccountitAPICPACompanyManagedJobListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/companies/me/jobs"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPACompanyManagedJobListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCreateCompanyJobEditSubmissionWithJobID:(NSString * _Nonnull)jobID
                                                       body:(NSDictionary<NSString *, id> * _Nonnull)body
-                                         completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                         completionHandler:(AccountitAPICPAJobSubmissionItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/companies/me/jobs/%@/edit-submissions", [AccountitAPIService _escapedPathComponent:jobID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
@@ -682,11 +684,11 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAJobSubmissionItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCloseMyCompanyJobWithID:(NSString * _Nonnull)jobID
-                         completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                         completionHandler:(AccountitAPICPACompanyManagedJobItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/companies/me/jobs/%@", [AccountitAPIService _escapedPathComponent:jobID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"DELETE"
@@ -694,41 +696,41 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPACompanyManagedJobItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCreateCompanyLogoUploadURLWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                                    completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                    completionHandler:(AccountitAPICPAUploadURLResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
                                    path:@"/assets/company-logo/upload-url"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAUploadURLResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCreateCompanyBackgroundUploadURLWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                                          completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                          completionHandler:(AccountitAPICPAUploadURLResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
                                    path:@"/assets/company-background/upload-url"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAUploadURLResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCreateProfileImageUploadURLWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                                     completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                     completionHandler:(AccountitAPICPAUploadURLResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
                                    path:@"/assets/profile-image/upload-url"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAUploadURLResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCompleteAssetUploadWithID:(NSString * _Nonnull)assetID
-                           completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                           completionHandler:(AccountitAPICPAAssetCompletionResponseCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/assets/%@/complete", [AccountitAPIService _escapedPathComponent:assetID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
@@ -736,13 +738,13 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAAssetCompletionResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaUploadLocalAssetWithID:(NSString * _Nonnull)assetID
                                      data:(NSData * _Nonnull)data
                               contentType:(NSString * _Nonnull)contentType
-                        completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                        completionHandler:(AccountitAPICPAAssetItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/assets/%@/local-upload", [AccountitAPIService _escapedPathComponent:assetID]];
 
     return [AccountitAPIService _requestWithMethod:@"PUT"
@@ -753,49 +755,49 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                      rawContentType:contentType
                             headers:nil
                       responseClass:[AccountitAPICPAAssetItem class]
-                  completionHandler:completionHandler];
+                  completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaJobFilterPreferenceWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaJobFilterPreferenceWithCompletionHandler:(AccountitAPICPAJobFilterPreferenceResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/users/me/job-filter"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAJobFilterPreferenceResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaUpdateJobFilterPreferenceWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                                   completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                   completionHandler:(AccountitAPICPAJobFilterPreferenceResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
                                    path:@"/users/me/job-filter"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAJobFilterPreferenceResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaJobPresetsWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaJobPresetsWithCompletionHandler:(AccountitAPICPAUserJobPresetListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/users/me/job-presets"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAUserJobPresetListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCreateJobPresetWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                         completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                         completionHandler:(AccountitAPICPAUserJobPresetItemCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
                                    path:@"/users/me/job-presets"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAUserJobPresetItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaUseJobPresetWithID:(NSString * _Nonnull)presetID
-                    completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                    completionHandler:(AccountitAPICPAUserJobPresetItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/users/me/job-presets/%@/use", [AccountitAPIService _escapedPathComponent:presetID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
@@ -803,11 +805,11 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAUserJobPresetItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaDeleteJobPresetWithID:(NSString * _Nonnull)presetID
-                       completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                       completionHandler:(AccountitAPICPAUserJobPresetItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/users/me/job-presets/%@", [AccountitAPIService _escapedPathComponent:presetID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"DELETE"
@@ -815,89 +817,89 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAUserJobPresetItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaMyProfileWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaMyProfileWithCompletionHandler:(AccountitAPICPAMyProfileResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/mypage/profile"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAMyProfileResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaUpdateMyProfileWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                         completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                         completionHandler:(AccountitAPICPAMyProfileResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
                                    path:@"/mypage/profile"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAMyProfileResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaDeleteMyProfileImageWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaDeleteMyProfileImageWithCompletionHandler:(AccountitAPICPAMyProfileResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"DELETE"
                                    path:@"/mypage/profile/image"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAMyProfileResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaUpdatePasswordWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                        completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                        completionHandler:(AccountitAPICPAOkResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
                                    path:@"/mypage/password"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAOkResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaMyCommunityActivityWithQuery:(NSDictionary<NSString *, id> * _Nullable)query
-                              completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                              completionHandler:(AccountitAPICPAMyCommunityActivityListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/mypage/community-activity"
                                   query:query
                                    body:nil
                           responseClass:[AccountitAPICPAMyCommunityActivityListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCreatePersonalVerificationRequestWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                                           completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                           completionHandler:(AccountitAPICPAPersonalVerificationRequestItemCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
                                    path:@"/mypage/cpa-verification-requests"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAPersonalVerificationRequestItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaBookmarksWithQuery:(NSDictionary<NSString *, id> * _Nullable)query
-                    completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                    completionHandler:(AccountitAPICPABookmarkListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/mypage/bookmarks"
                                   query:query
                                    body:nil
                           responseClass:[AccountitAPICPABookmarkListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCreateBookmarkWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                        completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                        completionHandler:(AccountitAPICPABookmarkItemCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
                                    path:@"/mypage/bookmarks"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPABookmarkItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaDeleteBookmarkWithID:(NSString * _Nonnull)bookmarkID
-                      completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                      completionHandler:(AccountitAPICPAOkResponseCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/mypage/bookmarks/%@", [AccountitAPIService _escapedPathComponent:bookmarkID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"DELETE"
@@ -905,52 +907,52 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAOkResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaJobFitAnalysesWithQuery:(NSDictionary<NSString *, id> * _Nullable)query
-                         completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                         completionHandler:(AccountitAPICPAJobFitAnalysisListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/mypage/job-fit-analyses"
                                   query:query
                                    body:nil
                           responseClass:[AccountitAPICPAJobFitAnalysisListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaHighFitJobAnalysesWithQuery:(NSDictionary<NSString *, id> * _Nullable)query
-                             completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                             completionHandler:(AccountitAPICPAJobFitAnalysisListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/mypage/job-fit-analyses/high-fit"
                                   query:query
                                    body:nil
                           responseClass:[AccountitAPICPAJobFitAnalysisListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCreateJobFitAnalysisWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                              completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                              completionHandler:(AccountitAPICPACreateJobFitAnalysisResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
                                    path:@"/mypage/job-fit-analyses"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPACreateJobFitAnalysisResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaResumesWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaResumesWithCompletionHandler:(AccountitAPICPAResumeListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/mypage/resumes"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAResumeListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCreateResumeWithData:(NSData * _Nonnull)data
                                fileName:(NSString * _Nonnull)fileName
                             contentType:(NSString * _Nonnull)contentType
-                      completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                      completionHandler:(AccountitAPICPAResumeItemCompletionHandler _Nonnull)completionHandler {
     NSString *encodedFileName = [fileName stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
     NSDictionary *headers = [[NSDictionary alloc] initWithObjectsAndKeys:encodedFileName ?: fileName, @"x-file-name", nil];
     NSProgress *progress = [AccountitAPIService _requestWithMethod:@"POST"
@@ -961,7 +963,7 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                      rawContentType:contentType
                                             headers:headers
                                       responseClass:[AccountitAPICPAResumeItem class]
-                                  completionHandler:completionHandler];
+                                  completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 
     [headers release];
 
@@ -969,7 +971,7 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
 }
 
 + (NSProgress * _Nonnull)cpaDownloadResumeWithID:(NSString * _Nonnull)resumeID
-                      completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                      completionHandler:(AccountitAPIFileDownloadResponseCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/mypage/resumes/%@/download", [AccountitAPIService _escapedPathComponent:resumeID]];
 
     return [AccountitAPIService _requestWithMethod:@"GET"
@@ -980,11 +982,11 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                      rawContentType:nil
                             headers:nil
                       responseClass:[AccountitAPIFileDownloadResponse class]
-                  completionHandler:completionHandler];
+                  completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaDeleteResumeWithID:(NSString * _Nonnull)resumeID
-                    completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                    completionHandler:(AccountitAPICPAOkResponseCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/mypage/resumes/%@", [AccountitAPIService _escapedPathComponent:resumeID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"DELETE"
@@ -992,11 +994,11 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAOkResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaSetPrimaryResumeWithID:(NSString * _Nonnull)resumeID
-                        completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                        completionHandler:(AccountitAPICPAResumeItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/mypage/resumes/%@/primary", [AccountitAPIService _escapedPathComponent:resumeID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
@@ -1004,39 +1006,39 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAResumeItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaNotificationsWithQuery:(NSDictionary<NSString *, id> * _Nullable)query
-                        completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                        completionHandler:(AccountitAPICPANotificationListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/notifications"
                                   query:query
                                    body:nil
                           responseClass:[AccountitAPICPANotificationListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaNotificationUnreadCountWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaNotificationUnreadCountWithCompletionHandler:(AccountitAPICPANotificationUnreadCountResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/notifications/unread-count"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPANotificationUnreadCountResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaMarkAllNotificationsReadWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaMarkAllNotificationsReadWithCompletionHandler:(AccountitAPICPANotificationReadAllResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
                                    path:@"/notifications/read-all"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPANotificationReadAllResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaMarkNotificationReadWithID:(NSString * _Nonnull)notificationID
-                            completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                            completionHandler:(AccountitAPICPANotificationItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/notifications/%@/read", [AccountitAPIService _escapedPathComponent:notificationID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
@@ -1044,20 +1046,20 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPANotificationItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaTagSubscriptionsWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaTagSubscriptionsWithCompletionHandler:(AccountitAPICPATagSubscriptionListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/notifications/tag-subscriptions"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPATagSubscriptionListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaSubscribeTagWithLabelID:(NSString * _Nonnull)labelID
-                         completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                         completionHandler:(AccountitAPICPATagSubscriptionItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/notifications/tag-subscriptions/%@", [AccountitAPIService _escapedPathComponent:labelID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PUT"
@@ -1065,11 +1067,11 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPATagSubscriptionItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaUnsubscribeTagWithLabelID:(NSString * _Nonnull)labelID
-                           completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                           completionHandler:(AccountitAPICPAOkResponseCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/notifications/tag-subscriptions/%@", [AccountitAPIService _escapedPathComponent:labelID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"DELETE"
@@ -1077,21 +1079,21 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAOkResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCommunityPostsWithQuery:(NSDictionary<NSString *, id> * _Nullable)query
-                         completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                         completionHandler:(AccountitAPICPACommunityPostListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/community/posts"
                                   query:query
                                    body:nil
                           responseClass:[AccountitAPICPACommunityPostListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCommunityPostDetailWithID:(NSString * _Nonnull)postID
-                           completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                           completionHandler:(AccountitAPICPACommunityPostDetailResponseCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/community/posts/%@", [AccountitAPIService _escapedPathComponent:postID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
@@ -1099,22 +1101,22 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPACommunityPostDetailResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCreateCommunityPostWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                             completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                             completionHandler:(AccountitAPICPACommunityPostItemCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
                                    path:@"/community/posts"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPACommunityPostItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaCreateCommunityAnswerWithPostID:(NSString * _Nonnull)postID
                                               body:(NSDictionary<NSString *, id> * _Nonnull)body
-                                 completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                 completionHandler:(AccountitAPICPACommunityAnswerItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/community/posts/%@/answers", [AccountitAPIService _escapedPathComponent:postID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
@@ -1122,11 +1124,11 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPACommunityAnswerItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaLikeCommunityPostWithID:(NSString * _Nonnull)postID
-                         completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                         completionHandler:(AccountitAPICPACommunityPostItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/community/posts/%@/like", [AccountitAPIService _escapedPathComponent:postID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
@@ -1134,11 +1136,11 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPACommunityPostItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaLikeCommunityAnswerWithID:(NSString * _Nonnull)answerID
-                           completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                           completionHandler:(AccountitAPICPACommunityAnswerItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/community/answers/%@/like", [AccountitAPIService _escapedPathComponent:answerID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
@@ -1146,12 +1148,12 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPACommunityAnswerItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaResolveCommunityPostWithID:(NSString * _Nonnull)postID
                                          body:(NSDictionary<NSString *, id> * _Nonnull)body
-                            completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                            completionHandler:(AccountitAPICPACommunityPostDetailResponseCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/community/posts/%@/resolve", [AccountitAPIService _escapedPathComponent:postID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
@@ -1159,48 +1161,48 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPACommunityPostDetailResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaAdminHealthWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaAdminHealthWithCompletionHandler:(AccountitAPICPAHealthResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/admin/health"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAHealthResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaAdminDashboardWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaAdminDashboardWithCompletionHandler:(AccountitAPICPAAdminDashboardResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/admin/dashboard"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAAdminDashboardResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaAdminSourcesWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaAdminSourcesWithCompletionHandler:(AccountitAPICPASourceListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/admin/sources"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPASourceListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminJobsWithQuery:(NSDictionary<NSString *, id> * _Nullable)query
-                    completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                    completionHandler:(AccountitAPICPAAdminJobListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/admin/jobs"
                                   query:query
                                    body:nil
                           responseClass:[AccountitAPICPAAdminJobListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminJobWithID:(NSString * _Nonnull)jobID
-                completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                completionHandler:(AccountitAPICPAAdminJobItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/admin/jobs/%@", [AccountitAPIService _escapedPathComponent:jobID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
@@ -1208,22 +1210,22 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAAdminJobItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminCreateJobWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                        completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                        completionHandler:(AccountitAPICPAAdminJobItemCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
                                    path:@"/admin/jobs"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAAdminJobItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminUpdateJobWithID:(NSString * _Nonnull)jobID
                                    body:(NSDictionary<NSString *, id> * _Nonnull)body
-                      completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                      completionHandler:(AccountitAPICPAAdminJobItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/admin/jobs/%@", [AccountitAPIService _escapedPathComponent:jobID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
@@ -1231,11 +1233,11 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAAdminJobItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminCloseJobWithID:(NSString * _Nonnull)jobID
-                     completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                     completionHandler:(AccountitAPICPAAdminJobItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/admin/jobs/%@/close", [AccountitAPIService _escapedPathComponent:jobID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
@@ -1243,12 +1245,12 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAAdminJobItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminUpdateJobStatusWithID:(NSString * _Nonnull)jobID
                                          body:(NSDictionary<NSString *, id> * _Nonnull)body
-                            completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                            completionHandler:(AccountitAPICPAAdminJobItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/admin/jobs/%@/status", [AccountitAPIService _escapedPathComponent:jobID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
@@ -1256,11 +1258,11 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAAdminJobItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminRefreshJobWithID:(NSString * _Nonnull)jobID
-                       completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                       completionHandler:(AccountitAPICPAAdminJobItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/admin/jobs/%@/refresh", [AccountitAPIService _escapedPathComponent:jobID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
@@ -1268,20 +1270,20 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAAdminJobItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaAdminAiSuggestionsWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaAdminAiSuggestionsWithCompletionHandler:(AccountitAPICPAAiSuggestionListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/admin/ai-suggestions"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAAiSuggestionListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminApproveAiSuggestionWithID:(NSString * _Nonnull)suggestionID
-                                completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                completionHandler:(AccountitAPICPAAiSuggestionItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/admin/ai-suggestions/%@/approve", [AccountitAPIService _escapedPathComponent:suggestionID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
@@ -1289,11 +1291,11 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAAiSuggestionItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminRejectAiSuggestionWithID:(NSString * _Nonnull)suggestionID
-                               completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                               completionHandler:(AccountitAPICPAAiSuggestionItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/admin/ai-suggestions/%@/reject", [AccountitAPIService _escapedPathComponent:suggestionID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
@@ -1301,21 +1303,21 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAAiSuggestionItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminCompaniesWithQuery:(NSDictionary<NSString *, id> * _Nullable)query
-                         completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                         completionHandler:(AccountitAPICPAAdminCompanyListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/admin/companies"
                                   query:query
                                    body:nil
                           responseClass:[AccountitAPICPAAdminCompanyListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminCompanyWithID:(NSString * _Nonnull)companyID
-                    completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                    completionHandler:(AccountitAPICPAAdminCompanyItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/admin/companies/%@", [AccountitAPIService _escapedPathComponent:companyID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
@@ -1323,22 +1325,22 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAAdminCompanyItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminCreateCompanyWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
-                            completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                            completionHandler:(AccountitAPICPAAdminCompanyItemCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"POST"
                                    path:@"/admin/companies"
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAAdminCompanyItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminUpdateCompanyWithID:(NSString * _Nonnull)companyID
                                        body:(NSDictionary<NSString *, id> * _Nonnull)body
-                          completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                          completionHandler:(AccountitAPICPAAdminCompanyItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/admin/companies/%@", [AccountitAPIService _escapedPathComponent:companyID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
@@ -1346,31 +1348,31 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAAdminCompanyItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminMembersWithQuery:(NSDictionary<NSString *, id> * _Nullable)query
-                       completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                       completionHandler:(AccountitAPICPAAdminMemberListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/admin/members"
                                   query:query
                                    body:nil
                           responseClass:[AccountitAPICPAAdminMemberListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaAdminPersonalVerificationRequestsWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaAdminPersonalVerificationRequestsWithCompletionHandler:(AccountitAPICPAPersonalVerificationRequestListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/admin/cpa-verification-requests"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAPersonalVerificationRequestListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminApprovePersonalVerificationRequestWithID:(NSString * _Nonnull)requestID
                                                            body:(NSDictionary<NSString *, id> * _Nonnull)body
-                                              completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                              completionHandler:(AccountitAPICPAPersonalVerificationRequestItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/admin/cpa-verification-requests/%@/approve", [AccountitAPIService _escapedPathComponent:requestID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
@@ -1378,12 +1380,12 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAPersonalVerificationRequestItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminRejectPersonalVerificationRequestWithID:(NSString * _Nonnull)requestID
                                                           body:(NSDictionary<NSString *, id> * _Nonnull)body
-                                             completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                             completionHandler:(AccountitAPICPAPersonalVerificationRequestItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/admin/cpa-verification-requests/%@/reject", [AccountitAPIService _escapedPathComponent:requestID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
@@ -1391,21 +1393,21 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAPersonalVerificationRequestItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaAdminJobSubmissionsWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaAdminJobSubmissionsWithCompletionHandler:(AccountitAPICPAJobSubmissionListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/admin/job-submissions"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPAJobSubmissionListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminApproveJobSubmissionWithID:(NSString * _Nonnull)submissionID
                                               body:(NSDictionary<NSString *, id> * _Nonnull)body
-                                 completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                 completionHandler:(AccountitAPICPAJobSubmissionItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/admin/job-submissions/%@/approve", [AccountitAPIService _escapedPathComponent:submissionID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
@@ -1413,12 +1415,12 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAJobSubmissionItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminRejectJobSubmissionWithID:(NSString * _Nonnull)submissionID
                                              body:(NSDictionary<NSString *, id> * _Nonnull)body
-                                completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                completionHandler:(AccountitAPICPAJobSubmissionItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/admin/job-submissions/%@/reject", [AccountitAPIService _escapedPathComponent:submissionID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
@@ -1426,21 +1428,21 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPAJobSubmissionItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
-+ (NSProgress * _Nonnull)cpaAdminProfileSubmissionsWithCompletionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
++ (NSProgress * _Nonnull)cpaAdminProfileSubmissionsWithCompletionHandler:(AccountitAPICPACompanyProfileSubmissionListResponseCompletionHandler _Nonnull)completionHandler {
     return [AccountitAPIService _JSONRequestWithMethod:@"GET"
                                    path:@"/admin/profile-submissions"
                                   query:nil
                                    body:nil
                           responseClass:[AccountitAPICPACompanyProfileSubmissionListResponse class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminApproveProfileSubmissionWithID:(NSString * _Nonnull)submissionID
                                                  body:(NSDictionary<NSString *, id> * _Nonnull)body
-                                    completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                    completionHandler:(AccountitAPICPACompanyProfileSubmissionItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/admin/profile-submissions/%@/approve", [AccountitAPIService _escapedPathComponent:submissionID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
@@ -1448,12 +1450,12 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPACompanyProfileSubmissionItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaAdminRejectProfileSubmissionWithID:(NSString * _Nonnull)submissionID
                                                 body:(NSDictionary<NSString *, id> * _Nonnull)body
-                                   completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                                   completionHandler:(AccountitAPICPACompanyProfileSubmissionItemCompletionHandler _Nonnull)completionHandler {
     NSString *path = [AccountitAPIService _pathWithFormat:@"/admin/profile-submissions/%@/reject", [AccountitAPIService _escapedPathComponent:submissionID]];
 
     return [AccountitAPIService _JSONRequestWithMethod:@"PATCH"
@@ -1461,12 +1463,12 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                   query:nil
                                    body:body
                           responseClass:[AccountitAPICPACompanyProfileSubmissionItem class]
-                      completionHandler:completionHandler];
+                      completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 }
 
 + (NSProgress * _Nonnull)cpaOpsDeployWithBody:(NSDictionary<NSString *, id> * _Nonnull)body
                          bearerToken:(NSString * _Nonnull)bearerToken
-                    completionHandler:(AccountitAPICompletionHandler _Nonnull)completionHandler {
+                    completionHandler:(AccountitAPICPAOpsDeployResponseCompletionHandler _Nonnull)completionHandler {
     NSString *authorization = [[NSString alloc] initWithFormat:@"Bearer %@", bearerToken];
     NSDictionary *headers = [[NSDictionary alloc] initWithObjectsAndKeys:authorization, @"Authorization", nil];
     [authorization release];
@@ -1479,7 +1481,7 @@ NSString * _Nonnull const AccountitAPIHTTPStatusCodeKey = @"AccountitAPIHTTPStat
                                      rawContentType:nil
                                             headers:headers
                                       responseClass:[AccountitAPICPAOpsDeployResponse class]
-                                  completionHandler:completionHandler];
+                                  completionHandler:(_AccountitAPIServiceCompletionHandler)completionHandler];
 
     [headers release];
 
